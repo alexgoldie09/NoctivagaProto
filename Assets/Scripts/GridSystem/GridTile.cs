@@ -1,5 +1,9 @@
 using UnityEngine;
 
+#if UNITY_EDITOR
+using UnityEditor;
+#endif
+
 public enum TileType 
 {
     Floor,
@@ -22,17 +26,23 @@ public class GridTile : MonoBehaviour
     void Awake() 
     {
         sr = GetComponent<SpriteRenderer>();
+        UpdateVisual();
     }
 
     public void Init(Vector2Int pos, TileType type) 
     {
         gridPos = pos;
         tileType = type;
+        sr = GetComponent<SpriteRenderer>();
         UpdateVisual();
     }
 
     public void UpdateVisual() 
     {
+        if (sr == null)
+        {
+            sr = GetComponent<SpriteRenderer>();
+        }
         switch (tileType) 
         {
             case TileType.Floor: sr.sprite = floorSprite; break;
@@ -51,4 +61,16 @@ public class GridTile : MonoBehaviour
         tileType = newType;
         UpdateVisual();
     }
+    
+#if UNITY_EDITOR
+    void OnValidate() 
+    {
+        UpdateVisual();
+    }
+
+    void OnDrawGizmos() 
+    {
+        Handles.Label(transform.position + Vector3.up * 0.3f, tileType.ToString());
+    }
+#endif
 }

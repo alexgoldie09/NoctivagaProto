@@ -148,9 +148,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 332dd252383d742f2b7005d331849c2d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  width: 6
-  height: 6
   tilePrefab: {fileID: 2341697093623755665, guid: a308ba0f180754a639bd4cc62065d82a, type: 3}
+  floorSprite: {fileID: 21300000, guid: 2538710101d0f1f4e8976b3495cd1f75, type: 3}
+  voidSprite: {fileID: -4293226751833479062, guid: fc584d329b77b9545b9c9c8bb829e553, type: 3}
+  wallSprite: {fileID: -3271834841568197018, guid: fc584d329b77b9545b9c9c8bb829e553, type: 3}
+  generateFromMapData: 0
+  mapData: {fileID: 11400000, guid: ac98cce3f314b46a88939e5b1920b9c6, type: 2}
 --- !u!4 &202830314
 Transform:
   m_ObjectHideFlags: 0
@@ -316,7 +319,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ba0966ecd18414cfc99d0c787d741366, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  gridManager: {fileID: 202830313}
   padding: 0
   cameraZOffset: -10
 --- !u!1 &619124174
@@ -350,7 +352,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: cfd25678a91d34e4a83e0573a2e990b8, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  gridManager: {fileID: 202830313}
 --- !u!212 &619124176
 SpriteRenderer:
   m_ObjectHideFlags: 0

@@ -3,13 +3,18 @@ using System.Collections.Generic;
 
 public class PlayerController : MonoBehaviour 
 {
-    public GridManager gridManager;
-
     private Vector2Int gridPos;
 
     void Start() 
     {
-        Vector2Int center = new Vector2Int(gridManager.width / 2, gridManager.height / 2);
+        GridManager grid = GridManager.Instance;
+        if (grid == null) 
+        {
+            Debug.LogError("GridManager instance not found.");
+            return;
+        }
+
+        Vector2Int center = new Vector2Int(grid.width / 2, grid.height / 2);
         gridPos = FindNearestWalkable(center);
         transform.position = GridToWorld(gridPos);
     }
@@ -36,9 +41,11 @@ public class PlayerController : MonoBehaviour
     void TryMove(Vector2Int direction) 
     {
         Vector2Int nextPos = gridPos + direction;
+        var grid = GridManager.Instance;
 
-        if (gridManager.IsInBounds(nextPos.x, nextPos.y) &&
-            gridManager.IsWalkable(nextPos.x, nextPos.y)) {
+        if (grid.IsInBounds(nextPos.x, nextPos.y) &&
+            grid.IsWalkable(nextPos.x, nextPos.y)) 
+        {
 
             gridPos = nextPos;
             transform.position = GridToWorld(gridPos);
@@ -47,28 +54,33 @@ public class PlayerController : MonoBehaviour
 
     Vector2Int FindNearestWalkable(Vector2Int center) 
     {
-        if (gridManager.IsWalkable(center.x, center.y)) return center;
+        var grid = GridManager.Instance;
+
+        if (grid.IsWalkable(center.x, center.y)) return center;
 
         Queue<Vector2Int> queue = new Queue<Vector2Int>();
         HashSet<Vector2Int> visited = new HashSet<Vector2Int>();
         queue.Enqueue(center);
         visited.Add(center);
 
-        Vector2Int[] directions = {
+        Vector2Int[] directions = 
+        {
             Vector2Int.up, Vector2Int.down,
             Vector2Int.left, Vector2Int.right
         };
 
-        while (queue.Count > 0) {
+        while (queue.Count > 0) 
+        {
             Vector2Int current = queue.Dequeue();
 
-            foreach (var dir in directions) {
+            foreach (var dir in directions) 
+            {
                 Vector2Int neighbor = current + dir;
 
-                if (visited.Contains(neighbor) || !gridManager.IsInBounds(neighbor.x, neighbor.y))
+                if (visited.Contains(neighbor) || !grid.IsInBounds(neighbor.x, neighbor.y))
                     continue;
 
-                if (gridManager.IsWalkable(neighbor.x, neighbor.y))
+                if (grid.IsWalkable(neighbor.x, neighbor.y))
                     return neighbor;
 
                 queue.Enqueue(neighbor);
@@ -77,7 +89,7 @@ public class PlayerController : MonoBehaviour
         }
 
         Debug.LogWarning("No walkable tile found near center. Player may be stuck.");
-        return center; // fallback (could be void!)
+        return center; // fallback
     }
 
     Vector3 GridToWorld(Vector2Int pos) 
