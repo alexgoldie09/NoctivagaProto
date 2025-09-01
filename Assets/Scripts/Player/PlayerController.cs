@@ -4,9 +4,13 @@ using System.Collections.Generic;
 public class PlayerController : MonoBehaviour 
 {
     private Vector2Int gridPos;
+    private Vector2Int lastDirection = Vector2Int.right; // Default to right-facing
+    private SpriteRenderer sr;
 
     void Start() 
     {
+        sr = GetComponent<SpriteRenderer>();
+
         GridManager grid = GridManager.Instance;
         if (grid == null) 
         {
@@ -19,7 +23,12 @@ public class PlayerController : MonoBehaviour
         transform.position = GridToWorld(gridPos);
     }
 
-    void Update() 
+    void Update()
+    {
+        HandleInput();
+    }
+
+    private void HandleInput()
     {
         Vector2Int input = Vector2Int.zero;
 
@@ -32,8 +41,12 @@ public class PlayerController : MonoBehaviour
         else if (Input.GetKeyDown(KeyCode.D) || Input.GetKeyDown(KeyCode.RightArrow))
             input = Vector2Int.right;
 
-        if (input != Vector2Int.zero) 
-        {
+        if (input != Vector2Int.zero) {
+            lastDirection = input; // update direction here
+            if (lastDirection.x != 0) 
+            {
+                sr.flipX = lastDirection.x < 0;
+            }
             TryMove(input);
         }
     }
@@ -46,7 +59,6 @@ public class PlayerController : MonoBehaviour
         if (grid.IsInBounds(nextPos.x, nextPos.y) &&
             grid.IsWalkable(nextPos.x, nextPos.y)) 
         {
-
             gridPos = nextPos;
             transform.position = GridToWorld(gridPos);
         }
@@ -96,4 +108,7 @@ public class PlayerController : MonoBehaviour
     {
         return new Vector3(pos.x, pos.y, 0f);
     }
+    
+    public Vector2Int GridPosition => gridPos;
+    public Vector2Int FacingDirection => lastDirection;
 }

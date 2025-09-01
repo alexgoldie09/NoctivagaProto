@@ -107,7 +107,23 @@ public class GridManager : MonoBehaviour
     {
         return IsInBounds(x, y) ? gridTiles[x, y] : null;
     }
+    
+    public bool CanPlaceShape(Vector2Int origin, Vector2Int[] offsets) 
+    {
+        foreach (var offset in offsets) 
+        {
+            Vector2Int checkPos = origin + offset;
 
+            if (!IsInBounds(checkPos.x, checkPos.y))
+                return false;
+
+            GridTile tile = gridTiles[checkPos.x, checkPos.y];
+            if (tile == null || tile.tileType != TileType.Void)
+                return false;
+        }
+        return true;
+    }
+    
     public Vector2Int? FindSpawnPoint() 
     {
         if (generateFromMapData && mapData != null) return mapData.FindSpawnPoint();
