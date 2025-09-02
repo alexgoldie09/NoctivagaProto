@@ -9,25 +9,25 @@ public class ShapePlacer : MonoBehaviour
     public Color invalidColor = new Color(1f, 0f, 0f, 0.5f);
     public Color overPlayerColor = new Color(0f, 1f, 1f, 0.5f); // Debug: cyan
 
-    [Header("Shape Inventory")]
-    public List<ShapeInventoryEntry> inventory;
-
     private int currentShapeIndex = 0;
     private int currentRotation = 0;
     private PlayerController player;
+    private PlayerInventory inventory;
     private List<GameObject> previewTiles = new List<GameObject>();
 
-    private ShapeInventoryEntry CurrentShapeEntry => inventory[currentShapeIndex];
+    private ShapeInventoryEntry CurrentShapeEntry => inventory.shapeInventory[currentShapeIndex];
     public int CurrentIndex => currentShapeIndex;
 
     void Start()
     {
         player = GetComponentInParent<PlayerController>();
+        inventory = GetComponentInParent<PlayerInventory>();
+
         if (player == null)
-        {
             Debug.LogError("ShapePlacer must be a child of an object with PlayerController.");
-            return;
-        }
+
+        if (inventory == null)
+            Debug.LogError("ShapePlacer must be a child of an object with PlayerInventory.");
 
         UpdatePreview();
     }
@@ -43,10 +43,10 @@ public class ShapePlacer : MonoBehaviour
         }
         else
         {
-            ClearPreview(); // Ensure no ghosts remain
+            ClearPreview();
         }
     }
-    
+
     private void HandleToggleInput()
     {
         if (Input.GetKeyDown(KeyCode.F))
@@ -80,32 +80,26 @@ public class ShapePlacer : MonoBehaviour
     private void CycleShape(int direction)
     {
         int tries = 0;
+        int count = inventory.shapeInventory.Count;
+
         do
         {
-            currentShapeIndex = (currentShapeIndex + direction + inventory.Count) % inventory.Count;
+            currentShapeIndex = (currentShapeIndex + direction + count) % count;
             tries++;
-        } while (CurrentShapeEntry.count <= 0 && tries < inventory.Count);
-
-        //Debug.Log($"Selected shape: {CurrentShapeEntry.shapeData.name} (x{CurrentShapeEntry.count})");
+        } while (CurrentShapeEntry.count <= 0 && tries < count);
     }
 
     private void TryPlaceCurrentShape()
     {
-        if (CurrentShapeEntry.count <= 0)
-        {
-            //Debug.LogWarning($"No more uses left for {CurrentShapeEntry.shapeData.name}");
+        if (!inventory.ConsumeShape(CurrentShapeEntry.shapeData))
             return;
-        }
 
         var shape = CurrentShapeEntry.shapeData;
         var origin = player.GridPosition + player.FacingDirection;
         Vector2Int[] rotatedOffsets = GetRotatedOffsets(shape.tileOffsets, currentRotation);
 
         if (!GridManager.Instance.CanPlaceShape(origin, rotatedOffsets))
-        {
-            //Debug.Log("Invalid placement location.");
             return;
-        }
 
         foreach (var offset in rotatedOffsets)
         {
@@ -118,23 +112,17 @@ public class ShapePlacer : MonoBehaviour
             }
         }
 
-        CurrentShapeEntry.count--;
-        //Debug.Log($"Placed {shape.name}. Remaining: {CurrentShapeEntry.count}");
-
         UpdatePreview();
     }
 
     void UpdatePreview()
     {
-        if (player == null) return;
+        if (player == null || inventory.shapeInventory.Count == 0) return;
 
         ClearPreview();
-        
-        // Don't show preview if shape has no uses left
-        if (CurrentShapeEntry.count <= 0)
-        {
+
+        if (!inventory.HasShape(CurrentShapeEntry.shapeData))
             return;
-        }
 
         var shape = CurrentShapeEntry.shapeData;
         var origin = player.GridPosition + player.FacingDirection;
@@ -148,14 +136,9 @@ public class ShapePlacer : MonoBehaviour
             GameObject tile = Instantiate(previewTilePrefab, new Vector3(pos.x, pos.y, 0), Quaternion.identity);
             var sr = tile.GetComponent<SpriteRenderer>();
 
-            if (pos == player.GridPosition)
-            {
-                sr.color = overPlayerColor; // Debugging if preview overlaps player
-            }
-            else
-            {
-                sr.color = valid ? validColor : invalidColor;
-            }
+            sr.color = (pos == player.GridPosition)
+                ? overPlayerColor
+                : (valid ? validColor : invalidColor);
 
             previewTiles.Add(tile);
         }
@@ -177,9 +160,8 @@ public class ShapePlacer : MonoBehaviour
         {
             Vector2Int p = original[i];
             for (int r = 0; r < rotationStepsCW; r++)
-            {
-                p = new Vector2Int(-p.y, p.x); // 90° CW rotation
-            }
+                p = new Vector2Int(-p.y, p.x);
+
             result[i] = p;
         }
         return result;

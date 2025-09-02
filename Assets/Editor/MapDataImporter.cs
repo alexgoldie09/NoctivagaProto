@@ -7,7 +7,7 @@ public class MapDataImporter : EditorWindow
     private MapData mapToImport;
     private GameObject tilePrefab;
     private Transform parent;
-    private Sprite floorSprite, voidSprite, wallSprite;
+    private Sprite floorSprite, voidSprite, wallSprite, gateSprite;
 
     [MenuItem("Noctivaga/Import Map To Scene")]
     public static void ShowWindow() 
@@ -27,6 +27,7 @@ public class MapDataImporter : EditorWindow
         floorSprite = (Sprite)EditorGUILayout.ObjectField("Floor Sprite", floorSprite, typeof(Sprite), false);
         voidSprite = (Sprite)EditorGUILayout.ObjectField("Void Sprite", voidSprite, typeof(Sprite), false);
         wallSprite = (Sprite)EditorGUILayout.ObjectField("Wall Sprite", wallSprite, typeof(Sprite), false);
+        gateSprite = (Sprite)EditorGUILayout.ObjectField("Gate Sprite", gateSprite, typeof(Sprite), false);
 
         EditorGUILayout.Space();
         if (GUILayout.Button("Import Map Into Scene")) 
@@ -73,6 +74,7 @@ public class MapDataImporter : EditorWindow
                 tile.floorSprite = floorSprite;
                 tile.voidSprite = voidSprite;
                 tile.wallSprite = wallSprite;
+                tile.gateSprite = gateSprite;
                 tile.UpdateVisual();
             }
         }

@@ -1,4 +1,5 @@
 using UnityEngine;
+using System.Collections.Generic;
 
 public class GridManager : MonoBehaviour 
 {
@@ -9,6 +10,7 @@ public class GridManager : MonoBehaviour
     public Sprite floorSprite;
     public Sprite voidSprite;
     public Sprite wallSprite;
+    public Sprite gateSprite;
 
     [Header("Runtime Map Loading")]
     public bool generateFromMapData = false; // Toggle for runtime vs editor-drawn
@@ -33,7 +35,8 @@ public class GridManager : MonoBehaviour
         if (generateFromMapData && mapData != null) 
         {
             GenerateGridFromMapData();
-        } else 
+        } 
+        else 
         {
             // Assuming gridTiles already placed in editor using spawner or manually
             CacheEditorPlacedTiles();
@@ -60,6 +63,7 @@ public class GridManager : MonoBehaviour
                 tile.floorSprite = floorSprite;
                 tile.voidSprite = voidSprite;
                 tile.wallSprite = wallSprite;
+                tile.gateSprite = gateSprite;
                 tile.UpdateVisual();
 
                 gridTiles[x, y] = tile;
@@ -69,7 +73,7 @@ public class GridManager : MonoBehaviour
 
     private void CacheEditorPlacedTiles() 
     {
-        GridTile[] foundTiles = FindObjectsByType<GridTile>(FindObjectsSortMode.None);
+        GridTile[] foundTiles = GetComponentsInChildren<GridTile>(true); // true = include inactive
 
         int maxX = 0;
         int maxY = 0;
@@ -123,24 +127,18 @@ public class GridManager : MonoBehaviour
         }
         return true;
     }
-    
-    public Vector2Int? FindSpawnPoint() 
-    {
-        if (generateFromMapData && mapData != null) return mapData.FindSpawnPoint();
-
-        for (int y = 0; y < height; y++)
-        {
-            for (int x = 0; x < width; x++) 
-            {
-                GridTile tile = GetTileAt(x, y);
-                if (tile != null && tile.tileType == TileType.Floor) 
-                    return new Vector2Int(x, y); // fallback
-            }
-        }
-
-        Debug.LogWarning("No valid spawn point found.");
-        return null;
-    }
 
     public GridTile[,] GetGridArray() => gridTiles;
+    
+    public IEnumerable<GridTile> AllTiles
+    {
+        get
+        {
+            foreach (var tile in gridTiles)
+            {
+                if (tile != null)
+                    yield return tile;
+            }
+        }
+    }
 }

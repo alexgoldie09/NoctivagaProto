@@ -56,8 +56,34 @@ public class PlayerController : MonoBehaviour
         Vector2Int nextPos = gridPos + direction;
         var grid = GridManager.Instance;
 
-        if (grid.IsInBounds(nextPos.x, nextPos.y) &&
-            grid.IsWalkable(nextPos.x, nextPos.y)) 
+        if (!grid.IsInBounds(nextPos.x, nextPos.y))
+            return;
+
+        GridTile targetTile = grid.GetTileAt(nextPos.x, nextPos.y);
+        if (targetTile == null)
+            return;
+
+        // Gate check
+        if (targetTile.tileType == TileType.Gate)
+        {
+            PlayerInventory inventory = GetComponent<PlayerInventory>();
+
+            if (inventory != null)
+            {
+                if (targetTile.CanUnlock(inventory))
+                {
+                    targetTile.UnlockWithKeys(inventory);
+                }
+                else
+                {
+                    string keyIds = string.Join(", ", targetTile.requiredKeyIds);
+                    Debug.Log($"Can't unlock, you need: {keyIds}");
+                    return;
+                }
+            }
+        }
+
+        if (targetTile.IsWalkable())
         {
             gridPos = nextPos;
             transform.position = GridToWorld(gridPos);

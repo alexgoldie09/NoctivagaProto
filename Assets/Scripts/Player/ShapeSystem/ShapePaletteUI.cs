@@ -9,13 +9,16 @@ public class ShapePaletteUI : MonoBehaviour
 
     private List<ShapeIconUI> iconInstances = new List<ShapeIconUI>();
     private ShapePlacer shapePlacer;
+    private PlayerInventory inventory;
 
     void Start()
     {
         shapePlacer = FindAnyObjectByType<ShapePlacer>();
-        if (shapePlacer == null)
+        inventory = FindAnyObjectByType<PlayerInventory>();
+
+        if (shapePlacer == null || inventory == null)
         {
-            Debug.LogError("ShapePlacer not found for palette UI.");
+            Debug.LogError("ShapePlacer or PlayerInventory not found for ShapePaletteUI.");
             return;
         }
 
@@ -29,7 +32,7 @@ public class ShapePaletteUI : MonoBehaviour
 
     void CreateIcons()
     {
-        foreach (var shapeEntry in shapePlacer.inventory)
+        foreach (var shapeEntry in inventory.shapeInventory)
         {
             GameObject go = Instantiate(shapeIconPrefab, iconParent);
             ShapeIconUI icon = go.GetComponent<ShapeIconUI>();
@@ -41,10 +44,15 @@ public class ShapePaletteUI : MonoBehaviour
     {
         for (int i = 0; i < iconInstances.Count; i++)
         {
-            var entry = shapePlacer.inventory[i];
+            var entry = inventory.shapeInventory[i];
             bool isSelected = (i == shapePlacer.CurrentIndex) && Utilities.IsPlacementModeActive;
 
-            iconInstances[i].SetData(entry.shapeData.previewSprite, entry.count, isSelected, entry.count > 0);
+            iconInstances[i].SetData(
+                entry.shapeData.previewSprite,
+                entry.count,
+                isSelected,
+                entry.count > 0
+            );
         }
     }
 }

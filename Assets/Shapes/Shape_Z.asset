@@ -18,4 +18,4 @@ MonoBehaviour:
   - {x: -1, y: 1}
   - {x: 0, y: 1}
   - {x: 1, y: 0}
-  previewSprite: {fileID: 21300000, guid: 2538710101d0f1f4e8976b3495cd1f75, type: 3}
+  previewSprite: {fileID: -2901781761797233544, guid: e6911b99eac4b406eb2a72116fcf4cf7, type: 3}
