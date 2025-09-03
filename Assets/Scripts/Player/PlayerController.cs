@@ -41,13 +41,19 @@ public class PlayerController : MonoBehaviour
         else if (Input.GetKeyDown(KeyCode.D) || Input.GetKeyDown(KeyCode.RightArrow))
             input = Vector2Int.right;
 
-        if (input != Vector2Int.zero) {
+        if (input != Vector2Int.zero) 
+        {
             lastDirection = input; // update direction here
             if (lastDirection.x != 0) 
             {
                 sr.flipX = lastDirection.x < 0;
             }
             TryMove(input);
+        }
+        
+        if (Input.GetKeyDown(KeyCode.R))
+        {
+            TryInteract();
         }
     }
 
@@ -89,8 +95,19 @@ public class PlayerController : MonoBehaviour
             transform.position = GridToWorld(gridPos);
         }
     }
+    
+    void TryInteract()
+    {
+        Vector2Int targetPos = GridPosition + FacingDirection;
+        GridTile tile = GridManager.Instance.GetTileAt(targetPos.x, targetPos.y);
 
-    Vector2Int FindNearestWalkable(Vector2Int center) 
+        if (tile != null && tile.HasObstacle(out ObstacleBase obstacle))
+        {
+            obstacle.Interact();
+        }
+    }
+
+    public Vector2Int FindNearestWalkable(Vector2Int center) 
     {
         var grid = GridManager.Instance;
 
@@ -133,6 +150,12 @@ public class PlayerController : MonoBehaviour
     Vector3 GridToWorld(Vector2Int pos) 
     {
         return new Vector3(pos.x, pos.y, 0f);
+    }
+    
+    public void TeleportTo(Vector2Int newPos)
+    {
+        gridPos = newPos;
+        transform.position = GridToWorld(newPos);
     }
     
     public Vector2Int GridPosition => gridPos;

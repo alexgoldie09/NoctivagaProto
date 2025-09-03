@@ -122,7 +122,7 @@ public class GridManager : MonoBehaviour
                 return false;
 
             GridTile tile = gridTiles[checkPos.x, checkPos.y];
-            if (tile == null || tile.tileType != TileType.Void)
+            if (tile == null || tile.BlocksShapePlacement())
                 return false;
         }
         return true;

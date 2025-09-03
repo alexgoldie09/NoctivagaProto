@@ -23,7 +23,11 @@ public class GridTile : MonoBehaviour
     public Sprite voidSprite;
     public Sprite wallSprite;
     public Sprite gateSprite;
-
+    
+    [Header("Obstacle (Optional)")]
+    public ObstacleBase obstacle;
+    public bool isBeamBlocking = false; // dynamic beam blocker
+    
     private SpriteRenderer sr;
 
     void Awake() 
@@ -31,14 +35,7 @@ public class GridTile : MonoBehaviour
         sr = GetComponent<SpriteRenderer>();
         UpdateVisual();
     }
-
-    public void Init(Vector2Int pos, TileType type) 
-    {
-        gridPos = pos;
-        tileType = type;
-        sr = GetComponent<SpriteRenderer>();
-        UpdateVisual();
-    }
+    
 
     public void UpdateVisual() 
     {
@@ -55,9 +52,36 @@ public class GridTile : MonoBehaviour
         }
     }
 
-    public bool IsWalkable() 
+    public bool IsWalkable()
     {
-        return tileType == TileType.Floor;
+        if (tileType == TileType.Void || tileType == TileType.Wall || isBeamBlocking)
+            return false;
+
+        if (obstacle != null && obstacle.BlocksMovement())
+            return false;
+
+        return true;
+    }
+    
+    public bool BlocksShapePlacement()
+    {
+        // These tile types are allowed
+        if (tileType != TileType.Void)
+            return true;
+
+        if (isBeamBlocking)
+            return true;
+
+        if (obstacle != null && obstacle.BlocksShapePlacement())
+            return true;
+
+        return false;
+    }
+    
+    public bool HasObstacle(out ObstacleBase obs)
+    {
+        obs = obstacle;
+        return obstacle != null;
     }
 
     public void SetTileType(TileType newType) 
