@@ -1,0 +1,19 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6b5a918b1600643698b530efdea530d3, type: 3}
+  m_Name: RegisterOne
+  m_EditorClassIdentifier: 
+  obstacles:
+  - id: MirrorObstacle
+    prefab: {fileID: 8184025694766334217, guid: df53db57533844a0ebc20a29ec27d090, type: 3}
+  - id: LeverObstacle
+    prefab: {fileID: 4875427333265784978, guid: 0cae6f616b113483198e43e56250d8a2, type: 3}

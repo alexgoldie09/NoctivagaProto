@@ -1,31 +1,19 @@
 using UnityEngine;
+using System.Collections.Generic;
 
 /// <summary>
-/// Base class for all tile-based obstacles (mirror, wheel, etc).
+/// Base class for all tile-based obstacles (mirror, lever, etc).
 /// Obstacles sit on top of a GridTile and block or interact with gameplay.
 /// </summary>
 public abstract class ObstacleBase : MonoBehaviour
 {
-    [Tooltip("Optional: Grid tile this obstacle is attached to.")]
-    public GridTile hostTile;
-
-    /// <summary>
-    /// Called once after obstacle is placed or initialized.
-    /// Useful for registration, linking to tile, etc.
-    /// </summary>
-    public virtual void Initialize(GridTile tile)
-    {
-        hostTile = tile;
-        tile.obstacle = this;
-    }
-
     /// <summary>
     /// Whether this obstacle blocks player movement.
     /// Override for custom logic like rotating mirrors.
     /// </summary>
     public virtual bool BlocksMovement()
     {
-        return true; // Default blocks unless overridden
+        return true;
     }
 
     /// <summary>
@@ -41,6 +29,22 @@ public abstract class ObstacleBase : MonoBehaviour
     /// </summary>
     public virtual void Interact()
     {
-        // Default: do nothing. Mirrors or wheels can override.
+        // Default: do nothing. Mirrors or levers can override.
+    }
+
+    /// <summary>
+    /// Export metadata for saving into MapData (override per obstacle).
+    /// </summary>
+    public virtual Dictionary<string, string> GetMetadata()
+    {
+        return new Dictionary<string, string>();
+    }
+
+    /// <summary>
+    /// Import metadata when loading from MapData (override per obstacle).
+    /// </summary>
+    public virtual void SetMetadata(Dictionary<string, string> data)
+    {
+        // Override in child class to restore state
     }
 }

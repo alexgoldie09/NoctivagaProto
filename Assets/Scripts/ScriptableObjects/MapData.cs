@@ -1,34 +1,94 @@
 using UnityEngine;
+using System.Collections.Generic;
 
-[CreateAssetMenu(fileName = "NewMapData", menuName = "Noctivaga/Map Data")]
-public class MapData : ScriptableObject 
+
+/// <summary>
+/// ScriptableObject that stores all serialized tile and obstacle information
+/// used to regenerate the map layout during runtime or from editor.
+/// </summary>
+[CreateAssetMenu(menuName = "Grid/Map Data")]
+public class MapData : ScriptableObject
 {
     public int width;
     public int height;
-    public TileType[] tiles; // Flattened grid data
 
-    public TileType GetTile(int x, int y) 
+
+    [System.Serializable]
+    public class TileInfo
     {
-        return tiles[y * width + x];
+        public TileType type; // Stores tile type like Floor, Void, Gate, Start
+        public string obstacleType; // Stores string ID of obstacle prefab
+        public string[] gateRequiredKeys; // Gate requirement info
+
+
+        // Generic obstacle metadata for storing things like mirror direction, lever targets, etc.
+        public SerializableDictionary<string, string> obstacleMetadata;
     }
+    
+    [SerializeField]
+    public TileInfo[] tileInfos; // Flattened grid representation
 
-    public void SetTile(int x, int y, TileType type) 
+    /// <summary>
+    /// Returns TileInfo at (x, y)
+    /// </summary>
+    public TileInfo GetTileInfo(int x, int y)
     {
-        tiles[y * width + x] = type;
+        return tileInfos[y * width + x];
     }
-
-    public Vector2Int? FindSpawnPoint() 
+    
+    /// <summary>
+    /// Updates TileInfo at (x, y)
+    /// </summary>
+    public void SetTileInfo(int x, int y, TileInfo info)
     {
-        for (int y = 0; y < height; y++) 
+        tileInfos[y * width + x] = info;
+    }
+    
+    /// <summary>
+    /// Initializes the grid with default Floor-type tiles.
+    /// </summary>
+    public void InitializeTiles()
+    {
+        tileInfos = new TileInfo[width * height];
+        for (int i = 0; i < tileInfos.Length; i++)
         {
-            for (int x = 0; x < width; x++) 
+            tileInfos[i] = new TileInfo { type = TileType.Floor, obstacleMetadata = new SerializableDictionary<string, string>() };
+        }
+    }
+    
+    /// <summary>
+    /// Finds all tile positions of the specified TileType.
+    /// </summary>
+    public List<Vector2Int> FindTilesOfType(TileType type)
+    {
+        List<Vector2Int> positions = new List<Vector2Int>();
+        for (int y = 0; y < height; y++)
+        {
+            for (int x = 0; x < width; x++)
             {
-                if (GetTile(x, y) == TileType.Floor) 
+                if (GetTileInfo(x, y).type == type)
                 {
-                    return new Vector2Int(x, y);
+                    positions.Add(new Vector2Int(x, y));
                 }
             }
         }
-        return null;
+        return positions;
+    }
+
+
+    /// <summary>
+    /// Returns how many tiles of the given type exist in the map.
+    /// </summary>
+    public int CountTilesOfType(TileType type)
+    {
+        int count = 0;
+        for (int i = 0; i < tileInfos.Length; i++)
+        {
+            if (tileInfos[i].type == type)
+            {
+                count++;
+            }
+        }
+        return count;
     }
 }

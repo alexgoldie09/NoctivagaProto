@@ -4,29 +4,38 @@ using UnityEngine;
 using UnityEditor;
 #endif
 
+/// <summary>
+/// Types of tiles on the grid.
+/// </summary>
 public enum TileType 
 {
     Floor,
     Void,
     Wall,
-    Gate
+    Gate,
+    Start
 }
 
+/// <summary>
+/// Represents a single tile on the grid. Responsible for its visual,
+/// behavior, and interactions with obstacles and players.
+/// </summary>
 public class GridTile : MonoBehaviour 
 {
-    public Vector2Int gridPos;
-    public TileType tileType;
-    public string[] requiredKeyIds;
+    public Vector2Int gridPos;                        // Grid location
+    public TileType tileType;                         // Type of tile
+    public string[] requiredKeyIds;                   // Keys required if this is a Gate
 
     [Header("Tile Sprites")]
     public Sprite floorSprite;
     public Sprite voidSprite;
     public Sprite wallSprite;
     public Sprite gateSprite;
+    public Sprite startSprite;
     
     [Header("Obstacle (Optional)")]
-    public ObstacleBase obstacle;
-    public bool isBeamBlocking = false; // dynamic beam blocker
+    public ObstacleBase obstacle;                     // Optional obstacle reference
+    public bool isBeamBlocking = false;               // True if dynamic beam makes this tile unwalkable
     
     private SpriteRenderer sr;
 
@@ -37,21 +46,27 @@ public class GridTile : MonoBehaviour
     }
     
 
+    /// <summary>
+    /// Updates the tile's sprite based on its type.
+    /// </summary>
     public void UpdateVisual() 
     {
         if (sr == null)
-        {
             sr = GetComponent<SpriteRenderer>();
-        }
+
         switch (tileType) 
         {
             case TileType.Floor: sr.sprite = floorSprite; break;
-            case TileType.Void: sr.sprite = voidSprite; break;
-            case TileType.Wall: sr.sprite = wallSprite; break;
-            case TileType.Gate: sr.sprite = gateSprite; break;
+            case TileType.Void:  sr.sprite = voidSprite;  break;
+            case TileType.Wall:  sr.sprite = wallSprite;  break;
+            case TileType.Gate:  sr.sprite = gateSprite;  break;
+            case TileType.Start: sr.sprite = startSprite; break;
         }
     }
 
+    /// <summary>
+    /// Determines if the tile can be walked on by the player.
+    /// </summary>
     public bool IsWalkable()
     {
         if (tileType == TileType.Void || tileType == TileType.Wall || isBeamBlocking)
@@ -63,9 +78,12 @@ public class GridTile : MonoBehaviour
         return true;
     }
     
+    /// <summary>
+    /// Determines if the tile blocks shape placement.
+    /// Only Void tiles without beam or obstacles allow placement.
+    /// </summary>
     public bool BlocksShapePlacement()
     {
-        // These tile types are allowed
         if (tileType != TileType.Void)
             return true;
 
@@ -78,33 +96,51 @@ public class GridTile : MonoBehaviour
         return false;
     }
     
+    /// <summary>
+    /// Updates this tile's obstacle.
+    /// </summary>
+    public void SetObstacle(ObstacleBase obs)
+    {
+        obstacle = obs;
+    }
+
+    /// <summary>
+    /// Returns true if this tile has an obstacle.
+    /// </summary>
     public bool HasObstacle(out ObstacleBase obs)
     {
         obs = obstacle;
         return obstacle != null;
     }
 
+    /// <summary>
+    /// Updates this tile's type and refreshes its visual.
+    /// </summary>
     public void SetTileType(TileType newType) 
     {
         tileType = newType;
         UpdateVisual();
     }
 
+    /// <summary>
+    /// Checks if the player has enough keys to unlock this tile if it's a Gate.
+    /// </summary>
     public bool CanUnlock(PlayerInventory inventory)
     {
-        if (tileType == TileType.Gate)
-        {
-            foreach (string key in requiredKeyIds)
-            {
-                if (inventory.GetKeyCount(key) <= 0)
-                    return false;
-            }
+        if (tileType != TileType.Gate) return false;
 
-            return true;
+        foreach (string key in requiredKeyIds)
+        {
+            if (inventory.GetKeyCount(key) <= 0)
+                return false;
         }
-        return false;
+
+        return true;
     }
     
+    /// <summary>
+    /// Unlocks a Gate using keys from the inventory and turns it into a Floor.
+    /// </summary>
     public void UnlockWithKeys(PlayerInventory inventory)
     {
         if (tileType != TileType.Gate) return;
@@ -115,10 +151,8 @@ public class GridTile : MonoBehaviour
         }
 
         SetTileType(TileType.Floor);
-        Debug.Log($"Gate at {gridPos} unlocked using keys.");
     }
 
-    
 #if UNITY_EDITOR
     void OnValidate() 
     {

@@ -1,15 +1,39 @@
 using UnityEngine;
 using System.Collections.Generic;
 
+/// <summary>
+/// Manages the player's inventory including both Tetris shapes and collectible keys.
+/// This component is responsible for tracking available resources, consuming them,
+/// and updating UI representations such as the key palette.
+/// </summary>
+
+
 public class PlayerInventory : MonoBehaviour
 {
+    // ─────────────────────────────────────────────────────────────────────────────
+    #region FIELDS AND REFERENCES
+
+    [Header("Inventory")]
     public List<ShapeInventoryEntry> shapeInventory = new List<ShapeInventoryEntry>();
-    public List<KeyInventoryEntry> keys;
+    public List<KeyInventoryEntry> keys = new List<KeyInventoryEntry>();
+
+    [Header("UI References")]
     public KeyPaletteUI keyPaletteUI;
-    
+
+    #endregion
+    // ─────────────────────────────────────────────────────────────────────────────
+
+    #region SHAPE INVENTORY METHODS
+
+    /// <summary>
+    /// Checks if the player has at least one instance of a given shape.
+    /// </summary>
     public bool HasShape(TetrisShapeData shape) =>
         shapeInventory.Exists(entry => entry.shapeData == shape && entry.count > 0);
 
+    /// <summary>
+    /// Adds a shape to the inventory, incrementing count if it already exists.
+    /// </summary>
     public void AddShape(TetrisShapeData shape, int amount = 1)
     {
         var entry = shapeInventory.Find(e => e.shapeData == shape);
@@ -19,10 +43,17 @@ public class PlayerInventory : MonoBehaviour
         }
         else
         {
-            shapeInventory.Add(new ShapeInventoryEntry { shapeData = shape, count = amount });
+            shapeInventory.Add(new ShapeInventoryEntry
+            {
+                shapeData = shape,
+                count = amount
+            });
         }
     }
 
+    /// <summary>
+    /// Attempts to consume one instance of a specific shape. Returns true if successful.
+    /// </summary>
     public bool ConsumeShape(TetrisShapeData shape)
     {
         var entry = shapeInventory.Find(e => e.shapeData == shape && e.count > 0);
@@ -34,6 +65,14 @@ public class PlayerInventory : MonoBehaviour
         return false;
     }
 
+    #endregion
+    // ─────────────────────────────────────────────────────────────────────────────
+
+    #region KEY INVENTORY METHODS
+
+    /// <summary>
+    /// Adds a key to the inventory. Updates the key UI if present.
+    /// </summary>
     public void AddKey(string keyID)
     {
         var entry = keys.Find(k => k.keyID == keyID);
@@ -43,35 +82,36 @@ public class PlayerInventory : MonoBehaviour
         }
         else
         {
-            keys.Add(new KeyInventoryEntry { keyID = keyID, count = 1 });
+            keys.Add(new KeyInventoryEntry
+            {
+                keyID = keyID,
+                count = 1
+            });
         }
 
-        if (keyPaletteUI != null)
-        {
-            keyPaletteUI.UpdateKey(keyID);
-        }
-
+        keyPaletteUI?.UpdateKey(keyID);
         Debug.Log($"Picked up key: {keyID}. Total: {GetKeyCount(keyID)}");
     }
 
+    /// <summary>
+    /// Returns the number of keys in the inventory matching a specific ID.
+    /// </summary>
     public int GetKeyCount(string keyID)
     {
         var entry = keys.Find(k => k.keyID == keyID);
         return entry != null ? entry.count : 0;
     }
 
+    /// <summary>
+    /// Attempts to use a key. If successful, decrements the count and updates UI.
+    /// </summary>
     public bool UseKey(string keyID)
     {
         var entry = keys.Find(k => k.keyID == keyID);
         if (entry != null && entry.count > 0)
         {
             entry.count--;
-            
-            if (keyPaletteUI != null)
-            {
-                keyPaletteUI.UpdateKey(keyID);
-            }
-            
+            keyPaletteUI?.UpdateKey(keyID);
             Debug.Log($"Used key: {keyID}. Remaining: {entry.count}");
             return true;
         }
@@ -79,4 +119,7 @@ public class PlayerInventory : MonoBehaviour
         Debug.LogWarning($"Tried to use key: {keyID}, but none available.");
         return false;
     }
+
+    #endregion
+    // ─────────────────────────────────────────────────────────────────────────────
 }

@@ -1,25 +1,38 @@
 using UnityEngine;
 using System.Collections.Generic;
 
+/// <summary>
+/// Controls player movement and interaction on a tile-based grid.
+/// </summary>
 public class PlayerController : MonoBehaviour 
 {
-    private Vector2Int gridPos;
-    private Vector2Int lastDirection = Vector2Int.right; // Default to right-facing
-    private SpriteRenderer sr;
+    private Vector2Int gridPos; // Player's current grid coordinates
+    private Vector2Int lastDirection = Vector2Int.right; // Facing direction for interaction
+    private SpriteRenderer sr; // Cached sprite renderer for flipping
+    private GridManager grid; // Cached instance of grid
 
     void Start() 
     {
         sr = GetComponent<SpriteRenderer>();
 
-        GridManager grid = GridManager.Instance;
+        grid = GridManager.Instance;
         if (grid == null) 
         {
             Debug.LogError("GridManager instance not found.");
             return;
         }
 
-        Vector2Int center = new Vector2Int(grid.width / 2, grid.height / 2);
-        gridPos = FindNearestWalkable(center);
+        GridTile startTile = grid.GetStartTile();
+        if (startTile != null)
+        {
+            gridPos = startTile.gridPos;
+        }
+        else
+        {
+            Vector2Int center = new Vector2Int(grid.width / 2, grid.height / 2);
+            gridPos = FindNearestWalkable(center);
+        }
+
         transform.position = GridToWorld(gridPos);
     }
 
@@ -28,6 +41,9 @@ public class PlayerController : MonoBehaviour
         HandleInput();
     }
 
+    /// <summary>
+    /// Handles WASD/arrow input and interaction key.
+    /// </summary>
     private void HandleInput()
     {
         Vector2Int input = Vector2Int.zero;
@@ -43,24 +59,23 @@ public class PlayerController : MonoBehaviour
 
         if (input != Vector2Int.zero) 
         {
-            lastDirection = input; // update direction here
-            if (lastDirection.x != 0) 
-            {
-                sr.flipX = lastDirection.x < 0;
-            }
+            lastDirection = input;
+            sr.flipX = lastDirection.x < 0;
             TryMove(input);
         }
-        
+
         if (Input.GetKeyDown(KeyCode.R))
         {
             TryInteract();
         }
     }
 
+    /// <summary>
+    /// Attempts to move the player in the specified direction.
+    /// </summary>
     void TryMove(Vector2Int direction) 
     {
         Vector2Int nextPos = gridPos + direction;
-        var grid = GridManager.Instance;
 
         if (!grid.IsInBounds(nextPos.x, nextPos.y))
             return;
@@ -69,23 +84,19 @@ public class PlayerController : MonoBehaviour
         if (targetTile == null)
             return;
 
-        // Gate check
+        // Check for gates and unlock if player has required keys
         if (targetTile.tileType == TileType.Gate)
         {
             PlayerInventory inventory = GetComponent<PlayerInventory>();
-
-            if (inventory != null)
+            if (inventory != null && targetTile.CanUnlock(inventory))
             {
-                if (targetTile.CanUnlock(inventory))
-                {
-                    targetTile.UnlockWithKeys(inventory);
-                }
-                else
-                {
-                    string keyIds = string.Join(", ", targetTile.requiredKeyIds);
-                    Debug.Log($"Can't unlock, you need: {keyIds}");
-                    return;
-                }
+                targetTile.UnlockWithKeys(inventory);
+            }
+            else
+            {
+                string keyIds = string.Join(", ", targetTile.requiredKeyIds);
+                Debug.Log($"Can't unlock gate, you need: {keyIds}");
+                return;
             }
         }
 
@@ -96,10 +107,13 @@ public class PlayerController : MonoBehaviour
         }
     }
     
+    /// <summary>
+    /// Attempts to interact with the tile the player is facing.
+    /// </summary>
     void TryInteract()
     {
         Vector2Int targetPos = GridPosition + FacingDirection;
-        GridTile tile = GridManager.Instance.GetTileAt(targetPos.x, targetPos.y);
+        GridTile tile = grid.GetTileAt(targetPos.x, targetPos.y);
 
         if (tile != null && tile.HasObstacle(out ObstacleBase obstacle))
         {
@@ -107,11 +121,13 @@ public class PlayerController : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Finds the nearest walkable tile from a starting position.
+    /// </summary>
     public Vector2Int FindNearestWalkable(Vector2Int center) 
     {
-        var grid = GridManager.Instance;
-
-        if (grid.IsWalkable(center.x, center.y)) return center;
+        if (grid.IsWalkable(center.x, center.y)) 
+            return center;
 
         Queue<Vector2Int> queue = new Queue<Vector2Int>();
         HashSet<Vector2Int> visited = new HashSet<Vector2Int>();
@@ -143,21 +159,27 @@ public class PlayerController : MonoBehaviour
             }
         }
 
-        Debug.LogWarning("No walkable tile found near center. Player may be stuck.");
-        return center; // fallback
+        // Debug.LogWarning("No walkable tile found near center. Player may be stuck.");
+        return center;
     }
 
+    /// <summary>
+    /// Converts a grid coordinate to world space.
+    /// </summary>
     Vector3 GridToWorld(Vector2Int pos) 
     {
         return new Vector3(pos.x, pos.y, 0f);
     }
-    
+
+    /// <summary>
+    /// Moves the player instantly to a new grid position.
+    /// </summary>
     public void TeleportTo(Vector2Int newPos)
     {
         gridPos = newPos;
         transform.position = GridToWorld(newPos);
     }
-    
+
     public Vector2Int GridPosition => gridPos;
     public Vector2Int FacingDirection => lastDirection;
 }
