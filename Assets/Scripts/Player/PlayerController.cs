@@ -1,8 +1,10 @@
 using UnityEngine;
+using TMPro;
 using System.Collections.Generic;
 
 /// <summary>
 /// Controls player movement and interaction on a tile-based grid.
+/// Includes rhythm-based reward hooks, temporary score system, and UI feedback.
 /// </summary>
 public class PlayerController : MonoBehaviour 
 {
@@ -10,6 +12,21 @@ public class PlayerController : MonoBehaviour
     private Vector2Int lastDirection = Vector2Int.right; // Facing direction for interaction
     private SpriteRenderer sr; // Cached sprite renderer for flipping
     private GridManager grid; // Cached instance of grid
+    
+    // ─────────────────────────────────────────────
+    // Temporary score system
+    [Header("Score Elements")]
+    private int score = 0;
+    [SerializeField] private int basePoints = 10;
+    [SerializeField] private int bonusPoints = 20;
+
+    // UI references
+    [Header("UI Elements")]
+    [SerializeField] private TextMeshProUGUI scoreText;
+    [SerializeField] private TextMeshProUGUI feedbackText;
+    [SerializeField] private float feedbackDuration = 0.5f;
+    private float feedbackTimer = 0f;
+    // ─────────────────────────────────────────────
 
     void Start() 
     {
@@ -24,21 +41,30 @@ public class PlayerController : MonoBehaviour
 
         GridTile startTile = grid.GetStartTile();
         if (startTile != null)
-        {
             gridPos = startTile.gridPos;
-        }
         else
-        {
-            Vector2Int center = new Vector2Int(grid.width / 2, grid.height / 2);
-            gridPos = FindNearestWalkable(center);
-        }
+            gridPos = FindNearestWalkable(new Vector2Int(grid.width / 2, grid.height / 2));
 
         transform.position = GridToWorld(gridPos);
+
+        UpdateScoreUI();
+        if (feedbackText != null) 
+            feedbackText.text = "";
     }
 
     void Update()
     {
         HandleInput();
+        
+        // Handle feedback text timer
+        if (feedbackText != null && feedbackTimer > 0f)
+        {
+            feedbackTimer -= Time.deltaTime;
+            if (feedbackTimer <= 0f)
+            {
+                feedbackText.text = "";
+            }
+        }
     }
 
     /// <summary>
@@ -77,33 +103,26 @@ public class PlayerController : MonoBehaviour
     {
         Vector2Int nextPos = gridPos + direction;
 
-        if (!grid.IsInBounds(nextPos.x, nextPos.y))
-            return;
+        if (!grid.IsInBounds(nextPos.x, nextPos.y)) return;
 
         GridTile targetTile = grid.GetTileAt(nextPos.x, nextPos.y);
-        if (targetTile == null)
-            return;
+        if (targetTile == null) return;
 
-        // Check for gates and unlock if player has required keys
         if (targetTile.tileType == TileType.Gate)
         {
             PlayerInventory inventory = GetComponent<PlayerInventory>();
             if (inventory != null && targetTile.CanUnlock(inventory))
-            {
                 targetTile.UnlockWithKeys(inventory);
-            }
             else
-            {
-                string keyIds = string.Join(", ", targetTile.requiredKeyIds);
-                Debug.Log($"Can't unlock gate, you need: {keyIds}");
                 return;
-            }
         }
 
         if (targetTile.IsWalkable())
         {
             gridPos = nextPos;
             transform.position = GridToWorld(gridPos);
+
+            AwardPoints("Move");
         }
     }
     
@@ -118,8 +137,68 @@ public class PlayerController : MonoBehaviour
         if (tile != null && tile.HasObstacle(out ObstacleBase obstacle))
         {
             obstacle.Interact();
+            AwardPoints("Interact");
         }
     }
+    
+    // ─────────────────────────────────────────────
+    // Rhythm-based scoring + UI feedback
+    private void AwardPoints(string actionType)
+    {
+        BeatHitQuality quality = RhythmManager.Instance.GetHitQuality();
+
+        int points = 0;
+        string message = "";
+        Color color = Color.white;
+
+        switch (quality)
+        {
+            case BeatHitQuality.Perfect:
+                points = bonusPoints * 2; // or 40 if bonus = 20
+                message = "PERFECT!";
+                color = Color.green;
+                break;
+            case BeatHitQuality.Good:
+                points = bonusPoints; // 20
+                message = "GOOD!";
+                color = Color.yellow;
+                break;
+            case BeatHitQuality.Okay:
+                points = basePoints; // 10
+                message = "Okay";
+                color = Color.cyan;
+                break;
+            case BeatHitQuality.Bad:
+                points = 0; // or 5 if you want "mercy points"
+                message = "Bad";
+                color = Color.gray;
+                break;
+        }
+
+        score += points;
+        UpdateScoreUI();
+        ShowFeedback($"{message} +{points}", color);
+
+        Debug.Log($"{message} {actionType}. (Score: {score})");
+    }
+
+
+    private void UpdateScoreUI()
+    {
+        if (scoreText != null)
+            scoreText.text = $"Score: {score}";
+    }
+
+    private void ShowFeedback(string message, Color color)
+    {
+        if (feedbackText != null)
+        {
+            feedbackText.text = message;
+            feedbackText.color = color;
+            feedbackTimer = feedbackDuration;
+        }
+    }
+    // ─────────────────────────────────────────────
 
     /// <summary>
     /// Finds the nearest walkable tile from a starting position.
@@ -182,4 +261,5 @@ public class PlayerController : MonoBehaviour
 
     public Vector2Int GridPosition => gridPos;
     public Vector2Int FacingDirection => lastDirection;
+    public int GetScore() => score;
 }

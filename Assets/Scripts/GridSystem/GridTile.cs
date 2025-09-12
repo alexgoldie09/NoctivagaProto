@@ -1,4 +1,5 @@
 using UnityEngine;
+using System.Collections;
 
 #if UNITY_EDITOR
 using UnityEditor;
@@ -152,6 +153,26 @@ public class GridTile : MonoBehaviour
 
         SetTileType(TileType.Floor);
     }
+    
+    // In GridTile.cs
+    public void FlashWarning(Color color, float duration = 0.25f)
+    {
+        // Example if you’re using SpriteRenderer
+        SpriteRenderer sr = GetComponent<SpriteRenderer>();
+        if (sr != null)
+        {
+            StartCoroutine(FlashCoroutine(sr, color, duration));
+        }
+    }
+
+    private IEnumerator FlashCoroutine(SpriteRenderer sr, Color color, float duration)
+    {
+        Color original = sr.color;
+        sr.color = color;
+        yield return new WaitForSeconds(duration);
+        sr.color = original;
+    }
+
 
 #if UNITY_EDITOR
     void OnValidate() 
