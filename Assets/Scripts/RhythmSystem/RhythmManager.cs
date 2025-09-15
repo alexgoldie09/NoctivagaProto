@@ -26,6 +26,7 @@ public class RhythmManager : MonoBehaviour
     private double nextBeatTime;            // Timestamp of the next expected beat
     private double beatInterval;            // Seconds between beats based on BPM
     private int beatCount = 0;              // Total beats since start
+    private float tempoMultiplier = 1f;     // Multiplier for the tempo
 
     public static event Action OnBeat;  // Optional global beat event
     private bool isPlaying = false;
@@ -54,6 +55,8 @@ public class RhythmManager : MonoBehaviour
 
     private void Update()
     {
+        if (Utilities.IsGameFrozen) return; // skip ticking while frozen
+        
         if (!isPlaying || currentTrack == null || !audioSource.isPlaying)
             return;
 
@@ -157,18 +160,6 @@ public class RhythmManager : MonoBehaviour
     /// </summary>
     public int GetBeatCount() => beatCount;
     
-    // /// <summary>
-    // /// Returns true if the current time is within a tolerance window of the beat.
-    // /// Default window is ±0.15s (can be adjusted).
-    // /// </summary>
-    // public bool IsOnBeat(float window = 0.1f)
-    // {
-    //     if (!isPlaying || currentTrack == null) return false;
-    //
-    //     float progress = GetBeatProgress();
-    //     return progress < window / (float)beatInterval || progress > 1f - (window / (float)beatInterval);
-    // }
-    
     /// <summary>
     /// Evaluates player's timing accuracy relative to the nearest beat.
     /// Returns a BeatHitQuality.
@@ -194,4 +185,33 @@ public class RhythmManager : MonoBehaviour
         return BeatHitQuality.Bad;
     }
 
+    /// <summary>
+    /// Adjusts rhythm tempo (0.5 = half speed, 2.0 = double speed).
+    /// Updates beat interval and audio pitch so gameplay + music stay in sync.
+    /// </summary>
+    public void SetTempoMultiplier(float multiplier)
+    {
+        tempoMultiplier = Mathf.Max(0.1f, multiplier); // avoid 0/negative
+        if (currentTrack == null || audioSource == null) return;
+
+        // Update beat interval
+        beatInterval = (60.0 / currentTrack.bpm) / tempoMultiplier;
+
+        // Adjust audio playback speed
+        audioSource.pitch = tempoMultiplier;
+
+        // Realign beat scheduling to avoid drift
+        double dspTime = AudioSettings.dspTime;
+        double songPos = dspTime - startDSPTime;
+        double beatsPassed = Mathf.FloorToInt((float)(songPos / beatInterval));
+        nextBeatTime = startDSPTime + (beatsPassed + 1) * beatInterval;
+    }
+
+    /// <summary>
+    /// Reset tempo back to normal (1.0).
+    /// </summary>
+    public void ResetTempo()
+    {
+        SetTempoMultiplier(1f);
+    }
 }

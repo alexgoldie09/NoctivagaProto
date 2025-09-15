@@ -66,7 +66,7 @@ public class EnemyStaticSwiping : EnemyStatic
         // Player contact check
         if (player != null && tiles.Contains(player.GridPosition))
         {
-            OnPlayerContact(player);
+            OnPlayerContact();
         }
     }
 

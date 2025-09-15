@@ -1,38 +1,24 @@
 using UnityEngine;
-using TMPro;
 using System.Collections.Generic;
 
 /// <summary>
 /// Controls player movement and interaction on a tile-based grid.
-/// Includes rhythm-based reward hooks, temporary score system, and UI feedback.
+/// Delegates all scoring and feedback to ScoreManager.
 /// </summary>
 public class PlayerController : MonoBehaviour 
 {
-    private Vector2Int gridPos; // Player's current grid coordinates
+    private Vector2Int gridPos;                  // Player's current grid coordinates
     private Vector2Int lastDirection = Vector2Int.right; // Facing direction for interaction
-    private SpriteRenderer sr; // Cached sprite renderer for flipping
-    private GridManager grid; // Cached instance of grid
-    
-    // ─────────────────────────────────────────────
-    // Temporary score system
-    [Header("Score Elements")]
-    private int score = 0;
-    [SerializeField] private int basePoints = 10;
-    [SerializeField] private int bonusPoints = 20;
+    private SpriteRenderer sr;                   // Cached sprite renderer for flipping
+    private GridManager grid;                    // Cached instance of grid
+    public bool isShadowMode = false;            // Used by Shadow Mode powerup
 
-    // UI references
-    [Header("UI Elements")]
-    [SerializeField] private TextMeshProUGUI scoreText;
-    [SerializeField] private TextMeshProUGUI feedbackText;
-    [SerializeField] private float feedbackDuration = 0.5f;
-    private float feedbackTimer = 0f;
     // ─────────────────────────────────────────────
-
     void Start() 
     {
         sr = GetComponent<SpriteRenderer>();
-
         grid = GridManager.Instance;
+
         if (grid == null) 
         {
             Debug.LogError("GridManager instance not found.");
@@ -46,26 +32,18 @@ public class PlayerController : MonoBehaviour
             gridPos = FindNearestWalkable(new Vector2Int(grid.width / 2, grid.height / 2));
 
         transform.position = GridToWorld(gridPos);
-
-        UpdateScoreUI();
-        if (feedbackText != null) 
-            feedbackText.text = "";
     }
 
     void Update()
     {
-        HandleInput();
+        // Stop player input if game is frozen
+        if (Utilities.IsGameFrozen) return;
         
-        // Handle feedback text timer
-        if (feedbackText != null && feedbackTimer > 0f)
-        {
-            feedbackTimer -= Time.deltaTime;
-            if (feedbackTimer <= 0f)
-            {
-                feedbackText.text = "";
-            }
-        }
+        HandleInput();
     }
+
+    // ─────────────────────────────────────────────
+    #region Input
 
     /// <summary>
     /// Handles WASD/arrow input and interaction key.
@@ -74,13 +52,13 @@ public class PlayerController : MonoBehaviour
     {
         Vector2Int input = Vector2Int.zero;
 
-        if (Input.GetKeyDown(KeyCode.W) || Input.GetKeyDown(KeyCode.UpArrow))
+        if (Input.GetKeyDown(KeyCode.W))
             input = Vector2Int.up;
-        else if (Input.GetKeyDown(KeyCode.S) || Input.GetKeyDown(KeyCode.DownArrow))
+        else if (Input.GetKeyDown(KeyCode.S))
             input = Vector2Int.down;
-        else if (Input.GetKeyDown(KeyCode.A) || Input.GetKeyDown(KeyCode.LeftArrow))
+        else if (Input.GetKeyDown(KeyCode.A))
             input = Vector2Int.left;
-        else if (Input.GetKeyDown(KeyCode.D) || Input.GetKeyDown(KeyCode.RightArrow))
+        else if (Input.GetKeyDown(KeyCode.D))
             input = Vector2Int.right;
 
         if (input != Vector2Int.zero) 
@@ -90,16 +68,20 @@ public class PlayerController : MonoBehaviour
             TryMove(input);
         }
 
-        if (Input.GetKeyDown(KeyCode.R))
+        if (Input.GetKeyDown(KeyCode.E))
         {
             TryInteract();
         }
     }
 
+    #endregion
+    // ─────────────────────────────────────────────
+    #region Actions
+
     /// <summary>
     /// Attempts to move the player in the specified direction.
     /// </summary>
-    void TryMove(Vector2Int direction) 
+    private void TryMove(Vector2Int direction) 
     {
         Vector2Int nextPos = gridPos + direction;
 
@@ -108,6 +90,7 @@ public class PlayerController : MonoBehaviour
         GridTile targetTile = grid.GetTileAt(nextPos.x, nextPos.y);
         if (targetTile == null) return;
 
+        // Handle gates
         if (targetTile.tileType == TileType.Gate)
         {
             PlayerInventory inventory = GetComponent<PlayerInventory>();
@@ -122,14 +105,14 @@ public class PlayerController : MonoBehaviour
             gridPos = nextPos;
             transform.position = GridToWorld(gridPos);
 
-            AwardPoints("Move");
+            RegisterActionScore("Move");
         }
     }
     
     /// <summary>
     /// Attempts to interact with the tile the player is facing.
     /// </summary>
-    void TryInteract()
+    private void TryInteract()
     {
         Vector2Int targetPos = GridPosition + FacingDirection;
         GridTile tile = grid.GetTileAt(targetPos.x, targetPos.y);
@@ -137,68 +120,29 @@ public class PlayerController : MonoBehaviour
         if (tile != null && tile.HasObstacle(out ObstacleBase obstacle))
         {
             obstacle.Interact();
-            AwardPoints("Interact");
+            RegisterActionScore("Interact");
         }
     }
-    
+
+    #endregion
     // ─────────────────────────────────────────────
-    // Rhythm-based scoring + UI feedback
-    private void AwardPoints(string actionType)
+    #region Scoring
+
+    /// <summary>
+    /// Determines rhythm quality, calculates points, and notifies ScoreManager.
+    /// </summary>
+    private void RegisterActionScore(string actionType)
     {
         BeatHitQuality quality = RhythmManager.Instance.GetHitQuality();
+        int points = Utilities.GetPointsForQuality(quality);
 
-        int points = 0;
-        string message = "";
-        Color color = Color.white;
-
-        switch (quality)
-        {
-            case BeatHitQuality.Perfect:
-                points = bonusPoints * 2; // or 40 if bonus = 20
-                message = "PERFECT!";
-                color = Color.green;
-                break;
-            case BeatHitQuality.Good:
-                points = bonusPoints; // 20
-                message = "GOOD!";
-                color = Color.yellow;
-                break;
-            case BeatHitQuality.Okay:
-                points = basePoints; // 10
-                message = "Okay";
-                color = Color.cyan;
-                break;
-            case BeatHitQuality.Bad:
-                points = 0; // or 5 if you want "mercy points"
-                message = "Bad";
-                color = Color.gray;
-                break;
-        }
-
-        score += points;
-        UpdateScoreUI();
-        ShowFeedback($"{message} +{points}", color);
-
-        Debug.Log($"{message} {actionType}. (Score: {score})");
+        ScoreManager.Instance.RegisterMove();
+        ScoreManager.Instance.AddRhythmScore(points, quality);
     }
 
-
-    private void UpdateScoreUI()
-    {
-        if (scoreText != null)
-            scoreText.text = $"Score: {score}";
-    }
-
-    private void ShowFeedback(string message, Color color)
-    {
-        if (feedbackText != null)
-        {
-            feedbackText.text = message;
-            feedbackText.color = color;
-            feedbackTimer = feedbackDuration;
-        }
-    }
+    #endregion
     // ─────────────────────────────────────────────
+    #region Helpers
 
     /// <summary>
     /// Finds the nearest walkable tile from a starting position.
@@ -238,14 +182,13 @@ public class PlayerController : MonoBehaviour
             }
         }
 
-        // Debug.LogWarning("No walkable tile found near center. Player may be stuck.");
-        return center;
+        return center; // fallback
     }
 
     /// <summary>
     /// Converts a grid coordinate to world space.
     /// </summary>
-    Vector3 GridToWorld(Vector2Int pos) 
+    private Vector3 GridToWorld(Vector2Int pos) 
     {
         return new Vector3(pos.x, pos.y, 0f);
     }
@@ -261,5 +204,5 @@ public class PlayerController : MonoBehaviour
 
     public Vector2Int GridPosition => gridPos;
     public Vector2Int FacingDirection => lastDirection;
-    public int GetScore() => score;
+    #endregion
 }

@@ -15,7 +15,10 @@ public class GridManager : MonoBehaviour
     public Sprite voidSprite;
     public Sprite wallSprite;
     public Sprite gateSprite;
-    public Sprite startSprite;               
+    public Sprite startSprite;         
+    
+    [Header("FX")]
+    [SerializeField] private Sprite halfTimeSprite;
 
     [Header("Runtime Map Loading")]
     public bool generateFromMapData = false; // Toggle between mapData or editor-placed
@@ -228,6 +231,18 @@ public class GridManager : MonoBehaviour
                 if (tile != null)
                     yield return tile;
             }
+        }
+    }
+    
+    /// <summary>
+    /// Applies the half-time visual effect to all grid tiles.
+    /// </summary>
+    public void SetHalfTimeVisual(bool active)
+    {
+        foreach (GridTile tile in gridTiles)
+        {
+            if (tile != null)
+                tile.SetHalfTimeVisual(active, halfTimeSprite);
         }
     }
 }

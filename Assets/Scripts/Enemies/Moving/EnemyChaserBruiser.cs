@@ -3,8 +3,8 @@ using System.Collections.Generic;
 
 /// <summary>
 /// A Chaser variant that periodically punishes nearby tiles.
-/// - Moves like a normal EnemyChaser.
-/// - Every beatsPerAction cycle: telegraphs, then slams all 8 surrounding tiles.
+/// - Telegraphs on (beatsPerAction - 1), then slams all 8 surrounding tiles on beatsPerAction.
+/// - Optionally chases like a normal EnemyChaser between punish cycles.
 /// </summary>
 public class EnemyChaserBruiser : EnemyChaser
 {
@@ -16,32 +16,34 @@ public class EnemyChaserBruiser : EnemyChaser
     [SerializeField] private Color telegraphColor = new Color(1f, 0f, 0f, 0.5f);
 
     private List<Vector2Int> pendingPunishTiles = new List<Vector2Int>();
-    private int punishPhase = 0; // 0 = chase, 1 = telegraph, 2 = slam
+    private int phaseCounter = 0;
 
     protected override void OnBeatAction()
     {
-        // Slam phase → resolve attack
-        if (pendingPunishTiles.Count > 0)
+        phaseCounter++;
+
+        // ─── Slam phase ────────────────────────────────────────────────
+        if (phaseCounter == beatsPerAction)
         {
-            ExecutePunish(pendingPunishTiles);
-            pendingPunishTiles.Clear();
-            punishPhase = 0; // reset cycle
+            if (pendingPunishTiles.Count > 0)
+            {
+                ExecutePunish(pendingPunishTiles);
+                pendingPunishTiles.Clear();
+            }
+
+            phaseCounter = 0; // reset cycle
             return;
         }
 
-        punishPhase++;
-
-        // Telegraph instead of chasing
-        if (punishPhase >= beatsPerAction)
+        // ─── Telegraph phase ──────────────────────────────────────────
+        if (phaseCounter == beatsPerAction - 1)
         {
             TelegraphPunish();
-            // Next beat will slam (handled above)
+            return;
         }
-        else
-        {
-            // Normal chase
-            base.OnBeatAction();
-        }
+
+        // ─── Default chase on other beats ─────────────────────────────
+        base.OnBeatAction();
     }
 
     private void TelegraphPunish()
@@ -73,7 +75,7 @@ public class EnemyChaserBruiser : EnemyChaser
 
             if (player != null && player.GridPosition == tile)
             {
-                OnPlayerContact(player);
+                OnPlayerContact();
             }
         }
 

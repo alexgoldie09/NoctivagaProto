@@ -1,9 +1,11 @@
 using UnityEngine;
+using System.Linq; // for OrderBy random shuffle
 
 /// <summary>
 /// A chasing enemy that moves toward the player’s grid position
 /// using Manhattan distance. Moves one tile per action beat.
 /// If its path is blocked, it stays put that beat.
+/// In Shadow Mode, the enemy moves randomly instead of chasing.
 /// </summary>
 public class EnemyChaser : EnemyBase
 {
@@ -19,31 +21,51 @@ public class EnemyChaser : EnemyBase
     {
         if (player == null || grid == null) return;
 
-        Vector2Int playerPos = player.GridPosition;
-        Vector2Int dir = GetChaseDirection(playerPos);
-
-        // 👉 Flip sprite if moving horizontally
-        if (spriteRenderer != null && dir.x != 0)
+        if (player.isShadowMode)
         {
-            spriteRenderer.flipX = dir.x < 0;
-        }
+            // ─── Shadow Mode: Wander randomly ───────────────────────────────────
+            Vector2Int[] dirs = { Vector2Int.up, Vector2Int.down, Vector2Int.left, Vector2Int.right };
+            dirs = dirs.OrderBy(x => Random.value).ToArray();
 
-        // Try moving in primary direction
-        if (!TryStep(dir))
-        {
-            // If blocked, try the secondary direction
-            Vector2Int altDir = GetAlternateDirection(playerPos, dir);
-
-            // 👉 Also flip when fallback is horizontal
-            if (spriteRenderer != null && altDir.x != 0)
+            foreach (var d in dirs)
             {
-                spriteRenderer.flipX = altDir.x < 0;
+                if (TryStep(d))
+                {
+                    // Flip sprite if moved horizontally
+                    if (spriteRenderer != null && d.x != 0)
+                        spriteRenderer.flipX = d.x < 0;
+                    break;
+                }
+            }
+        }
+        else
+        {
+            // ─── Normal chase mode ─────────────────────────────────────────────
+            Vector2Int playerPos = player.GridPosition;
+            Vector2Int dir = GetChaseDirection(playerPos);
+
+            // Flip sprite if moving horizontally
+            if (spriteRenderer != null && dir.x != 0)
+            {
+                spriteRenderer.flipX = dir.x < 0;
             }
 
-            TryStep(altDir);
+            // Try moving in primary direction
+            if (!TryStep(dir))
+            {
+                // If blocked, try the secondary direction
+                Vector2Int altDir = GetAlternateDirection(playerPos, dir);
+
+                if (spriteRenderer != null && altDir.x != 0)
+                {
+                    spriteRenderer.flipX = altDir.x < 0;
+                }
+
+                TryStep(altDir);
+            }
         }
 
-        // Optionally trigger animation
+        // Trigger animation
         if (animator != null)
         {
             animator.SetTrigger("OnBeat");

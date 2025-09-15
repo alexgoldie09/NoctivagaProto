@@ -38,6 +38,7 @@ public class GridTile : MonoBehaviour
     public ObstacleBase obstacle;                     // Optional obstacle reference
     public bool isBeamBlocking = false;               // True if dynamic beam makes this tile unwalkable
     
+    private Coroutine halfTimeRoutine;
     private SpriteRenderer sr;
 
     void Awake() 
@@ -158,7 +159,6 @@ public class GridTile : MonoBehaviour
     public void FlashWarning(Color color, float duration = 0.25f)
     {
         // Example if you’re using SpriteRenderer
-        SpriteRenderer sr = GetComponent<SpriteRenderer>();
         if (sr != null)
         {
             StartCoroutine(FlashCoroutine(sr, color, duration));
@@ -173,6 +173,58 @@ public class GridTile : MonoBehaviour
         sr.color = original;
     }
 
+    /// <summary>
+    /// Applies or removes the half-time flicker effect.
+    /// Walls are excluded so borders remain visible.
+    /// </summary>
+    public void SetHalfTimeVisual(bool active, Sprite genericSprite)
+    {
+        if (sr == null) return;
+
+        // Stop any existing flicker routine
+        if (halfTimeRoutine != null)
+        {
+            StopCoroutine(halfTimeRoutine);
+            halfTimeRoutine = null;
+        }
+
+        if (active)
+        {
+            if (tileType == TileType.Wall)
+            {
+                UpdateVisual();
+                sr.color = Color.white;
+            }
+            else
+            {
+                halfTimeRoutine = StartCoroutine(FlickerRoutine(genericSprite, 1f));
+            }
+        }
+        else
+        {
+            UpdateVisual();
+            sr.color = Color.white;
+        }
+    }
+
+    /// <summary>
+    /// Flickers between the generic sprite and the current tile sprite.
+    /// </summary>
+    private IEnumerator FlickerRoutine(Sprite genericSprite, float interval)
+    {
+        while (true)
+        {
+            // Show generic
+            sr.sprite = genericSprite;
+            sr.color = new Color(0.6f, 0.6f, 0.6f, 1f);
+            yield return new WaitForSeconds(interval);
+
+            // Show actual tile sprite
+            UpdateVisual();
+            sr.color = Color.white;
+            yield return new WaitForSeconds(interval);
+        }
+    }
 
 #if UNITY_EDITOR
     void OnValidate() 

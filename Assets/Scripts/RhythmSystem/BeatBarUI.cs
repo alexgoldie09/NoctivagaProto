@@ -46,6 +46,8 @@ public class BeatBarUI : MonoBehaviour
 
     private void Update()
     {
+        if (Utilities.IsGameFrozen) return; // skip ticking while frozen
+        
         if (RhythmManager.Instance == null)
             return;
 

@@ -4,6 +4,7 @@ using System.Collections.Generic;
 /// <summary>
 /// Handles placement of Tetris-like shapes on the grid based on the player's position and facing.
 /// Supports previewing, rotation, cycling shapes, and placement validation.
+/// Contributes to score only when a shape is successfully placed.
 /// </summary>
 public class ShapePlacer : MonoBehaviour
 {
@@ -15,6 +16,8 @@ public class ShapePlacer : MonoBehaviour
 
     private int currentShapeIndex = 0;
     private int currentRotation = 0;
+    private float scrollCooldown = 0.15f; // delay between scrolls
+    private float scrollTimer = 0f;
     private PlayerController player;
     private PlayerInventory inventory;
     private GridManager gridManager;
@@ -46,6 +49,8 @@ public class ShapePlacer : MonoBehaviour
 
     void Update()
     {
+        if (Utilities.IsGameFrozen) return;
+        
         HandleToggleInput();
 
         if (Utilities.IsPlacementModeActive)
@@ -64,7 +69,7 @@ public class ShapePlacer : MonoBehaviour
     /// </summary>
     private void HandleToggleInput()
     {
-        if (Input.GetKeyDown(KeyCode.F))
+        if (Input.GetKeyDown(KeyCode.Q))
         {
             Utilities.IsPlacementModeActive = !Utilities.IsPlacementModeActive;
         }
@@ -75,20 +80,43 @@ public class ShapePlacer : MonoBehaviour
     /// </summary>
     private void HandleInput()
     {
-        if (Input.GetKeyDown(KeyCode.Q))
+        scrollTimer -= Time.deltaTime;
+        
+        // Mouse scroll with cooldown
+        float scroll = Input.GetAxis("Mouse ScrollWheel");
+        if (scrollTimer <= 0f)
         {
-            CycleShape(-1);
+            if (scroll > 0.1f)
+            {
+                CycleShape(1);
+                scrollTimer = scrollCooldown;
+            }
+            else if (scroll < -0.1f)
+            {
+                CycleShape(-1);
+                scrollTimer = scrollCooldown;
+            }
         }
-        else if (Input.GetKeyDown(KeyCode.E))
-        {
+        
+        // Arrow keys as alternative
+        if (Input.GetKeyDown(KeyCode.RightArrow))
             CycleShape(1);
-        }
-
-        if (Input.GetKeyDown(KeyCode.R))
+        else if (Input.GetKeyDown(KeyCode.LeftArrow))
+            CycleShape(-1);
+        
+        // Rotation with Up/Down arrows (and R as alternative)
+        if (Input.GetKeyDown(KeyCode.UpArrow) || Input.GetKeyDown(KeyCode.R))
         {
-            currentRotation = (currentRotation + 1) % 4; // 0-3 (0°, 90°, 180°, 270°)
+            // Clockwise
+            currentRotation = (currentRotation + 1) % 4;
         }
-
+        else if (Input.GetKeyDown(KeyCode.DownArrow))
+        {
+            // Counter-clockwise
+            currentRotation = (currentRotation + 3) % 4; // +3 = -1 mod 4
+        }
+        
+        // Place Shape
         if (Input.GetKeyDown(KeyCode.Space))
         {
             TryPlaceCurrentShape();
@@ -113,6 +141,7 @@ public class ShapePlacer : MonoBehaviour
 
     /// <summary>
     /// Attempts to place the currently selected shape on the grid in front of the player.
+    /// If successful, updates the grid, consumes the shape, and registers score.
     /// </summary>
     private void TryPlaceCurrentShape()
     {
@@ -138,6 +167,13 @@ public class ShapePlacer : MonoBehaviour
 
         // Remove shape from inventory
         inventory.ConsumeShape(shape);
+
+        // Register scoring → only on successful placement
+        BeatHitQuality quality = RhythmManager.Instance.GetHitQuality();
+        int points = Utilities.GetPointsForQuality(quality);
+
+        ScoreManager.Instance.RegisterMove();
+        ScoreManager.Instance.AddRhythmScore(points, quality);
 
         UpdatePreview();
     }

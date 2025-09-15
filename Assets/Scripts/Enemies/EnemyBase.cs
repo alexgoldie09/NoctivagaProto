@@ -55,7 +55,7 @@ public abstract class EnemyBase : MonoBehaviour
 
         grid = GridManager.Instance;
         animator = GetComponent<Animator>();
-        player = FindFirstObjectByType<PlayerController>();
+        player = GameManager.Instance.player;
 
         // Ensure collider works for triggers
         Collider2D col = GetComponent<Collider2D>();
@@ -70,6 +70,8 @@ public abstract class EnemyBase : MonoBehaviour
 
     private void HandleBeat()
     {
+        if (Utilities.IsGameFrozen) return; // skip beat if frozen
+        
         int phase = (localBeatCounter + beatOffset);
         if (beatsPerAction <= 0) beatsPerAction = 1;
 
@@ -127,11 +129,7 @@ public abstract class EnemyBase : MonoBehaviour
 
         if (other.CompareTag("Player"))
         {
-            PlayerController pc = other.GetComponent<PlayerController>();
-            if (pc != null)
-            {
-                OnPlayerContact(pc);
-            }
+            OnPlayerContact();
         }
     }
 
@@ -139,10 +137,10 @@ public abstract class EnemyBase : MonoBehaviour
     /// Default contact behavior: reset the level.
     /// Override to customize (knockback, SFX, etc).
     /// </summary>
-    protected virtual void OnPlayerContact(PlayerController p)
+    protected virtual void OnPlayerContact()
     {
         if (GameManager.Instance != null)
-            GameManager.Instance.PlayerKilled(p);
+            GameManager.Instance.PlayerKilled();
     }
 
     #endregion
