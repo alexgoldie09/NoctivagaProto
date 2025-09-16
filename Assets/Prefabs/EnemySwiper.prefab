@@ -175,6 +175,7 @@ MonoBehaviour:
   beatsPerAction: 4
   beatOffset: 0
   lethalOnContact: 1
-  swipeVFXPrefab: {fileID: 8564608024345558901, guid: 2de189711a1362f4db7e802801b90eac, type: 3}
+  swipeVFXPrefab: {fileID: 8194992990867289339, guid: 99bc28c0d45f51c4fbac01080b73edc7, type: 3}
   attackRange: 1
+  telegraphColor: {r: 1, g: 0, b: 0, a: 0.5}
   attackDirection: 0

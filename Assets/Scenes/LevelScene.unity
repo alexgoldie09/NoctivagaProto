@@ -5879,7 +5879,7 @@ MonoBehaviour:
   beatsPerAction: 4
   beatOffset: 0
   lethalOnContact: 1
-  slamVFXPrefab: {fileID: 2040460775051823323, guid: e87c97282711c884ba583a33670a1e78, type: 3}
+  slamVFXPrefab: {fileID: 2708598583397607911, guid: 6398d43fe79ea0140913dc5530c646af, type: 3}
   telegraphColor: {r: 1, g: 0, b: 0, a: 0.5}
 --- !u!1001 &764456972
 PrefabInstance:

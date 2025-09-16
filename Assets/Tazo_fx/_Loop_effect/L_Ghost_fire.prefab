@@ -13,6 +13,7 @@ GameObject:
   - component: {fileID: 19900000}
   - component: {fileID: 8200000}
   - component: {fileID: 8200002}
+  - component: {fileID: 5519047354979134315}
   m_Layer: 0
   m_Name: L_Ghost_fire
   m_TagString: TAZOFX
@@ -4855,7 +4856,7 @@ AudioSource:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 100000}
-  m_Enabled: 1
+  m_Enabled: 0
   serializedVersion: 4
   OutputAudioMixerGroup: {fileID: 0}
   m_audioClip: {fileID: 8300000, guid: bff71ea4f0e49b74592bf388e3230096, type: 3}
@@ -4952,7 +4953,7 @@ AudioSource:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 100000}
-  m_Enabled: 1
+  m_Enabled: 0
   serializedVersion: 4
   OutputAudioMixerGroup: {fileID: 0}
   m_audioClip: {fileID: 8300000, guid: 694a31ad7e3c6d441937bce770697594, type: 3}
@@ -5042,6 +5043,19 @@ AudioSource:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
+--- !u!114 &5519047354979134315
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 100000}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a108cd58c9e0f418d95613e2b3ecadfd, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  lifetime: 1.5
 --- !u!1 &100002
 GameObject:
   m_ObjectHideFlags: 0
