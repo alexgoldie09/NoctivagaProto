@@ -72,6 +72,7 @@ public class ShapePlacer : MonoBehaviour
         if (Input.GetKeyDown(KeyCode.Q))
         {
             Utilities.IsPlacementModeActive = !Utilities.IsPlacementModeActive;
+            CycleShape(1);
         }
     }
 
