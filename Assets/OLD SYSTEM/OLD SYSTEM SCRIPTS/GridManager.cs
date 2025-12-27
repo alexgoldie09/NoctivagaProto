@@ -130,10 +130,10 @@ public class GridManager : MonoBehaviour
         }
 
         // Post-pass: Apply metadata now that all tiles are registered
-        foreach (var (obs, data) in metadataQueue)
-        {
-            obs.SetMetadata(data);
-        }
+        // foreach (var (obs, data) in metadataQueue)
+        // {
+        //     obs.SetMetadata(data);
+        // }
 
         Debug.Log($"Map imported successfully at runtime from '{mapData.name}'");
     }

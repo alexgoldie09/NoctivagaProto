@@ -8,6 +8,37 @@ using System.Collections.Generic;
 public abstract class ObstacleBase : MonoBehaviour
 {
     /// <summary>
+    /// Save position and register the obstacle prefab on generation.
+    /// </summary>
+    protected virtual void OnEnable()
+    {
+        var grid = TilemapGridManager.Instance;
+        if (grid == null)
+        {
+            Debug.LogWarning($"[ObstacleBase] No TilemapGridManager.Instance when enabling {name}");
+            return;
+        }
+
+        Vector3Int cell = grid.WorldToCell(transform.position);
+        grid.RegisterObstacle(this, cell);
+
+        // Debug.Log($"[ObstacleBase] Registered {name} at cell {cell} (world {transform.position})");
+    }
+
+    /// <summary>
+    /// Remove position and unregister the obstacle prefab on destruction.
+    /// </summary>
+    protected virtual void OnDisable()
+    {
+        var grid = TilemapGridManager.Instance;
+        
+        if (grid == null) 
+            return;
+
+        grid.UnregisterObstacle(this);
+    }
+
+    /// <summary>
     /// Whether this obstacle blocks player movement.
     /// Override for custom logic like rotating mirrors.
     /// </summary>
@@ -31,20 +62,5 @@ public abstract class ObstacleBase : MonoBehaviour
     {
         // Default: do nothing. Mirrors or levers can override.
     }
-
-    /// <summary>
-    /// Export metadata for saving into MapData (override per obstacle).
-    /// </summary>
-    public virtual Dictionary<string, string> GetMetadata()
-    {
-        return new Dictionary<string, string>();
-    }
-
-    /// <summary>
-    /// Import metadata when loading from MapData (override per obstacle).
-    /// </summary>
-    public virtual void SetMetadata(Dictionary<string, string> data)
-    {
-        // Override in child class to restore state
-    }
+    
 }

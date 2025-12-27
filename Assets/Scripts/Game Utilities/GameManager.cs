@@ -191,7 +191,7 @@ public class GameManager : MonoBehaviour
     {
         if (player != null)
         {
-            player.isShadowMode = true;
+            player.ChangeShadowMode(true);
 
             // Visual indicator: fade player sprite
             var sr = player.GetComponent<SpriteRenderer>();
@@ -212,7 +212,7 @@ public class GameManager : MonoBehaviour
 
         if (player != null)
         {
-            player.isShadowMode = false;
+            player.ChangeShadowMode(false);
 
             // Restore visuals
             var sr = player.GetComponent<SpriteRenderer>();

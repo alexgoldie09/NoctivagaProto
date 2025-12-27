@@ -1,5 +1,8 @@
 using UnityEngine;
+
+using System.Collections;
 using System.Collections.Generic;
+using UnityEngine.InputSystem;
 
 /// <summary>
 /// Controls player movement and interaction on a tile-based grid.
@@ -7,123 +10,268 @@ using System.Collections.Generic;
 /// </summary>
 public class PlayerController : MonoBehaviour 
 {
-    private Vector2Int gridPos;                  // Player's current grid coordinates
-    private Vector2Int lastDirection = Vector2Int.right; // Facing direction for interaction
-    private SpriteRenderer sr;                   // Cached sprite renderer for flipping
-    private GridManager grid;                    // Cached instance of grid
-    public bool isShadowMode = false;            // Used by Shadow Mode powerup
+    [Header("Input (New Input System)")]
+    [SerializeField] private InputActionReference moveActionRef;
+    [SerializeField] private InputActionReference interactActionRef;
 
+    private InputAction moveAction;
+    private InputAction interactAction;
+
+    private Vector3Int cellPos;
+    private Vector2Int lastDirection = Vector2Int.right;
+
+    private SpriteRenderer sr;
+    private Rigidbody2D rb;
+    private TilemapGridManager grid;
+    
+    // Shadow mode state
+    public bool IsShadowMode { get; private set; } = false;
+
+    // Facing state
+    public bool FacingRight { get; private set; } = true;
+
+    // Void reset VFX fields (keep your existing ones if you already added them)
+    [Header("Void Fall Reset")]
+    [SerializeField] private float voidFallDuration = 0.35f;
+    [SerializeField] private float voidFallDropDistance = 0.25f;
+    [SerializeField] private float voidShakeDuration = 0.15f;
+    [SerializeField] private float voidShakeMagnitude = 0.08f;
+
+    private bool isResetting;
+    private Vector3 initialScale;
+    private Coroutine resetRoutine;
+    private Coroutine shakeRoutine;
+    
+    #region Unity Events
     // ─────────────────────────────────────────────
-    void Start() 
+    private void Start() 
     {
         sr = GetComponent<SpriteRenderer>();
-        grid = GridManager.Instance;
+        rb = GetComponent<Rigidbody2D>();
+        
+        grid = TilemapGridManager.Instance;
 
         if (grid == null) 
         {
-            Debug.LogError("GridManager instance not found.");
+            Debug.LogError("TilemapGridManager instance not found.");
             return;
         }
+        
+        // Save player scale
+        initialScale = transform.localScale;
 
-        GridTile startTile = grid.GetStartTile();
-        if (startTile != null)
-            gridPos = startTile.gridPos;
-        else
-            gridPos = FindNearestWalkable(new Vector2Int(grid.width / 2, grid.height / 2));
+        // Spawn at Start cell (or bounds center fallback)
+        cellPos = grid.GetStartCell();
 
-        transform.position = GridToWorld(gridPos);
+        // Snap player to center of that cell
+        rb.position = grid.CellToWorldCenter(cellPos);
     }
 
-    void Update()
+    private void Update()
     {
         // Stop player input if game is frozen
-        if (Utilities.IsGameFrozen) return;
+        // Temporary fallback if you haven't wired interact yet
+        if (Utilities.IsGameFrozen || isResetting) 
+            return;
+
+        // if (interactActionRef == null && Input.GetKeyDown(KeyCode.E))
+        //     TryInteract();
+    }
+    
+    private void OnEnable()
+    {
+        if (moveActionRef != null)
+        {
+            moveAction = moveActionRef.action;
+            moveAction.performed += OnMovePerformed;
+            moveAction.Enable();
+        }
+
+        if (interactActionRef != null)
+        {
+            interactAction = interactActionRef.action;
+            interactAction.performed += OnInteractPerformed;
+            interactAction.Enable();
+        }
+    }
+
+    private void OnDisable()
+    {
+        if (moveAction != null)
+        {
+            moveAction.performed -= OnMovePerformed;
+            moveAction.Disable();
+        }
+
+        if (interactAction != null)
+        {
+            interactAction.performed -= OnInteractPerformed;
+            interactAction.Disable();
+        }
+    }
+    #endregion
+
+    #region Input
+
+    // ─────────────────────────────────────────────
+    // Input Callbacks
+    // ─────────────────────────────────────────────
+    private void OnMovePerformed(InputAction.CallbackContext ctx)
+    {
+        if (Utilities.IsGameFrozen || isResetting) 
+            return;
+
+        Vector2 v = ctx.ReadValue<Vector2>();
+        Vector2Int dir = ToCardinal(v);
+        if (dir == Vector2Int.zero) return;
+
+        lastDirection = dir;
+
+        // Only update facing on horizontal input
+        if (dir.x < 0) 
+            Flip(false);
+        else if (dir.x > 0) 
+            Flip(true);
+
+        TryMove(dir);
+    }
+
+    private void OnInteractPerformed(InputAction.CallbackContext ctx)
+    {
+        if (Utilities.IsGameFrozen || isResetting) 
+            return;
         
-        HandleInput();
+        TryInteract();
+    }
+
+    private static Vector2Int ToCardinal(Vector2 v)
+    {
+        // With WASD composites, v is usually already cardinal,
+        // but this makes it robust (and avoids diagonal if two keys pressed).
+        float ax = Mathf.Abs(v.x);
+        float ay = Mathf.Abs(v.y);
+
+        if (ax < 0.01f && ay < 0.01f) return Vector2Int.zero;
+
+        if (ax >= ay)
+            return new Vector2Int(v.x > 0 ? 1 : -1, 0);
+        
+        return new Vector2Int(0, v.y > 0 ? 1 : -1);
     }
 
     // ─────────────────────────────────────────────
-    #region Input
-
-    /// <summary>
-    /// Handles WASD/arrow input and interaction key.
-    /// </summary>
-    private void HandleInput()
+    // Movement / Actions
+    // ─────────────────────────────────────────────
+    private void TryMove(Vector2Int direction)
     {
-        Vector2Int input = Vector2Int.zero;
+        Vector3Int nextCell = cellPos + new Vector3Int(direction.x, direction.y, 0);
 
-        if (Input.GetKeyDown(KeyCode.W))
-            input = Vector2Int.up;
-        else if (Input.GetKeyDown(KeyCode.S))
-            input = Vector2Int.down;
-        else if (Input.GetKeyDown(KeyCode.A))
-            input = Vector2Int.left;
-        else if (Input.GetKeyDown(KeyCode.D))
-            input = Vector2Int.right;
+        if (!grid.CanEnterCell(nextCell))
+            return;
 
-        if (input != Vector2Int.zero) 
+        cellPos = nextCell;
+
+        // Move player to cell center
+        rb.MovePosition(grid.CellToWorldCenter(cellPos));
+        
+        // Apply scoring
+        RegisterActionScore("Move");
+
+        // Apply tile enter effects (e.g., reset)
+        Vector3 fallStartWorld = grid.CellToWorldCenter(cellPos);
+        grid.HandleEnteredCell(cellPos, this, fallStartWorld);
+    }
+
+    private void TryInteract()
+    {
+        Vector3Int targetCell = cellPos + new Vector3Int(lastDirection.x, lastDirection.y, 0);
+
+        if (grid.TryGetObstacle(targetCell, out ObstacleBase obstacle) && obstacle != null)
         {
-            lastDirection = input;
-            sr.flipX = lastDirection.x < 0;
-            TryMove(input);
+            // Debug.Log($"Obstacle {obstacle.name} to interact with at {targetCell}");
+            obstacle.Interact();
         }
 
-        if (Input.GetKeyDown(KeyCode.E))
-        {
-            TryInteract();
-        }
+        // Optional: debug if nothing to interact with
+        // Debug.Log($"No obstacle to interact with at {targetCell}");
     }
 
     #endregion
-    // ─────────────────────────────────────────────
-    #region Actions
-
-    /// <summary>
-    /// Attempts to move the player in the specified direction.
-    /// </summary>
-    private void TryMove(Vector2Int direction) 
+    
+    #region Void Fall
+    public void StartVoidFallReset(Vector3Int startCell, Vector3 fallStartWorld)
     {
-        Vector2Int nextPos = gridPos + direction;
+        if (isResetting) return;
 
-        if (!grid.IsInBounds(nextPos.x, nextPos.y)) return;
+        if (resetRoutine != null)
+            StopCoroutine(resetRoutine);
 
-        GridTile targetTile = grid.GetTileAt(nextPos.x, nextPos.y);
-        if (targetTile == null) return;
-
-        // Handle gates
-        if (targetTile.tileType == TileType.Gate)
-        {
-            PlayerInventory inventory = GetComponent<PlayerInventory>();
-            if (inventory != null && targetTile.CanUnlock(inventory))
-                targetTile.UnlockWithKeys(inventory);
-            else
-                return;
-        }
-
-        if (targetTile.IsWalkable())
-        {
-            gridPos = nextPos;
-            transform.position = GridToWorld(gridPos);
-
-            RegisterActionScore("Move");
-        }
+        resetRoutine = StartCoroutine(VoidFallResetRoutine(startCell, fallStartWorld));
     }
     
-    /// <summary>
-    /// Attempts to interact with the tile the player is facing.
-    /// </summary>
-    private void TryInteract()
+    private IEnumerator VoidFallResetRoutine(Vector3Int startCell, Vector3 fallStartWorld)
     {
-        Vector2Int targetPos = GridPosition + FacingDirection;
-        GridTile tile = grid.GetTileAt(targetPos.x, targetPos.y);
+        isResetting = true;
 
-        if (tile != null && tile.HasObstacle(out ObstacleBase obstacle))
+        rb.linearVelocity = Vector2.zero;
+
+        // Make sure we're visually positioned on the void tile before shrinking
+        rb.position = fallStartWorld;
+
+        if (voidShakeDuration > 0f && voidShakeMagnitude > 0f)
         {
-            obstacle.Interact();
-            RegisterActionScore("Interact");
+            if (shakeRoutine != null) StopCoroutine(shakeRoutine);
+            shakeRoutine = StartCoroutine(CameraShakeRoutine(voidShakeDuration, voidShakeMagnitude));
         }
+
+        Vector3 startPos = fallStartWorld;
+        Vector3 endPos = startPos + Vector3.down * voidFallDropDistance;
+
+        float t = 0f;
+        while (t < voidFallDuration)
+        {
+            t += Time.deltaTime;
+            float a = Mathf.Clamp01(t / voidFallDuration);
+            float eased = a * a;
+
+            transform.localScale = Vector3.Lerp(initialScale, Vector3.zero, eased);
+            rb.MovePosition(Vector3.Lerp(startPos, endPos, eased));
+
+            yield return null;
+        }
+
+        TeleportToCell(startCell);
+        
+        yield return new WaitForSeconds(voidFallDuration);
+        
+        transform.localScale = initialScale;
+
+        isResetting = false;
     }
 
+    private IEnumerator CameraShakeRoutine(float duration, float magnitude)
+    {
+        Camera cam = Camera.main;
+        if (cam == null) yield break;
+
+        Transform ct = cam.transform;
+        Vector3 original = ct.localPosition;
+
+        float t = 0f;
+        while (t < duration)
+        {
+            t += Time.deltaTime;
+
+            // Random inside unit circle, scaled
+            Vector2 offset2 = Random.insideUnitCircle * magnitude;
+            ct.localPosition = original + new Vector3(offset2.x, offset2.y, 0f);
+
+            yield return null;
+        }
+
+        ct.localPosition = original;
+    }
+    
     #endregion
     // ─────────────────────────────────────────────
     #region Scoring
@@ -145,64 +293,30 @@ public class PlayerController : MonoBehaviour
     #region Helpers
 
     /// <summary>
-    /// Finds the nearest walkable tile from a starting position.
+    /// Moves the player instantly to a new cell position.
     /// </summary>
-    public Vector2Int FindNearestWalkable(Vector2Int center) 
+    public void TeleportToCell(Vector3Int newCell)
     {
-        if (grid.IsWalkable(center.x, center.y)) 
-            return center;
-
-        Queue<Vector2Int> queue = new Queue<Vector2Int>();
-        HashSet<Vector2Int> visited = new HashSet<Vector2Int>();
-        queue.Enqueue(center);
-        visited.Add(center);
-
-        Vector2Int[] directions = 
-        {
-            Vector2Int.up, Vector2Int.down,
-            Vector2Int.left, Vector2Int.right
-        };
-
-        while (queue.Count > 0) 
-        {
-            Vector2Int current = queue.Dequeue();
-
-            foreach (var dir in directions) 
-            {
-                Vector2Int neighbor = current + dir;
-
-                if (visited.Contains(neighbor) || !grid.IsInBounds(neighbor.x, neighbor.y))
-                    continue;
-
-                if (grid.IsWalkable(neighbor.x, neighbor.y))
-                    return neighbor;
-
-                queue.Enqueue(neighbor);
-                visited.Add(neighbor);
-            }
-        }
-
-        return center; // fallback
+        cellPos = newCell;
+        rb.position = grid.CellToWorldCenter(cellPos);
     }
-
+    
     /// <summary>
-    /// Converts a grid coordinate to world space.
+    /// Flip the player sprite.
     /// </summary>
-    private Vector3 GridToWorld(Vector2Int pos) 
+    /// <param name="faceRight"></param>
+    private void Flip(bool faceRight)
     {
-        return new Vector3(pos.x, pos.y, 0f);
+        FacingRight = faceRight;
+
+        // In Unity 2D, flipX = true usually means facing LEFT
+        if (sr != null)
+            sr.flipX = !FacingRight;
     }
 
-    /// <summary>
-    /// Moves the player instantly to a new grid position.
-    /// </summary>
-    public void TeleportTo(Vector2Int newPos)
-    {
-        gridPos = newPos;
-        transform.position = GridToWorld(newPos);
-    }
-
-    public Vector2Int GridPosition => gridPos;
+    public Vector3Int CellPosition => cellPos;
+    public Vector2Int GridPosition => new (cellPos.x, cellPos.y);
     public Vector2Int FacingDirection => lastDirection;
+    public bool ChangeShadowMode(bool isShadowMode) => IsShadowMode = isShadowMode;
     #endregion
 }

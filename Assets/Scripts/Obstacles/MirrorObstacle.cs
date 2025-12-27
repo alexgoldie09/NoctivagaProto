@@ -1,17 +1,10 @@
 using System.Collections;
-using UnityEngine;
 using System.Collections.Generic;
+using UnityEngine;
 
-/// <summary>
-/// MirrorObstacle reflects laser beams in one of four diagonal directions.
-/// Mirrors can rotate, activate/deactivate their beam, and reflect between each other.
-/// </summary>
 [RequireComponent(typeof(LineRenderer))]
 public class MirrorObstacle : ObstacleBase
 {
-    /// <summary>
-    /// The diagonal directions this mirror can face.
-    /// </summary>
     public enum MirrorDirection
     {
         UpRight,   // ↗
@@ -21,217 +14,235 @@ public class MirrorObstacle : ObstacleBase
     }
 
     [Header("Mirror Settings")]
-    public MirrorDirection direction = MirrorDirection.UpRight; // Current facing direction of the mirror
-    public bool beamActive = true;                              // Whether the beam is currently active
-    public bool blocksWhileActive = true;                       // Whether this mirror blocks movement when beam is active
-    public float beamLength = 10f;                              // Max distance the beam travels
-    public int maxReflections = 3;                              // Max number of times the beam can reflect
+    [SerializeField] private MirrorDirection direction = MirrorDirection.UpRight;
 
-    private LineRenderer lineRenderer;                          // Reference to the line renderer used for beam visuals
-    private List<GridTile> beamTiles = new List<GridTile>();    // Tiles currently affected by the beam
+    [Tooltip("If true, this mirror starts the beam chain on rebuild.")]
+    [SerializeField] private bool isEmitter = false;
 
-    /// <summary>
-    /// Initializes line renderer and delays beam setup to allow all mirrors to spawn.
-    /// </summary>
-    private void Start()
+    [Tooltip("If false, this mirror will not emit even if it is hit.")]
+    [SerializeField] private bool beamActive = true;
+
+    [Tooltip("Safety cap: max tiles the beam can travel before stopping.")]
+    [SerializeField] private int maxSteps = 100;
+
+    [Header("Beam Visuals")]
+    [SerializeField] private float beamWidth = 0.1f;
+
+    private LineRenderer line;
+    private TilemapGridManager grid;
+
+    private int OwnerId => GetInstanceID();
+
+    private void Awake()
     {
-        lineRenderer = GetComponent<LineRenderer>();
-        lineRenderer.positionCount = 2;
-        lineRenderer.startWidth = 0.1f;
-        lineRenderer.endWidth = 0.1f;
-        lineRenderer.material = new Material(Shader.Find("Sprites/Default"));
-        lineRenderer.startColor = Color.yellow;
-        lineRenderer.endColor = Color.white;
-
-        StartCoroutine(DelayedBeamInit());
+        line = GetComponent<LineRenderer>();
+        line.positionCount = 0;
+        line.startWidth = beamWidth;
+        line.endWidth = beamWidth;
+        line.useWorldSpace = true;
     }
 
-    /// <summary>
-    /// Waits until the end of the frame before initializing the beam.
-    /// Ensures all other mirrors are placed in the scene.
-    /// </summary>
-    private IEnumerator DelayedBeamInit()
+    private IEnumerator Start()
     {
-        yield return new WaitForEndOfFrame();
-        UpdateBeam();
+        // Ensures all mirrors have Awake() called and have registered their cells
+        yield return null;
+        RebuildAllBeams();
     }
 
-    /// <summary>
-    /// Called when the mirror is interacted with. Rotates the mirror.
-    /// </summary>
+    protected override void OnDisable()
+    {
+        // 1) Clear this mirror's beam cells first (or after, either is fine)
+        var grid = TilemapGridManager.Instance;
+        if (grid != null)
+            grid.ClearBeamCellsForOwner(GetInstanceID());
+
+        // 2) Clear visuals
+        ClearLine();
+
+        // 3) Unregister obstacle cell mapping
+        base.OnDisable();
+
+        // 4) Rebuild beams because chains may have changed
+        RebuildAllBeams();
+    }
+
     public override void Interact()
     {
         RotateClockwise();
+        RebuildAllBeams();
     }
 
-    /// <summary>
-    /// Rotates the mirror clockwise and updates the beam direction.
-    /// </summary>
-    public void RotateClockwise()
+    private void RotateClockwise()
     {
-        direction = (MirrorDirection)(((int)direction + 1) % 4);
-        UpdateBeam();
-    }
-
-    /// <summary>
-    /// Determines if the mirror blocks movement.
-    /// </summary>
-    public override bool BlocksMovement()
-    {
-        return beamActive && blocksWhileActive;
-    }
-
-    /// <summary>
-    /// Mirrors always block shape placement.
-    /// </summary>
-    public override bool BlocksShapePlacement()
-    {
-        return true;
-    }
-
-    /// <summary>
-    /// Updates the beam based on current direction, clearing old paths and rendering new ones.
-    /// </summary>
-    private void UpdateBeam()
-    {
-        ClearBeam();
-
-        if (!beamActive)
+        // Cycle directions clockwise: UR -> DR -> DL -> UL -> UR
+        switch (direction)
         {
-            lineRenderer.enabled = false;
-            return;
+            case MirrorDirection.UpRight: direction = MirrorDirection.DownRight; break;
+            case MirrorDirection.DownRight: direction = MirrorDirection.DownLeft; break;
+            case MirrorDirection.DownLeft: direction = MirrorDirection.UpLeft; break;
+            case MirrorDirection.UpLeft: direction = MirrorDirection.UpRight; break;
+        }
+    }
+
+    // -------------------------------------------
+    // Beam Rebuild (emitters energize chains)
+    // -------------------------------------------
+    public static void RebuildAllBeams()
+    {
+        var g = TilemapGridManager.Instance;
+        if (g == null) return;
+
+        var mirrors = FindObjectsByType<MirrorObstacle>(FindObjectsSortMode.None);
+
+        // Clear everything first (prevents stale beams when chains change)
+        foreach (var m in mirrors)
+        {
+            g.ClearBeamCellsForOwner(m.OwnerId);
+            m.ClearLine();
         }
 
-        Vector3 start = transform.position;
-        Vector3 dir = GetDirectionVector(direction);
-        CastBeamRecursive(start, dir, maxReflections);
+        // Cast from emitters, and let hits energize the next mirrors.
+        // Use a global visited set so each mirror emits at most once per rebuild.
+        var visited = new HashSet<int>();
+
+        foreach (var m in mirrors)
+        {
+            if (!m.isEmitter) continue;
+            m.CastIfEnergized(visited);
+        }
+
+        // After beams update, resolve player if trapped on a beam cell.
+        var player = FindFirstObjectByType<PlayerController>();
+        if (player != null)
+            ResolvePlayerIfOnBeam(player, g);
     }
 
-    /// <summary>
-    /// Recursively casts a beam from the origin in the given direction, handling reflections.
-    /// </summary>
-    private void CastBeamRecursive(Vector3 origin, Vector3 direction, int reflectionsLeft)
+    private void CastIfEnergized(HashSet<int> visited)
     {
-        if (reflectionsLeft <= 0) return;
+        if (visited.Contains(OwnerId)) return;
+        visited.Add(OwnerId);
 
-        Vector3 start = origin;
-        Vector3 end = origin;
+        if (!beamActive)
+            return;
 
-        Vector2Int current = Vector2Int.RoundToInt(origin);
-        Vector2Int step = new Vector2Int(Mathf.RoundToInt(direction.x), Mathf.RoundToInt(direction.y));
+        grid = TilemapGridManager.Instance;
+        if (grid == null) return;
 
-        for (int i = 0; i < beamLength; i++)
+        Vector3Int originCell = grid.WorldToCell(transform.position);
+        Vector3 originWorld = grid.CellToWorldCenter(originCell);
+        Vector3Int step = GetStep(direction);
+
+        // Gather beam-blocked cells for THIS mirror only
+        var blockedCells = new List<Vector3Int>();
+
+        Vector3Int current = originCell;
+        Vector3Int lastValid = originCell;
+        Vector3 endWorld = originWorld;
+
+        for (int i = 0; i < maxSteps; i++)
         {
             current += step;
-            end = new Vector3(current.x, current.y, 0);
 
-            GridTile tile = GridManager.Instance.GetTileAt(current.x, current.y);
-            if (tile == null) break;
-
-            // Stop beam on walls or gates
-            if (tile.tileType == TileType.Wall || tile.tileType == TileType.Gate) break;
-
-            tile.isBeamBlocking = true;
-            beamTiles.Add(tile);
-
-            // Reflect off other mirrors
-            if (tile.HasObstacle(out ObstacleBase obs) && obs is MirrorObstacle mirror && mirror != this)
+            if (!grid.IsInBounds(current))
             {
-                Vector2Int incoming = -step;
-                mirror.OnBeamHit(new Vector3(current.x, current.y, 0), incoming, reflectionsLeft - 1);
+                // End at the OUTER edge of the last valid cell
+                endWorld = grid.GetCellOuterEdgeWorld(lastValid, step);
                 break;
+            }
+            
+            lastValid = current;
+
+            // Stop at first blocking tile (wall/gate)
+            if (grid.IsBlockingTile(current))
+            {
+                endWorld = grid.GetCellEdgeWorld(current, step);
+                break;
+            }
+
+            // Stop if we hit another mirror obstacle
+            if (grid.TryGetObstacle(current, out var obs) && obs is MirrorObstacle hitMirror && hitMirror != this)
+            {
+                endWorld = grid.CellToWorldCenter(current);
+
+                // Energize the hit mirror: it emits its own beam in its own direction.
+                hitMirror.CastIfEnergized(visited);
+                break;
+            }
+
+            // Otherwise: this cell is blocked by the beam
+            blockedCells.Add(current);
+            endWorld = grid.CellToWorldCenter(current);
+        }
+
+        // Apply beam blocking for this mirror
+        grid.SetBeamCellsForOwner(OwnerId, blockedCells);
+
+        // Draw segment
+        DrawLine(originWorld, endWorld);
+    }
+
+    private static void ResolvePlayerIfOnBeam(PlayerController player, TilemapGridManager g)
+    {
+        Vector3Int pc = player.CellPosition;
+        if (!g.IsBeamBlocked(pc)) return;
+
+        // Try 4-direction nudge first
+        Vector3Int[] dirs =
+        {
+            new (1,0,0),
+            new (-1,0,0),
+            new (0,1,0),
+            new (0,-1,0),
+        };
+
+        foreach (var d in dirs)
+        {
+            var nc = pc + d;
+            if (g.CanEnterCell(nc))
+            {
+                player.TeleportToCell(nc);
+                return;
             }
         }
 
-        lineRenderer.enabled = true;
-        lineRenderer.SetPosition(0, start);
-        lineRenderer.SetPosition(1, end);
+        // If stuck, fall-reset to start (your existing logic)
+        Vector3 fallStartWorld = g.CellToWorldCenter(pc);
+        player.StartVoidFallReset(g.GetStartCell(), fallStartWorld);
     }
 
-    /// <summary>
-    /// Handles being hit by a beam and reflects it in a new direction.
-    /// </summary>
-    public void OnBeamHit(Vector3 hitPoint, Vector2Int incomingDirection, int reflectionsLeft)
+    private Vector3Int GetStep(MirrorDirection dir)
     {
-        if (!beamActive || reflectionsLeft <= 0)
-            return;
-
-        Vector3 start = hitPoint;
-        Vector3 newDir = GetReflectedDirection(incomingDirection);
-        CastBeamRecursive(start, newDir, reflectionsLeft);
-    }
-
-    /// <summary>
-    /// Clears the beam path from affected tiles and resets visuals.
-    /// </summary>
-    private void ClearBeam()
-    {
-        foreach (var tile in beamTiles)
-            tile.isBeamBlocking = false;
-
-        beamTiles.Clear();
-    }
-
-    /// <summary>
-    /// Gets the normalized direction vector for the current mirror direction.
-    /// </summary>
-    private Vector3 GetDirectionVector(MirrorDirection dir)
-    {
-        switch (dir)
+        return dir switch
         {
-            case MirrorDirection.UpRight: return new Vector3(1, 1, 0).normalized;
-            case MirrorDirection.UpLeft: return new Vector3(-1, 1, 0).normalized;
-            case MirrorDirection.DownRight: return new Vector3(1, -1, 0).normalized;
-            case MirrorDirection.DownLeft: return new Vector3(-1, -1, 0).normalized;
-            default: return Vector3.zero;
-        }
-    }
-
-    /// <summary>
-    /// Determines the reflected direction based on incoming beam and mirror orientation.
-    /// </summary>
-    private Vector3 GetReflectedDirection(Vector2Int incoming)
-    {
-        switch (direction)
-        {
-            case MirrorDirection.UpRight:
-                if (incoming == new Vector2Int(-1, -1)) return new Vector3(1, 1, 0).normalized;
-                break;
-            case MirrorDirection.UpLeft:
-                if (incoming == new Vector2Int(1, -1)) return new Vector3(-1, 1, 0).normalized;
-                break;
-            case MirrorDirection.DownRight:
-                if (incoming == new Vector2Int(-1, 1)) return new Vector3(1, -1, 0).normalized;
-                break;
-            case MirrorDirection.DownLeft:
-                if (incoming == new Vector2Int(1, 1)) return new Vector3(-1, -1, 0).normalized;
-                break;
-        }
-
-        return Vector3.zero; // No valid reflection
-    }
-
-    /// <summary>
-    /// Serializes the mirror's direction for saving into MapData.
-    /// </summary>
-    public override Dictionary<string, string> GetMetadata()
-    {
-        return new Dictionary<string, string>
-        {
-            { "direction", ((int)direction).ToString() }
+            MirrorDirection.UpRight => new Vector3Int(1, 1, 0),
+            MirrorDirection.UpLeft => new Vector3Int(-1, 1, 0),
+            MirrorDirection.DownRight => new Vector3Int(1, -1, 0),
+            MirrorDirection.DownLeft => new Vector3Int(-1, -1, 0),
+            _ => new Vector3Int(1, 1, 0)
         };
     }
 
-    /// <summary>
-    /// Loads the mirror's direction from saved metadata.
-    /// </summary>
-    public override void SetMetadata(Dictionary<string, string> data)
+    private void DrawLine(Vector3 start, Vector3 end)
     {
-        if (data.TryGetValue("direction", out string dirStr) &&
-            int.TryParse(dirStr, out int dirInt) &&
-            System.Enum.IsDefined(typeof(MirrorDirection), dirInt))
-        {
-            direction = (MirrorDirection)dirInt;
-        }
+        if (line == null) 
+            line = GetComponent<LineRenderer>();
+        
+        if (line == null) 
+            return;
+        
+        line.enabled = true;
+        line.positionCount = 2;
+        line.SetPosition(0, start);
+        line.SetPosition(1, end);
     }
+
+    private void ClearLine()
+    {
+        if (line == null) return;
+        line.positionCount = 0;
+        line.enabled = false;
+    }
+
+    public override bool BlocksMovement() => true;
+    public override bool BlocksShapePlacement() => true;
 }

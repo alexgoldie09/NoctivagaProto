@@ -1,152 +1,110 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-/// <summary>
-/// Lever obstacle that activates or deactivates target tiles when interacted with.
-/// Can toggle between floor and void tiles during gameplay.
-/// </summary>
+#if UNITY_EDITOR
+using UnityEditor;
+#endif
+
 public class LeverObstacle : ObstacleBase
 {
-    [Header("Tiles to Toggle")]
-    public List<GameObject> targetTiles = new List<GameObject>(); // List of tile GameObjects affected by the lever
+    [Header("Target Markers (recommended)")]
+    [Tooltip("Place empty transforms snapped to grid cells. These will be converted to tilemap cells automatically.")]
+    [SerializeField] private List<Transform> targetMarkers = new();
 
-    /// <summary>
-    /// Called when the lever is interacted with.
-    /// Toggles each target tile between Floor and Void types.
-    /// Ensures player is not left on a void tile after toggling.
-    /// </summary>
+    [Header("Debug / Visuals")]
+    [SerializeField] private bool drawGizmos = true;
+    [SerializeField] private bool drawLabels = true;
+
+    // Runtime cached cells (derived from markers)
+    private readonly List<Vector3Int> targetCells = new();
+
+    private void OnValidate()
+    {
+        RebuildTargetCellsFromMarkers();
+    }
+
+    private void Awake()
+    {
+        RebuildTargetCellsFromMarkers();
+    }
+
+    private void RebuildTargetCellsFromMarkers()
+    {
+        targetCells.Clear();
+
+        var grid = TilemapGridManager.Instance;
+        // In edit mode, Instance might not exist; try to find one in the scene.
+        if (grid == null) grid = FindFirstObjectByType<TilemapGridManager>();
+
+        if (grid == null)
+            return;
+
+        foreach (var t in targetMarkers)
+        {
+            if (t == null) continue;
+            var cell = grid.WorldToCell(t.position);
+            if (!targetCells.Contains(cell))
+                targetCells.Add(cell);
+        }
+    }
+
     public override void Interact()
     {
-        foreach (GameObject obj in targetTiles)
+        var grid = TilemapGridManager.Instance;
+        if (grid == null)
         {
-            if (obj == null) continue;
-
-            GridTile tile = obj.GetComponent<GridTile>();
-            if (tile == null) continue;
-
-            switch (tile.tileType)
-            {
-                case TileType.Floor:
-                    tile.SetTileType(TileType.Void);
-                    break;
-
-                case TileType.Void:
-                    tile.SetTileType(TileType.Floor);
-                    break;
-
-                default:
-                    // Do nothing for other types like Wall or Gate
-                    break;
-            }
+            Debug.LogWarning("[LeverObstacle] No TilemapGridManager.Instance found.");
+            return;
         }
 
-        // Safety: Ensure player is not standing on a void tile after toggling
-        PlayerController player = FindFirstObjectByType<PlayerController>();
+        // Toggle each target cell
+        foreach (var cell in targetCells)
+        {
+            grid.ToggleFloorVoidAt(cell);
+        }
+
+        // If player is now on Void, trigger the fall reset you already built
+        var player = FindFirstObjectByType<PlayerController>();
         if (player != null)
         {
-            Vector2Int playerPos = player.GridPosition;
-            GridTile currentTile = GridManager.Instance.GetTileAt(playerPos.x, playerPos.y);
-
-            if (currentTile != null && currentTile.tileType == TileType.Void)
+            var playerCell = player.CellPosition;
+            if (grid.GetTileKind(playerCell) == TileKind.Void)
             {
-                Vector2Int safeSpot = player.FindNearestWalkable(playerPos);
-                player.TeleportTo(safeSpot); // Must be implemented in PlayerController
+                Vector3 fallStartWorld = grid.CellToWorldCenter(playerCell);
+                player.StartVoidFallReset(grid.GetStartCell(), fallStartWorld);
             }
         }
-
-        // Optional: Add visual/sound feedback here (e.g. SFX, animation)
     }
 
-    /// <summary>
-    /// Returns true, indicating this obstacle blocks player movement.
-    /// </summary>
     public override bool BlocksMovement() => true;
-
-    /// <summary>
-    /// Returns true, indicating this obstacle blocks shape placement.
-    /// </summary>
     public override bool BlocksShapePlacement() => true;
 
-    /// <summary>
-    /// Serializes target tile positions into a string format for saving.
-    /// </summary>
-    public override Dictionary<string, string> GetMetadata()
+#if UNITY_EDITOR
+    private void OnDrawGizmosSelected()
     {
-        Dictionary<string, string> data = new Dictionary<string, string>();
+        if (!drawGizmos) return;
 
-        List<string> posStrings = new List<string>(); // Holds "x,y" strings for each tile
-        foreach (var tileObj in targetTiles)
+        var grid = TilemapGridManager.Instance;
+        if (grid == null) grid = FindFirstObjectByType<TilemapGridManager>();
+        if (grid == null) return;
+
+        // Always rebuild in editor so gizmos match moved markers
+        RebuildTargetCellsFromMarkers();
+
+        Gizmos.matrix = Matrix4x4.identity;
+
+        foreach (var cell in targetCells)
         {
-            if (tileObj == null) continue;
+            Vector3 center = grid.CellToWorldCenter(cell);
+            Vector3 size = Vector3.one * 0.9f;
 
-            GridTile tile = tileObj.GetComponent<GridTile>();
-            if (tile != null)
+            Gizmos.DrawWireCube(center, size);
+
+            if (drawLabels)
             {
-                Vector2Int pos = tile.gridPos;
-                posStrings.Add($"{pos.x},{pos.y}");
+                Handles.Label(center + Vector3.up * 0.3f, $"{cell.x},{cell.y}");
             }
         }
-
-        data["targets"] = string.Join(";", posStrings); // Combine all tile positions into one string
-        return data;
     }
-
-    /// <summary>
-    /// Deserializes tile positions and resolves references using GridManager or scene search.
-    /// </summary>
-    public override void SetMetadata(Dictionary<string, string> data)
-    {
-        targetTiles.Clear(); // Reset list before loading
-
-        if (data.TryGetValue("targets", out string value))
-        {
-            string[] parts = value.Split(';');
-            foreach (string part in parts)
-            {
-                string[] xy = part.Split(',');
-                if (xy.Length == 2 &&
-                    int.TryParse(xy[0], out int x) &&
-                    int.TryParse(xy[1], out int y))
-                {
-                    Vector2Int pos = new Vector2Int(x, y);
-                    GameObject target = null;
-
-                    // Try to resolve target via GridManager (runtime)
-                    if (GridManager.Instance != null)
-                    {
-                        var tile = GridManager.Instance.GetTileAt(x, y);
-                        if (tile != null)
-                            target = tile.gameObject;
-                    }
-
-#if UNITY_EDITOR
-                    // Fallback: Editor-time FindObjectsByType() for scene references
-                    if (target == null && !Application.isPlaying)
-                    {
-                        foreach (var tile in FindObjectsByType<GridTile>(FindObjectsSortMode.None))
-                        {
-                            if (tile.gridPos == pos)
-                            {
-                                target = tile.gameObject;
-                                break;
-                            }
-                        }
-                    }
 #endif
-
-                    if (target != null)
-                        targetTiles.Add(target);
-                }
-            }
-        }
-
-#if UNITY_EDITOR
-        // Mark this object and scene dirty so Unity saves changes
-        if (!Application.isPlaying)
-        {
-            UnityEditor.EditorUtility.SetDirty(this);
-            UnityEditor.SceneManagement.EditorSceneManager.MarkSceneDirty(gameObject.scene);
-        }
-#endif
-    }
 }

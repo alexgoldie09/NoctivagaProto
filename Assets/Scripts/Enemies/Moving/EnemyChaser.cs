@@ -21,7 +21,7 @@ public class EnemyChaser : EnemyBase
     {
         if (player == null || grid == null) return;
 
-        if (player.isShadowMode)
+        if (player.IsShadowMode)
         {
             // ─── Shadow Mode: Wander randomly ───────────────────────────────────
             Vector2Int[] dirs = { Vector2Int.up, Vector2Int.down, Vector2Int.left, Vector2Int.right };
