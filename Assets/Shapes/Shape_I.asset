@@ -15,7 +15,6 @@ MonoBehaviour:
   shapeName: Shape_I
   tileOffsets:
   - {x: 0, y: 0}
-  - {x: 0, y: 1}
-  - {x: 0, y: 2}
-  - {x: 0, y: 3}
+  - {x: -1, y: 0}
+  - {x: 1, y: 0}
   previewSprite: {fileID: -5627219211088419554, guid: d7f0ee87567ae429cb871b53b4a7af16, type: 3}

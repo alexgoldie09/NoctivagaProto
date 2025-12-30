@@ -8,140 +8,168 @@ using System.Collections.Generic;
 /// </summary>
 public class EnemyStaticSwiping : EnemyStatic
 {
+    public enum AttackDirection
+    {
+        Up,
+        Down,
+        Left,
+        Right
+    }
+
     [Header("Swipe Settings")]
-    [Tooltip("Prefab for swipe visual (optional).")]
     [SerializeField] private GameObject swipeVFXPrefab;
 
     [Tooltip("Offset from this enemy where the swipe quad starts (1 = one tile away).")]
     [SerializeField] private int attackRange = 1;
-    
-    [Tooltip("Alpha-flash telegraph color for warning tiles.")]
-    [SerializeField] private Color telegraphColor = new Color(1f, 0f, 0f, 0.5f);
 
-    public enum SwipeDirection { Up, Down, Left, Right }
-    [Header("Attack Direction")]
-    [SerializeField] private SwipeDirection attackDirection = SwipeDirection.Up;
-    private List<Vector2Int> pendingAttackTiles = new List<Vector2Int>();
+    [Tooltip("Direction the enemy swipes.")]
+    [SerializeField] private AttackDirection attackDirection = AttackDirection.Up;
+
+    [Header("Telegraph")]
+    [SerializeField] private Color telegraphColor = new Color(1f, 0.2f, 0.2f, 0.8f);
+    [SerializeField] private float telegraphDuration = 0.30f;
+
+    private List<Vector3Int> pendingAttackCells = new();
 
     protected override void OnBeatAction()
     {
         base.OnBeatAction();
 
-        if (pendingAttackTiles.Count > 0)
+        if (grid == null) return;
+
+        if (pendingAttackCells.Count > 0)
         {
             // Execute the real swipe
-            ExecuteSwipe(pendingAttackTiles);
-            pendingAttackTiles.Clear();
+            ExecuteSwipe(pendingAttackCells);
+            pendingAttackCells.Clear();
         }
         else
         {
-            // Telegraph tiles this beat
-            Vector2Int dir = GetDirectionVector(attackDirection);
-            pendingAttackTiles = GetSwipeTiles(dir);
+            // Telegraph this beat
+            Vector3Int dir = GetDirectionVector(attackDirection);
+            pendingAttackCells = GetSwipeCells(dir);
 
-            foreach (var pos in pendingAttackTiles)
-            {
-                GridTile tile = grid.GetTileAt(pos.x, pos.y);
-                if (tile != null)
-                {
-                    tile.FlashWarning(telegraphColor, 0.3f);
-                    // flash before attack
-                }
-            }
+            // In-game telegraph using TM_Preview (per-owner safe)
+            grid.FlashPreviewCellsForOwner(GetInstanceID(), pendingAttackCells, telegraphColor, telegraphDuration);
         }
     }
 
-    private void ExecuteSwipe(List<Vector2Int> tiles)
+    private void ExecuteSwipe(List<Vector3Int> cells)
     {
-        // Spawn swipe VFX
-        if (swipeVFXPrefab != null)
+        // Spawn swipe VFX at cell centers
+        if (swipeVFXPrefab != null && grid != null)
         {
-            foreach (var tile in tiles)
+            // Cinemachine Impulse shake
+            if (damageShakeForce > 0f && allowDamageShake)
+                CameraShake.Instance?.Shake(damageShakeForce);
+            
+            foreach (var c in cells)
             {
-                Vector3 worldPos = GridToWorld(tile);
+                Vector3 worldPos = grid.CellToWorldCenter(c);
                 Instantiate(swipeVFXPrefab, worldPos, Quaternion.identity);
             }
         }
 
-        // Player contact check
-        if (player != null && tiles.Contains(player.GridPosition))
-        {
+        // Player contact check by cell
+        if (player != null && cells.Contains(player.CellPosition))
             OnPlayerContact();
-        }
     }
 
     /// <summary>
-    /// Returns valid grid positions for the swipe quad in the given direction.
-    /// Filters out tiles that are out of bounds or not walkable.
+    /// Returns valid cell positions for the swipe quad in the given direction.
+    /// Filters out cells that are not enterable (out of bounds, walls, beam-blocked, etc).
     /// </summary>
-    private List<Vector2Int> GetSwipeTiles(Vector2Int dir)
+    private List<Vector3Int> GetSwipeCells(Vector3Int dir)
     {
-        List<Vector2Int> tiles = new List<Vector2Int>();
+        var cells = new List<Vector3Int>();
 
-        Vector2Int basePos = gridPos + dir * attackRange;
-        List<Vector2Int> candidates = new List<Vector2Int>();
+        Vector3Int baseCell = cellPos + dir * attackRange;
+        var candidates = new List<Vector3Int>();
 
-        if (dir == Vector2Int.up || dir == Vector2Int.down)
+        if (dir == Vector3Int.up || dir == Vector3Int.down)
         {
-            candidates.Add(basePos);
-            candidates.Add(basePos + Vector2Int.right);
-            candidates.Add(basePos + Vector2Int.left);
-            candidates.Add(basePos + dir);
+            candidates.Add(baseCell);
+            candidates.Add(baseCell + Vector3Int.right);
+            candidates.Add(baseCell + Vector3Int.left);
+            candidates.Add(baseCell + dir);
         }
         else
         {
-            candidates.Add(basePos);
-            candidates.Add(basePos + Vector2Int.up);
-            candidates.Add(basePos + Vector2Int.down);
-            candidates.Add(basePos + dir);
+            candidates.Add(baseCell);
+            candidates.Add(baseCell + Vector3Int.up);
+            candidates.Add(baseCell + Vector3Int.down);
+            candidates.Add(baseCell + dir);
         }
 
         foreach (var c in candidates)
         {
-            if (grid != null && grid.IsInBounds(c.x, c.y) && grid.IsWalkable(c.x, c.y))
-                tiles.Add(c);
+            if (grid.IsInBounds(c) && grid.CanEnemyEnterCell(c))
+                cells.Add(c);
         }
 
-        return tiles;
+        return cells;
     }
 
-    private Vector2Int GetDirectionVector(SwipeDirection dir)
+    private static Vector3Int GetDirectionVector(AttackDirection dir)
     {
-        switch (dir)
+        return dir switch
         {
-            case SwipeDirection.Up: return Vector2Int.up;
-            case SwipeDirection.Down: return Vector2Int.down;
-            case SwipeDirection.Left: return Vector2Int.left;
-            case SwipeDirection.Right: return Vector2Int.right;
-            default: return Vector2Int.up;
-        }
+            AttackDirection.Up => Vector3Int.up,
+            AttackDirection.Down => Vector3Int.down,
+            AttackDirection.Left => Vector3Int.left,
+            AttackDirection.Right => Vector3Int.right,
+            _ => Vector3Int.up
+        };
     }
 
-    // ─────────────────────────────────────────────
-    // Gizmos show only chosen direction
+#if UNITY_EDITOR
+    [Header("Gizmos")]
+    [SerializeField] private bool drawGizmos = true;
+    [SerializeField] private bool drawLabels = true;
+    [SerializeField] private Color gizmoColor = new Color(1f, 0.3f, 0.3f, 0.7f);
+
     private void OnDrawGizmosSelected()
     {
-        if (grid == null) return;
+        if (!drawGizmos) return;
 
-        // Pick color for chosen direction
-        Color gizmoColor = Color.white;
-        switch (attackDirection)
+        var g = TilemapGridManager.Instance;
+        if (g == null) g = FindFirstObjectByType<TilemapGridManager>();
+        if (g == null) return;
+
+        Vector3Int enemyCell = Application.isPlaying ? cellPos : g.WorldToCell(transform.position);
+
+        Vector3Int dir = GetDirectionVector(attackDirection);
+        Vector3Int baseCell = enemyCell + dir * attackRange;
+
+        // Build the same quad (without walkable filtering for editor visibility)
+        var candidates = new List<Vector3Int>();
+        if (dir == Vector3Int.up || dir == Vector3Int.down)
         {
-            case SwipeDirection.Up: gizmoColor = new Color(0f, 0f, 1f, 0.4f); break;    // blue
-            case SwipeDirection.Down: gizmoColor = new Color(1f, 0f, 0f, 0.4f); break; // red
-            case SwipeDirection.Left: gizmoColor = new Color(0f, 1f, 0f, 0.4f); break; // green
-            case SwipeDirection.Right: gizmoColor = new Color(1f, 1f, 0f, 0.4f); break;// yellow
+            candidates.Add(baseCell);
+            candidates.Add(baseCell + Vector3Int.right);
+            candidates.Add(baseCell + Vector3Int.left);
+            candidates.Add(baseCell + dir);
+        }
+        else
+        {
+            candidates.Add(baseCell);
+            candidates.Add(baseCell + Vector3Int.up);
+            candidates.Add(baseCell + Vector3Int.down);
+            candidates.Add(baseCell + dir);
         }
 
         Gizmos.color = gizmoColor;
 
-        Vector2Int dir = GetDirectionVector(attackDirection);
-        List<Vector2Int> tiles = GetSwipeTiles(dir);
-
-        foreach (var tile in tiles)
+        foreach (var c in candidates)
         {
-            Vector3 pos = GridToWorld(tile);
-            Gizmos.DrawCube(pos + Vector3.one * 0.5f, Vector3.one * 0.9f);
+            Vector3 center = g.CellToWorldCenter(c);
+            Gizmos.DrawWireCube(center, Vector3.one * 0.9f);
+
+#if UNITY_EDITOR
+            if (drawLabels)
+                UnityEditor.Handles.Label(center + Vector3.up * 0.3f, $"{c.x},{c.y}");
+#endif
         }
     }
+#endif
 }

@@ -10,12 +10,24 @@ using UnityEngine.InputSystem;
 /// </summary>
 public class PlayerController : MonoBehaviour 
 {
+    [Header("Shape Placement")]
+    [SerializeField] private ShapePlacer shapePlacer;
+
     [Header("Input (New Input System)")]
     [SerializeField] private InputActionReference moveActionRef;
     [SerializeField] private InputActionReference interactActionRef;
+    [SerializeField] private InputActionReference placementModeActionRef;
+    [SerializeField] private InputActionReference placeActionRef;
+    [SerializeField] private InputActionReference rotateActionRef;      // float axis
+    [SerializeField] private InputActionReference cycleShapeActionRef;  // float axis
 
     private InputAction moveAction;
     private InputAction interactAction;
+    
+    private InputAction placementModeAction;
+    private InputAction placeAction;
+    private InputAction rotateAction;
+    private InputAction cycleShapeAction;
 
     private Vector3Int cellPos;
     private Vector2Int lastDirection = Vector2Int.right;
@@ -34,13 +46,13 @@ public class PlayerController : MonoBehaviour
     [Header("Void Fall Reset")]
     [SerializeField] private float voidFallDuration = 0.35f;
     [SerializeField] private float voidFallDropDistance = 0.25f;
-    [SerializeField] private float voidShakeDuration = 0.15f;
-    [SerializeField] private float voidShakeMagnitude = 0.08f;
+    
+    [Tooltip("Cinemachine Impulse force used for shake on void fall (or damage, etc).")]
+    [SerializeField] private float voidShakeForce = 0.7f;
 
     private bool isResetting;
     private Vector3 initialScale;
     private Coroutine resetRoutine;
-    private Coroutine shakeRoutine;
     
     #region Unity Events
     // ─────────────────────────────────────────────
@@ -80,6 +92,7 @@ public class PlayerController : MonoBehaviour
     
     private void OnEnable()
     {
+        // MOVE
         if (moveActionRef != null)
         {
             moveAction = moveActionRef.action;
@@ -87,31 +100,100 @@ public class PlayerController : MonoBehaviour
             moveAction.Enable();
         }
 
+        // INTERACT
         if (interactActionRef != null)
         {
             interactAction = interactActionRef.action;
             interactAction.performed += OnInteractPerformed;
             interactAction.Enable();
         }
+
+        // PLACEMENT MODE TOGGLE
+        if (placementModeActionRef != null)
+        {
+            placementModeAction = placementModeActionRef.action;
+            placementModeAction.performed += OnPlacementModePerformed;
+            placementModeAction.Enable();
+        }
+
+        // PLACE CONFIRM
+        if (placeActionRef != null)
+        {
+            placeAction = placeActionRef.action;
+            placeAction.performed += OnPlacePerformed;
+            placeAction.Enable();
+        }
+
+        // ROTATE (AXIS: -1 / +1)
+        if (rotateActionRef != null)
+        {
+            rotateAction = rotateActionRef.action;
+            rotateAction.performed += OnRotatePerformed;
+            rotateAction.Enable();
+        }
+
+        // CYCLE SHAPE (AXIS: -1 / +1)
+        if (cycleShapeActionRef != null)
+        {
+            cycleShapeAction = cycleShapeActionRef.action;
+            cycleShapeAction.performed += OnCycleShapePerformed;
+            cycleShapeAction.Enable();
+        }
     }
 
     private void OnDisable()
     {
+        // MOVE
         if (moveAction != null)
         {
             moveAction.performed -= OnMovePerformed;
             moveAction.Disable();
+            moveAction = null;
         }
 
+        // INTERACT
         if (interactAction != null)
         {
             interactAction.performed -= OnInteractPerformed;
             interactAction.Disable();
+            interactAction = null;
+        }
+
+        // PLACEMENT MODE TOGGLE
+        if (placementModeAction != null)
+        {
+            placementModeAction.performed -= OnPlacementModePerformed;
+            placementModeAction.Disable();
+            placementModeAction = null;
+        }
+
+        // PLACE CONFIRM
+        if (placeAction != null)
+        {
+            placeAction.performed -= OnPlacePerformed;
+            placeAction.Disable();
+            placeAction = null;
+        }
+
+        // ROTATE
+        if (rotateAction != null)
+        {
+            rotateAction.performed -= OnRotatePerformed;
+            rotateAction.Disable();
+            rotateAction = null;
+        }
+
+        // CYCLE SHAPE
+        if (cycleShapeAction != null)
+        {
+            cycleShapeAction.performed -= OnCycleShapePerformed;
+            cycleShapeAction.Disable();
+            cycleShapeAction = null;
         }
     }
     #endregion
 
-    #region Input
+    #region Input Callback Stubs
 
     // ─────────────────────────────────────────────
     // Input Callbacks
@@ -158,7 +240,63 @@ public class PlayerController : MonoBehaviour
         
         return new Vector2Int(0, v.y > 0 ? 1 : -1);
     }
+    
+    private void OnPlacementModePerformed(InputAction.CallbackContext ctx)
+    {
+        if (Utilities.IsGameFrozen || isResetting) 
+            return;
+        
+        shapePlacer?.TogglePlacementMode();
+    }
 
+    private void OnPlacePerformed(InputAction.CallbackContext ctx)
+    {
+        if (Utilities.IsGameFrozen || isResetting) 
+            return;
+        
+        shapePlacer?.TryPlace();
+    }
+
+    private void OnRotatePerformed(InputAction.CallbackContext ctx)
+    {
+        if (Utilities.IsGameFrozen || isResetting) 
+            return;
+        
+        if (shapePlacer == null) 
+            return;
+
+        float v = ctx.ReadValue<float>();
+        
+        if (Mathf.Abs(v) < 0.5f) 
+            return;
+
+        if (v > 0) 
+            shapePlacer.RotateCW();
+        else 
+            shapePlacer.RotateCCW();
+    }
+
+    private void OnCycleShapePerformed(InputAction.CallbackContext ctx)
+    {
+        if (Utilities.IsGameFrozen || isResetting) 
+            return;
+        
+        if (shapePlacer == null) 
+            return;
+
+        float v = ctx.ReadValue<float>();
+        
+        if (Mathf.Abs(v) < 0.5f) 
+            return;
+
+        if (v > 0) 
+            shapePlacer.CycleNext();
+        else 
+            shapePlacer.CyclePrev();
+    }
+    #endregion
+    
+    #region Actions
     // ─────────────────────────────────────────────
     // Movement / Actions
     // ─────────────────────────────────────────────
@@ -208,21 +346,18 @@ public class PlayerController : MonoBehaviour
 
         resetRoutine = StartCoroutine(VoidFallResetRoutine(startCell, fallStartWorld));
     }
-    
+
     private IEnumerator VoidFallResetRoutine(Vector3Int startCell, Vector3 fallStartWorld)
     {
         isResetting = true;
-
         rb.linearVelocity = Vector2.zero;
 
-        // Make sure we're visually positioned on the void tile before shrinking
+        // Ensure we start the fall *on the tile we stepped onto*
         rb.position = fallStartWorld;
 
-        if (voidShakeDuration > 0f && voidShakeMagnitude > 0f)
-        {
-            if (shakeRoutine != null) StopCoroutine(shakeRoutine);
-            shakeRoutine = StartCoroutine(CameraShakeRoutine(voidShakeDuration, voidShakeMagnitude));
-        }
+        // Cinemachine Impulse shake (reusable for hurt, void, etc.)
+        if (voidShakeForce > 0f)
+            CameraShake.Instance?.Shake(voidShakeForce);
 
         Vector3 startPos = fallStartWorld;
         Vector3 endPos = startPos + Vector3.down * voidFallDropDistance;
@@ -232,7 +367,7 @@ public class PlayerController : MonoBehaviour
         {
             t += Time.deltaTime;
             float a = Mathf.Clamp01(t / voidFallDuration);
-            float eased = a * a;
+            float eased = a * a; // ease-in
 
             transform.localScale = Vector3.Lerp(initialScale, Vector3.zero, eased);
             rb.MovePosition(Vector3.Lerp(startPos, endPos, eased));
@@ -247,29 +382,6 @@ public class PlayerController : MonoBehaviour
         transform.localScale = initialScale;
 
         isResetting = false;
-    }
-
-    private IEnumerator CameraShakeRoutine(float duration, float magnitude)
-    {
-        Camera cam = Camera.main;
-        if (cam == null) yield break;
-
-        Transform ct = cam.transform;
-        Vector3 original = ct.localPosition;
-
-        float t = 0f;
-        while (t < duration)
-        {
-            t += Time.deltaTime;
-
-            // Random inside unit circle, scaled
-            Vector2 offset2 = Random.insideUnitCircle * magnitude;
-            ct.localPosition = original + new Vector3(offset2.x, offset2.y, 0f);
-
-            yield return null;
-        }
-
-        ct.localPosition = original;
     }
     
     #endregion

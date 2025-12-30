@@ -1,244 +1,287 @@
+using System;
 using UnityEngine;
 using System.Collections.Generic;
 
 /// <summary>
-/// Handles placement of Tetris-like shapes on the grid based on the player's position and facing.
-/// Supports previewing, rotation, cycling shapes, and placement validation.
-/// Contributes to score only when a shape is successfully placed.
+/// Handles placement of Tetris-like shapes on the tilemap grid based on the player's position and facing.
+/// - Uses TilemapGridManager for validation + applying tiles.
+/// - Uses TM_Preview + previewFillTile for in-game preview.
+/// - No direct input reading: PlayerController calls the public methods.
 /// </summary>
 public class ShapePlacer : MonoBehaviour
 {
-    [Header("Settings")]
-    public GameObject previewTilePrefab;
+    [Header("Preview Colors")]
     public Color validColor = new Color(0f, 1f, 0f, 0.5f);
     public Color invalidColor = new Color(1f, 0f, 0f, 0.5f);
-    public Color overPlayerColor = new Color(0f, 1f, 1f, 0.5f); // Cyan = warning if shape overlaps player
+    public Color overPlayerColor = new Color(0f, 1f, 1f, 0.5f);
 
     private int currentShapeIndex = 0;
     private int currentRotation = 0;
-    private float scrollCooldown = 0.15f; // delay between scrolls
-    private float scrollTimer = 0f;
+
     private PlayerController player;
     private PlayerInventory inventory;
-    private GridManager gridManager;
-    private List<GameObject> previewTiles = new List<GameObject>();
+    private TilemapGridManager grid;
 
-    /// <summary> The currently selected shape from the player's inventory. </summary>
-    private ShapeInventoryEntry CurrentShapeEntry => inventory.shapeInventory[currentShapeIndex];
+    private readonly List<Vector3Int> previewCells = new();
+    private readonly List<Color> previewColors = new();
 
-    /// <summary> Public accessor for the current shape index. </summary>
     public int CurrentIndex => currentShapeIndex;
 
-    void Start()
+    private ShapeInventoryEntry CurrentShapeEntry =>
+        (inventory != null && inventory.shapeInventory != null && inventory.shapeInventory.Count > 0)
+            ? inventory.shapeInventory[currentShapeIndex]
+            : null;
+
+    private void Start()
     {
-        player = GetComponentInParent<PlayerController>();
-        inventory = GetComponentInParent<PlayerInventory>();
-        gridManager = GridManager.Instance;
+        player = FindFirstObjectByType<PlayerController>();
+        inventory = FindFirstObjectByType<PlayerInventory>();
+        grid = TilemapGridManager.Instance;
 
-        if (player == null)
-            Debug.LogError("ShapePlacer must be a child of an object with PlayerController.");
+        if (player == null) Debug.LogError("[ShapePlacer] PlayerController not found.");
+        if (inventory == null) Debug.LogError("[ShapePlacer] PlayerInventory not found.");
+        if (grid == null) Debug.LogError("[ShapePlacer] TilemapGridManager.Instance not found.");
 
-        if (inventory == null)
-            Debug.LogError("ShapePlacer must be a child of an object with PlayerInventory.");
-
-        if (gridManager == null)
-            Debug.LogError("Grid Manager instance does not exist.");
-
+        // Ensure we start with a valid index
+        CycleShape(0);
         UpdatePreview();
     }
 
-    void Update()
+    private void Update()
     {
-        if (Utilities.IsGameFrozen) return;
-        
-        HandleToggleInput();
-
-        if (Utilities.IsPlacementModeActive)
+        if (Utilities.IsGameFrozen)
         {
-            HandleInput();
-            UpdatePreview();
-        }
-        else
-        {
-            ClearPreview();
-        }
-    }
-
-    /// <summary>
-    /// Toggles placement mode using the F key.
-    /// </summary>
-    private void HandleToggleInput()
-    {
-        if (Input.GetKeyDown(KeyCode.Q))
-        {
-            Utilities.IsPlacementModeActive = !Utilities.IsPlacementModeActive;
-            CycleShape(1);
-        }
-    }
-
-    /// <summary>
-    /// Handles rotation, shape switching, and shape placement input.
-    /// </summary>
-    private void HandleInput()
-    {
-        scrollTimer -= Time.deltaTime;
-        
-        // Mouse scroll with cooldown
-        float scroll = Input.GetAxis("Mouse ScrollWheel");
-        if (scrollTimer <= 0f)
-        {
-            if (scroll > 0.1f)
-            {
-                CycleShape(1);
-                scrollTimer = scrollCooldown;
-            }
-            else if (scroll < -0.1f)
-            {
-                CycleShape(-1);
-                scrollTimer = scrollCooldown;
-            }
+            grid?.ClearPreviewForOwner(GetInstanceID());
+            return;
         }
         
-        // Arrow keys as alternative
-        if (Input.GetKeyDown(KeyCode.RightArrow))
-            CycleShape(1);
-        else if (Input.GetKeyDown(KeyCode.LeftArrow))
-            CycleShape(-1);
-        
-        // Rotation with Up/Down arrows (and R as alternative)
-        if (Input.GetKeyDown(KeyCode.UpArrow) || Input.GetKeyDown(KeyCode.R))
-        {
-            // Clockwise
-            currentRotation = (currentRotation + 1) % 4;
-        }
-        else if (Input.GetKeyDown(KeyCode.DownArrow))
-        {
-            // Counter-clockwise
-            currentRotation = (currentRotation + 3) % 4; // +3 = -1 mod 4
-        }
-        
-        // Place Shape
-        if (Input.GetKeyDown(KeyCode.Space))
-        {
-            TryPlaceCurrentShape();
-        }
-    }
-
-    /// <summary>
-    /// Changes the current selected shape in inventory.
-    /// Wraps around if necessary and skips empty entries.
-    /// </summary>
-    private void CycleShape(int direction)
-    {
-        int tries = 0;
-        int count = inventory.shapeInventory.Count;
-
-        do
-        {
-            currentShapeIndex = (currentShapeIndex + direction + count) % count;
-            tries++;
-        } while (CurrentShapeEntry.count <= 0 && tries < count); // Avoid shapes with 0 count
-    }
-
-    /// <summary>
-    /// Attempts to place the currently selected shape on the grid in front of the player.
-    /// If successful, updates the grid, consumes the shape, and registers score.
-    /// </summary>
-    private void TryPlaceCurrentShape()
-    {
-        var shape = CurrentShapeEntry.shapeData;
-        var origin = player.GridPosition + player.FacingDirection;
-        Vector2Int[] rotatedOffsets = GetRotatedOffsets(shape.tileOffsets, currentRotation);
-
-        // Placement validation
-        if (!gridManager.CanPlaceShape(origin, rotatedOffsets))
+        if (grid == null) 
             return;
 
-        // Apply shape tiles to the grid
-        foreach (var offset in rotatedOffsets)
+        if (Utilities.IsPlacementModeActive)
+            UpdatePreview();
+        else
+            grid.ClearPreviewForOwner(GetInstanceID());
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    #region Public API (called by PlayerController)
+
+    public void TogglePlacementMode()
+    {
+        Utilities.IsPlacementModeActive = !Utilities.IsPlacementModeActive;
+
+        if (!Utilities.IsPlacementModeActive)
         {
-            Vector2Int pos = origin + offset;
-            GridTile tile = gridManager.GetTileAt(pos.x, pos.y);
-            if (tile != null)
-            {
-                tile.tileType = TileType.Floor;
-                tile.UpdateVisual();
-            }
+            grid?.ClearPreviewForOwner(GetInstanceID());
+            return;
         }
 
-        // Remove shape from inventory
-        inventory.ConsumeShape(shape);
+        // When entering placement mode, ensure we land on a shape that exists
+        CycleShape(1);
+        UpdatePreview();
+    }
 
-        // Register scoring → only on successful placement
+    public void RotateCW()
+    {
+        if (!Utilities.IsPlacementModeActive) return;
+        currentRotation = (currentRotation + 1) % 4;
+        UpdatePreview();
+    }
+
+    public void RotateCCW()
+    {
+        if (!Utilities.IsPlacementModeActive) return;
+        currentRotation = (currentRotation + 3) % 4; // -1 mod 4
+        UpdatePreview();
+    }
+
+    public void CycleNext()
+    {
+        if (!Utilities.IsPlacementModeActive) return;
+        CycleShape(1);
+        UpdatePreview();
+    }
+
+    public void CyclePrev()
+    {
+        if (!Utilities.IsPlacementModeActive) return;
+        CycleShape(-1);
+        UpdatePreview();
+    }
+
+    public void TryPlace()
+    {
+        if (!Utilities.IsPlacementModeActive) return;
+        if (player == null || inventory == null || grid == null) return;
+        if (inventory.shapeInventory == null || inventory.shapeInventory.Count == 0) return;
+
+        var entry = CurrentShapeEntry;
+        if (entry == null || entry.shapeData == null) return;
+        if (!inventory.HasShape(entry.shapeData)) return;
+
+        var rotatedOffsets = GetRotatedOffsets(entry.shapeData.tileOffsets, currentRotation);
+
+        // Origin that never overlaps player (even after rotation)
+        var originCell = GetSanitizedOriginCell(rotatedOffsets);
+
+        bool overlapsPlayer;
+        bool canPlace = grid.CanPlaceShapeOnVoid(originCell, rotatedOffsets, player.CellPosition, out overlapsPlayer);
+
+        if (!canPlace)
+            return;
+
+        // Apply: Void -> Floor
+        grid.ApplyShapeToVoid(originCell, rotatedOffsets);
+
+        // Consume inventory
+        inventory.ConsumeShape(entry.shapeData);
+
+        // Score only on successful placement
         BeatHitQuality quality = RhythmManager.Instance.GetHitQuality();
         int points = Utilities.GetPointsForQuality(quality);
 
         ScoreManager.Instance.RegisterMove();
         ScoreManager.Instance.AddRhythmScore(points, quality);
 
+        // If we ran out, move to next available shape
+        if (!inventory.HasShape(entry.shapeData))
+            CycleShape(1);
+
         UpdatePreview();
     }
 
+    #endregion
+    // ─────────────────────────────────────────────────────────────
+
     /// <summary>
-    /// Updates the visual preview of the shape at the intended location.
-    /// Color-coded based on placement validity.
+    /// Returns a placement origin one cell in front of the player,
+    /// then nudges forward if the rotated shape would overlap the player cell.
     /// </summary>
-    void UpdatePreview()
+    private Vector3Int GetSanitizedOriginCell(Vector2Int[] rotatedOffsets)
     {
-        if (player == null || inventory.shapeInventory.Count == 0) return;
+        Vector2Int f = player.FacingDirection;
 
-        ClearPreview();
+        // Fallback if facing is ever zero (prevents origin == player)
+        if (f == Vector2Int.zero)
+            f = Vector2Int.right;
 
-        if (!inventory.HasShape(CurrentShapeEntry.shapeData))
+        Vector3Int step = new Vector3Int(f.x, f.y, 0);
+
+        // Start one cell ahead (desired behavior)
+        Vector3Int origin = player.CellPosition + step;
+
+        // Extra safety: if something still results in origin on player, push again
+        if (origin == player.CellPosition)
+            origin += step;
+
+        // If rotation causes the shape to overlap the player cell, nudge forward.
+        // Cap to avoid infinite loops in weird cases.
+        const int maxNudges = 3;
+        for (int i = 0; i < maxNudges; i++)
+        {
+            if (!WouldOverlapPlayer(origin, rotatedOffsets, player.CellPosition))
+                break;
+
+            origin += step;
+        }
+
+        return origin;
+    }
+
+    private static bool WouldOverlapPlayer(Vector3Int origin, Vector2Int[] offsets, Vector3Int playerCell)
+    {
+        if (offsets == null) return false;
+
+        for (int i = 0; i < offsets.Length; i++)
+        {
+            var off = offsets[i];
+            var c = origin + new Vector3Int(off.x, off.y, 0);
+            if (c == playerCell)
+                return true;
+        }
+
+        return false;
+    }
+
+    private void CycleShape(int direction)
+    {
+        if (inventory == null || inventory.shapeInventory == null) return;
+
+        int count = inventory.shapeInventory.Count;
+        if (count == 0) return;
+
+        int tries = 0;
+
+        do
+        {
+            currentShapeIndex = (currentShapeIndex + direction + count) % count;
+            tries++;
+        }
+        while (CurrentShapeEntry != null && CurrentShapeEntry.count <= 0 && tries < count);
+    }
+
+    private void UpdatePreview()
+    {
+        if (player == null || inventory == null || grid == null) return;
+        if (inventory.shapeInventory == null || inventory.shapeInventory.Count == 0) return;
+
+        var entry = CurrentShapeEntry;
+        if (entry == null || entry.shapeData == null)
+        {
+            grid.ClearPreviewForOwner(GetInstanceID());
             return;
-
-        var shape = CurrentShapeEntry.shapeData;
-        var origin = player.GridPosition + player.FacingDirection;
-        Vector2Int[] rotatedOffsets = GetRotatedOffsets(shape.tileOffsets, currentRotation);
-
-        bool valid = gridManager.CanPlaceShape(origin, rotatedOffsets);
-
-        foreach (var offset in rotatedOffsets)
-        {
-            Vector2Int pos = origin + offset;
-            GameObject tile = Instantiate(previewTilePrefab, new Vector3(pos.x, pos.y, 0), Quaternion.identity);
-            var sr = tile.GetComponent<SpriteRenderer>();
-
-            // Highlight overlaps differently
-            sr.color = (pos == player.GridPosition)
-                ? overPlayerColor
-                : (valid ? validColor : invalidColor);
-
-            previewTiles.Add(tile);
         }
+
+        if (!inventory.HasShape(entry.shapeData))
+        {
+            grid.ClearPreviewForOwner(GetInstanceID());
+            return;
+        }
+
+        var rotatedOffsets = GetRotatedOffsets(entry.shapeData.tileOffsets, currentRotation);
+
+        // Origin that never overlaps player (even after rotation)
+        var originCell = GetSanitizedOriginCell(rotatedOffsets);
+
+        // Build preview cells + per-cell colors
+        previewCells.Clear();
+        previewColors.Clear();
+
+        bool overlapsPlayer;
+        bool canPlace = grid.CanPlaceShapeOnVoid(originCell, rotatedOffsets, player.CellPosition, out overlapsPlayer);
+
+        Color baseColor = canPlace ? validColor : invalidColor;
+
+        for (int i = 0; i < rotatedOffsets.Length; i++)
+        {
+            var off = rotatedOffsets[i];
+            var c = originCell + new Vector3Int(off.x, off.y, 0);
+
+            previewCells.Add(c);
+
+            // Cyan warning if it overlaps player cell (shouldn't happen after sanitize,
+            // but keep it as a safety visual).
+            previewColors.Add(c == player.CellPosition ? overPlayerColor : baseColor);
+        }
+
+        grid.SetPreviewCellsForOwner(GetInstanceID(), previewCells, previewColors);
     }
 
-    /// <summary>
-    /// Destroys all preview tiles in the scene.
-    /// </summary>
-    void ClearPreview()
+    private static Vector2Int[] GetRotatedOffsets(Vector2Int[] original, int rotationStepsCw)
     {
-        foreach (var tile in previewTiles)
-        {
-            if (tile != null) Destroy(tile);
-        }
-        previewTiles.Clear();
-    }
+        if (original == null) return Array.Empty<Vector2Int>();
 
-    /// <summary>
-    /// Returns rotated shape offsets based on the number of 90° clockwise rotations.
-    /// </summary>
-    Vector2Int[] GetRotatedOffsets(Vector2Int[] original, int rotationStepsCW)
-    {
         Vector2Int[] result = new Vector2Int[original.Length];
+
         for (int i = 0; i < original.Length; i++)
         {
             Vector2Int p = original[i];
-            for (int r = 0; r < rotationStepsCW; r++)
-                p = new Vector2Int(-p.y, p.x); // 90° clockwise rotation
-
+            for (int r = 0; r < rotationStepsCw; r++)
+                p = new Vector2Int(-p.y, p.x); // 90° clockwise
             result[i] = p;
         }
+
         return result;
     }
 }

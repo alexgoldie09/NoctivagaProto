@@ -15,6 +15,10 @@ public class LeverObstacle : ObstacleBase
     [SerializeField] private bool drawGizmos = true;
     [SerializeField] private bool drawLabels = true;
 
+    [Header("Enemy Void Elimination")]
+    [Tooltip("If true, enemies standing on tiles that become Void will be eliminated.")]
+    [SerializeField] private bool eliminateEnemiesOnVoidedTiles = true;
+
     // Runtime cached cells (derived from markers)
     private readonly List<Vector3Int> targetCells = new();
 
@@ -57,10 +61,18 @@ public class LeverObstacle : ObstacleBase
             return;
         }
 
-        // Toggle each target cell
+        // Track which cells become void this interaction (event-driven enemy elimination)
+        var voidedSet = new HashSet<Vector3Int>();
+
         foreach (var cell in targetCells)
         {
+            var before = grid.GetTileKind(cell);
+
             grid.ToggleFloorVoidAt(cell);
+
+            var after = grid.GetTileKind(cell);
+            if (before != after && after == TileKind.Void)
+                voidedSet.Add(cell);
         }
 
         // If player is now on Void, trigger the fall reset you already built
@@ -72,6 +84,22 @@ public class LeverObstacle : ObstacleBase
             {
                 Vector3 fallStartWorld = grid.CellToWorldCenter(playerCell);
                 player.StartVoidFallReset(grid.GetStartCell(), fallStartWorld);
+            }
+        }
+
+        // Eliminate enemies that were standing on tiles that just became Void
+        if (eliminateEnemiesOnVoidedTiles && voidedSet.Count > 0)
+        {
+            var enemies = FindObjectsByType<EnemyBase>(FindObjectsSortMode.None);
+            foreach (var e in enemies)
+            {
+                if (e == null) continue;
+
+                if (voidedSet.Contains(e.CellPosition))
+                {
+                    Vector3 fallStartWorld = grid.CellToWorldCenter(e.CellPosition);
+                    e.KillByVoidFall(fallStartWorld);
+                }
             }
         }
     }

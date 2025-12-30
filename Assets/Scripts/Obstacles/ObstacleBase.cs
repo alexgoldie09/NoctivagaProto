@@ -20,7 +20,7 @@ public abstract class ObstacleBase : MonoBehaviour
         }
 
         Vector3Int cell = grid.WorldToCell(transform.position);
-        grid.RegisterObstacle(this, cell);
+        grid.RegisterObstacle(cell, this);
 
         // Debug.Log($"[ObstacleBase] Registered {name} at cell {cell} (world {transform.position})");
     }

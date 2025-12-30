@@ -1,3 +1,4 @@
+using System.Collections;
 using UnityEngine;
 
 /// <summary>
@@ -14,7 +15,6 @@ using UnityEngine;
 public abstract class EnemyBase : MonoBehaviour
 {
     [Header("Grid")]
-    [SerializeField] protected Vector2Int gridPos;
     [SerializeField] protected bool snapToGridOnStart = true;
 
     [Header("Rhythm")]
@@ -27,10 +27,26 @@ public abstract class EnemyBase : MonoBehaviour
     [Tooltip("If true, contacting the player triggers a level reset.")]
     [SerializeField] protected bool lethalOnContact = true;
 
-    protected GridManager grid;          // Grid reference
-    protected PlayerController player;   // Player reference
-    protected Animator animator;         // Animator reference
-    protected int localBeatCounter = 0;  // Rhythm counter
+    [Header("Damage Force")]
+    [Tooltip("If true, allow camera shake.")]
+    [SerializeField] protected bool allowDamageShake = true;
+    [Tooltip("Shake force for camera on damage.")]
+    [SerializeField] protected float damageShakeForce = 0.8f;
+
+    [Header("Void Elimination")]
+    [Tooltip("How long the enemy takes to shrink/fall before being destroyed.")]
+    [SerializeField] protected float voidDeathDuration = 0.25f;
+    [Tooltip("How far the enemy sinks down while falling.")]
+    [SerializeField] protected float voidDeathDropDistance = 0.25f;
+
+    protected TilemapGridManager grid;
+    protected PlayerController player;
+    protected Animator animator;
+
+    protected Vector3Int cellPos;
+
+    private int localBeatCounter;
+    private bool isDying;
 
     // ─────────────────────────────────────────────────────────────
     #region Unity lifecycle
@@ -47,22 +63,22 @@ public abstract class EnemyBase : MonoBehaviour
 
     protected virtual void Start()
     {
-        if (snapToGridOnStart)
-        {
-            gridPos = Vector2Int.RoundToInt((Vector2)transform.position);
-            transform.position = GridToWorld(gridPos);
-        }
-
-        grid = GridManager.Instance;
+        grid = TilemapGridManager.Instance;
         animator = GetComponent<Animator>();
-        player = GameManager.Instance.player;
+        player = GameManager.Instance != null ? GameManager.Instance.player : null;
 
         // Ensure collider works for triggers
         Collider2D col = GetComponent<Collider2D>();
         if (col != null)
             col.isTrigger = true;
-    }
 
+        if (grid != null)
+        {
+            cellPos = grid.WorldToCell(transform.position);
+            if (snapToGridOnStart)
+                transform.position = grid.CellToWorldCenter(cellPos);
+        }
+    }
     #endregion
     // ─────────────────────────────────────────────────────────────
 
@@ -71,7 +87,8 @@ public abstract class EnemyBase : MonoBehaviour
     private void HandleBeat()
     {
         if (Utilities.IsGameFrozen) return; // skip beat if frozen
-        
+        if (isDying) return;
+
         int phase = (localBeatCounter + beatOffset);
         if (beatsPerAction <= 0) beatsPerAction = 1;
 
@@ -92,31 +109,78 @@ public abstract class EnemyBase : MonoBehaviour
     // ─────────────────────────────────────────────────────────────
 
     #region Movement helpers
-
-    protected bool TryStep(Vector2Int dir)
+    protected bool TryMove(Vector3Int dir)
     {
-        Vector2Int next = gridPos + dir;
+        if (isDying) return false;
+
+        Vector3Int next = cellPos + dir;
         if (!CanEnter(next)) return false;
 
-        gridPos = next;
-        transform.position = GridToWorld(gridPos);
+        cellPos = next;
+        transform.position = grid.CellToWorldCenter(cellPos);
         return true;
     }
 
-    protected bool CanEnter(Vector2Int pos)
+    protected bool CanEnter(Vector3Int cell)
     {
         if (grid == null) return false;
-        if (!grid.IsInBounds(pos.x, pos.y)) return false;
-        return grid.IsWalkable(pos.x, pos.y);
+        return grid.CanEnemyEnterCell(cell);
     }
 
-    protected void WarpTo(Vector2Int pos)
+    public void WarpTo(Vector3Int cell)
     {
-        gridPos = pos;
-        transform.position = GridToWorld(pos);
+        if (isDying) return;
+
+        cellPos = cell;
+        if (grid != null)
+            transform.position = grid.CellToWorldCenter(cellPos);
     }
 
-    protected Vector3 GridToWorld(Vector2Int pos) => new Vector3(pos.x, pos.y, 0f);
+    public Vector3Int CellPosition => cellPos;
+    #endregion
+    // ─────────────────────────────────────────────────────────────
+
+    #region Void elimination
+
+    /// <summary>
+    /// Called when the tile under the enemy becomes Void.
+    /// Plays a fall/shrink animation and destroys the enemy.
+    /// </summary>
+    public void KillByVoidFall(Vector3 fallStartWorld)
+    {
+        if (isDying) return;
+        StartCoroutine(VoidDeathRoutine(fallStartWorld));
+    }
+
+    private IEnumerator VoidDeathRoutine(Vector3 fallStartWorld)
+    {
+        isDying = true;
+
+        // stop participating in gameplay
+        lethalOnContact = false;
+
+        // snap to the cell where the void happened (visual consistency)
+        transform.position = fallStartWorld;
+
+        Vector3 startScale = transform.localScale;
+        Vector3 startPos = fallStartWorld;
+        Vector3 endPos = startPos + Vector3.down * voidDeathDropDistance;
+
+        float t = 0f;
+        while (t < voidDeathDuration)
+        {
+            t += Time.deltaTime;
+            float a = Mathf.Clamp01(t / voidDeathDuration);
+            float eased = a * a; // ease-in
+
+            transform.localScale = Vector3.Lerp(startScale, Vector3.zero, eased);
+            transform.position = Vector3.Lerp(startPos, endPos, eased);
+
+            yield return null;
+        }
+
+        Destroy(gameObject);
+    }
 
     #endregion
     // ─────────────────────────────────────────────────────────────

@@ -1,10 +1,12 @@
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Tilemaps;
 
 /// <summary>
 /// Tilemap-backed grid query layer.
-/// Reads GameTile metadata from tilemaps and exposes cell-based helpers for movement.
+/// Reads GameTile metadata from tilemaps and exposes cell-based helpers for movement,
+/// preview rendering (TM_Preview), hazards (beams), and shape placement.
 /// </summary>
 public class TilemapGridManager : MonoBehaviour
 {
@@ -12,29 +14,38 @@ public class TilemapGridManager : MonoBehaviour
 
     [Header("Tilemaps")]
     [SerializeField] private Grid grid;
-    [SerializeField] private Tilemap groundTilemap; // Floor/Void/Start (painted with GameTile)
-    [SerializeField] private Tilemap blocksTilemap; // Walls/Gates (painted with GameTile or any tiles)
-    
+    [SerializeField] private Tilemap groundTilemap;   // Floor/Void/Start (painted with GameTile)
+    [SerializeField] private Tilemap blocksTilemap;   // Walls/Gates (any tiles)
+    [SerializeField] private Tilemap previewTilemap;  // TM_Preview
+
     [Header("Default Ground Tiles (GameTile assets)")]
     [SerializeField] private GameTile floorTile;
     [SerializeField] private GameTile voidTile;
+
+    [Header("Preview")]
+    [SerializeField] private TileBase previewFillTile; // a simple 1x1 tile used for preview tinting
 
     [Header("Rules")]
     [Tooltip("If true, the player can step onto Void tiles. (You can still reset on enter.)")]
     [SerializeField] private bool allowWalkingIntoVoid = false;
 
-    [Tooltip("If true and the entered tile has EnterEffect.ResetToStart, teleport to start.")]
+    [Tooltip("If true, stepping onto a Reset tile (void) triggers fall + return to start.")]
     [SerializeField] private bool voidResetsToStart = true;
-    
-    // Obstacles occupying cells (1 obstacle per cell for now)
+
+    // Obstacles + Hazards
     private readonly Dictionary<Vector3Int, ObstacleBase> obstacleByCell = new();
     private readonly HashSet<Vector3Int> beamBlocked = new();
     private readonly Dictionary<int, List<Vector3Int>> beamByOwner = new();
+
+    // Preview ownership (telegraphs + shape preview)
+    private readonly Dictionary<int, List<Vector3Int>> previewByOwner = new();
+    private readonly Dictionary<int, int> previewTokenByOwner = new();
 
     private BoundsInt groundBounds;
     private Vector3Int cachedStartCell;
     private bool hasCachedStart;
 
+    // ─────────────────────────────────────────────────────────────
     #region Unity Events
     private void Awake()
     {
@@ -46,20 +57,9 @@ public class TilemapGridManager : MonoBehaviour
 
         Instance = this;
 
-        if (grid == null)
-            grid = GetComponentInParent<Grid>();
-        
-        RefreshBoundsAndCache();
-    }
-    #endregion
-
-    #region Grid Methods
-    /// <summary>Call if you change the level tilemaps at runtime and want bounds/start recalculated.</summary>
-    public void RefreshBoundsAndCache()
-    {
-        if (groundTilemap == null)
+        if (grid == null || groundTilemap == null)
         {
-            Debug.LogError("[TilemapGridManager] Ground Tilemap not assigned.");
+            Debug.LogError("[TilemapGridManager] Missing Grid or Ground Tilemap reference.");
             return;
         }
 
@@ -69,12 +69,14 @@ public class TilemapGridManager : MonoBehaviour
         cachedStartCell = FindStartCellFallbackToBoundsCenter();
         hasCachedStart = true;
     }
+    #endregion
 
-    // -----------------------------
-    // World/Cell conversion
-    // -----------------------------
+    // ─────────────────────────────────────────────────────────────
+    #region World/Cell conversion
     public Vector3Int WorldToCell(Vector3 worldPos) => grid.WorldToCell(worldPos);
-    public Vector3 CellToWorldCenter(Vector3Int cell) => grid.GetCellCenterWorld(cell);
+
+    // Use Tilemap.GetCellCenterWorld since GridLayout doesn't expose it consistently
+    public Vector3 CellToWorldCenter(Vector3Int cell) => groundTilemap.GetCellCenterWorld(cell);
     
     public Vector3 GetCellEdgeWorld(Vector3Int hitCell, Vector3Int beamStep)
     {
@@ -115,117 +117,25 @@ public class TilemapGridManager : MonoBehaviour
 
         return center + new Vector3(s.x * half.x, s.y * half.y, 0f);
     }
+    #endregion
 
-    // -----------------------------
-    // Bounds
-    // -----------------------------
+    // ─────────────────────────────────────────────────────────────
+    #region Bounds / Start
     public bool IsInBounds(Vector3Int cell) => groundBounds.Contains(cell);
 
-    public BoundsInt GroundBounds => groundBounds;
-
-    // -----------------------------
-    // Tile lookup (GameTile metadata)
-    // -----------------------------
-    public GameTile GetGroundGameTile(Vector3Int cell)
-    {
-        if (groundTilemap == null) 
-            return null;
-        
-        return groundTilemap.GetTile(cell) as GameTile;
-    }
-
-    public GameTile GetBlockGameTile(Vector3Int cell)
-    {
-        if (blocksTilemap == null) 
-            return null;
-        
-        return blocksTilemap.GetTile(cell) as GameTile;
-    }
-
-    public TileKind GetTileKind(Vector3Int cell)
-    {
-        // If something exists on the blocks layer, treat it as blocking first.
-        if (blocksTilemap != null && blocksTilemap.HasTile(cell))
-        {
-            var b = GetBlockGameTile(cell);
-            return b != null ? b.kind : TileKind.Wall; // non-GameTile tiles are assumed blocking
-        }
-
-        var g = GetGroundGameTile(cell);
-        return g != null ? g.kind : TileKind.Void; // if unpainted, consider it void-ish
-    }
-    #endregion
-
-    #region Walking Methods
-    // -----------------------------
-    // Walkability
-    // -----------------------------
-    public bool CanEnterCell(Vector3Int cell)
-    {
-        if (!IsInBounds(cell))
-            return false;
-
-        // Any tile on blocks tilemap blocks movement (walls/gates).
-        if (blocksTilemap != null && blocksTilemap.HasTile(cell))
-            return false;
-        
-        // blocks layer walls/gates
-        if (IsBlockingTile(cell))
-            return false;
-
-        // beam cells
-        if (IsBeamBlocked(cell))
-            return false;
-
-        // obstacle occupancy
-        if (TryGetObstacle(cell, out var obs) && obs != null && obs.BlocksMovement())
-            return false;
-
-        var ground = GetGroundGameTile(cell);
-        if (ground == null)
-            return false; // keeps movement restricted to painted ground footprint
-
-        // Use metadata + rule override for Void.
-        if (ground.kind == TileKind.Void)
-            return allowWalkingIntoVoid && ground.walkableByDefault;
-
-        return ground.walkableByDefault;
-    }
-
-    /// <summary>
-    /// Called after movement succeeds so tiles can apply enter effects (e.g. reset).
-    /// </summary>
-    public void HandleEnteredCell(Vector3Int cell, PlayerController player, Vector3 fallStartWorld)
-    {
-        if (!voidResetsToStart) return;
-
-        var ground = GetGroundGameTile(cell);
-        if (ground == null) return;
-
-        if (ground.enterEffect == EnterEffect.ResetToStart)
-        {
-            player.StartVoidFallReset(GetStartCell(), fallStartWorld);
-        }
-
-    }
-    #endregion
-    
-    #region Start Cell Methods
-    // -----------------------------
-    // Start cell
-    // -----------------------------
     public Vector3Int GetStartCell()
     {
-        // If bounds haven’t been computed yet for any reason, compute them now.
-        if (!hasCachedStart || groundBounds.size.x == 0 || groundBounds.size.y == 0)
-            RefreshBoundsAndCache();
-
+        if (!hasCachedStart)
+        {
+            cachedStartCell = FindStartCellFallbackToBoundsCenter();
+            hasCachedStart = true;
+        }
         return cachedStartCell;
     }
 
     private Vector3Int FindStartCellFallbackToBoundsCenter()
     {
-        // Scan within ground bounds for a GameTile marked Start.
+        // Try find a Start tile within ground bounds.
         foreach (var pos in groundBounds.allPositionsWithin)
         {
             var t = GetGroundGameTile(pos);
@@ -241,9 +151,89 @@ public class TilemapGridManager : MonoBehaviour
         );
     }
     #endregion
-    
-    #region Obstacle Methods
-    public void RegisterObstacle(ObstacleBase obstacle, Vector3Int cell)
+
+    // ─────────────────────────────────────────────────────────────
+    #region Tile access helpers
+    private GameTile GetGroundGameTile(Vector3Int cell)
+        => groundTilemap != null ? groundTilemap.GetTile<GameTile>(cell) : null;
+
+    private GameTile GetBlockGameTile(Vector3Int cell)
+        => blocksTilemap != null ? blocksTilemap.GetTile<GameTile>(cell) : null;
+
+    public TileKind GetTileKind(Vector3Int cell)
+    {
+        // If something exists on the blocks layer, treat it as blocking first.
+        if (blocksTilemap != null && blocksTilemap.HasTile(cell))
+        {
+            var b = GetBlockGameTile(cell);
+            return b != null ? b.kind : TileKind.Wall;
+        }
+
+        var g = GetGroundGameTile(cell);
+        return g != null ? g.kind : TileKind.Void; // unpainted treated void-ish (but placement can restrict)
+    }
+
+    public bool IsBlockingTile(Vector3Int cell)
+        => blocksTilemap != null && blocksTilemap.HasTile(cell);
+
+    public bool IsBeamBlocked(Vector3Int cell)
+        => beamBlocked.Contains(cell);
+    #endregion
+
+    // ─────────────────────────────────────────────────────────────
+    #region Walkability
+    private bool CanEnterCellInternal(Vector3Int cell, bool allowVoid)
+    {
+        if (!IsInBounds(cell))
+            return false;
+
+        if (IsBlockingTile(cell))
+            return false;
+
+        if (IsBeamBlocked(cell))
+            return false;
+
+        if (TryGetObstacle(cell, out var obs) && obs != null && obs.BlocksMovement())
+            return false;
+
+        var ground = GetGroundGameTile(cell);
+        if (ground == null)
+            return false; // restrict to painted ground footprint
+
+        if (ground.kind == TileKind.Void)
+            return allowVoid && ground.walkableByDefault;
+
+        return ground.walkableByDefault;
+    }
+
+    // Player rule
+    public bool CanEnterCell(Vector3Int cell)
+        => CanEnterCellInternal(cell, allowWalkingIntoVoid);
+
+    // Enemy rule (void never enterable)
+    public bool CanEnemyEnterCell(Vector3Int cell)
+        => CanEnterCellInternal(cell, allowVoid: false);
+
+    /// <summary>
+    /// Called after movement succeeds so tiles can apply enter effects (e.g. reset).
+    /// </summary>
+    public void HandleEnteredCell(Vector3Int cell, PlayerController player, Vector3 fallStartWorld)
+    {
+        if (!voidResetsToStart) return;
+
+        var ground = GetGroundGameTile(cell);
+        if (ground == null) return;
+
+        if (ground.enterEffect == EnterEffect.ResetToStart)
+        {
+            player.StartVoidFallReset(GetStartCell(), fallStartWorld);
+        }
+    }
+    #endregion
+
+    // ─────────────────────────────────────────────────────────────
+    #region Obstacle registration
+    public void RegisterObstacle(Vector3Int cell, ObstacleBase obstacle)
     {
         if (obstacle == null) return;
         obstacleByCell[cell] = obstacle;
@@ -253,7 +243,6 @@ public class TilemapGridManager : MonoBehaviour
     {
         if (obstacle == null) return;
 
-        // Remove all entries pointing to this obstacle (safe, small counts)
         var toRemove = new List<Vector3Int>();
         foreach (var kvp in obstacleByCell)
             if (kvp.Value == obstacle)
@@ -265,40 +254,198 @@ public class TilemapGridManager : MonoBehaviour
 
     public bool TryGetObstacle(Vector3Int cell, out ObstacleBase obstacle)
         => obstacleByCell.TryGetValue(cell, out obstacle);
-    
+    #endregion
+
+    // ─────────────────────────────────────────────────────────────
+    #region Preview (TM_Preview)
+    public void SetPreviewCellsForOwner(int ownerId, IReadOnlyList<Vector3Int> cells, Color color)
+    {
+        if (previewTilemap == null || previewFillTile == null) return;
+
+        ClearPreviewForOwner(ownerId);
+        if (cells == null || cells.Count == 0) return;
+
+        var copy = new List<Vector3Int>(cells.Count);
+        for (int i = 0; i < cells.Count; i++)
+            copy.Add(cells[i]);
+
+        previewByOwner[ownerId] = copy;
+
+        foreach (var c in copy)
+        {
+            previewTilemap.SetTile(c, previewFillTile);
+            previewTilemap.SetColor(c, color);
+        }
+    }
+
+    public void SetPreviewCellsForOwner(int ownerId, IReadOnlyList<Vector3Int> cells, IReadOnlyList<Color> perCellColors)
+    {
+        if (previewTilemap == null || previewFillTile == null) return;
+
+        ClearPreviewForOwner(ownerId);
+        if (cells == null || cells.Count == 0) return;
+
+        var copy = new List<Vector3Int>(cells.Count);
+        for (int i = 0; i < cells.Count; i++)
+            copy.Add(cells[i]);
+
+        previewByOwner[ownerId] = copy;
+
+        for (int i = 0; i < copy.Count; i++)
+        {
+            var c = copy[i];
+            previewTilemap.SetTile(c, previewFillTile);
+
+            Color col = (perCellColors != null && i < perCellColors.Count) ? perCellColors[i] : Color.white;
+            previewTilemap.SetColor(c, col);
+        }
+    }
+
+    public void FlashPreviewCellsForOwner(int ownerId, IReadOnlyList<Vector3Int> cells, Color color, float duration)
+    {
+        if (previewTilemap == null || previewFillTile == null) return;
+        if (cells == null || cells.Count == 0) return;
+
+        // bump token so older coroutines don’t clear a newer telegraph
+        int token = 1;
+        if (previewTokenByOwner.TryGetValue(ownerId, out int existing))
+            token = existing + 1;
+        previewTokenByOwner[ownerId] = token;
+
+        SetPreviewCellsForOwner(ownerId, cells, color);
+        StartCoroutine(ClearPreviewAfterDelay(ownerId, token, duration));
+    }
+
+    public void ClearPreviewForOwner(int ownerId)
+    {
+        if (previewTilemap == null) return;
+
+        if (previewByOwner.TryGetValue(ownerId, out var cells))
+        {
+            foreach (var c in cells)
+            {
+                previewTilemap.SetTile(c, null);
+                previewTilemap.SetColor(c, Color.white);
+            }
+        }
+
+        previewByOwner.Remove(ownerId);
+    }
+
+    private IEnumerator ClearPreviewAfterDelay(int ownerId, int token, float duration)
+    {
+        yield return new WaitForSeconds(duration);
+
+        if (!previewTokenByOwner.TryGetValue(ownerId, out int current) || current != token)
+            yield break;
+
+        ClearPreviewForOwner(ownerId);
+    }
+    #endregion
+
+    // ─────────────────────────────────────────────────────────────
+    #region Shape placement (Void -> Floor)
+    /// <summary>
+    /// Shape placement rule:
+    /// - every cell must be within bounds
+    /// - every cell must currently be a *painted* Void GameTile
+    /// - must NOT be blocked by blocks tilemap, beam, or an obstacle that BlocksShapePlacement
+    /// </summary>
+    public bool CanPlaceShapeOnVoid(Vector3Int originCell, Vector2Int[] offsets, Vector3Int playerCell, out bool overlapsPlayer)
+    {
+        overlapsPlayer = false;
+
+        if (offsets == null || offsets.Length == 0)
+            return false;
+
+        for (int i = 0; i < offsets.Length; i++)
+        {
+            var off = offsets[i];
+            var cell = originCell + new Vector3Int(off.x, off.y, 0);
+
+            if (cell == playerCell)
+                overlapsPlayer = true;
+
+            if (!IsInBounds(cell))
+                return false;
+
+            if (IsBlockingTile(cell))
+                return false;
+
+            if (IsBeamBlocked(cell))
+                return false;
+
+            if (TryGetObstacle(cell, out var obs) && obs != null && obs.BlocksShapePlacement())
+                return false;
+
+            var g = GetGroundGameTile(cell);
+            if (g == null)
+                return false; // restrict placement to painted void tiles only
+
+            if (g.kind != TileKind.Void)
+                return false;
+        }
+
+        // Overlapping player is considered invalid placement.
+        if (overlapsPlayer)
+            return false;
+
+        return true;
+    }
+
+    public void ApplyShapeToVoid(Vector3Int originCell, Vector2Int[] offsets)
+    {
+        if (groundTilemap == null || floorTile == null) return;
+        if (offsets == null) return;
+
+        for (int i = 0; i < offsets.Length; i++)
+        {
+            var off = offsets[i];
+            var cell = originCell + new Vector3Int(off.x, off.y, 0);
+
+            var g = GetGroundGameTile(cell);
+            if (g != null && g.kind == TileKind.Void)
+            {
+                groundTilemap.SetTile(cell, floorTile);
+            }
+        }
+    }
+    #endregion
+
+    // ─────────────────────────────────────────────────────────────
+    #region Lever helper (Floor <-> Void)
     public void ToggleFloorVoidAt(Vector3Int cell)
     {
-        if (groundTilemap == null) 
+        if (groundTilemap == null)
             return;
-        
+
         // Don’t toggle tiles that are occupied by obstacles
         if (TryGetObstacle(cell, out var obs) && obs != null)
             return;
 
         var current = GetGroundGameTile(cell);
-        if (current == null) 
+        if (current == null)
             return;
 
         // Don't toggle Start (optional safety)
-        if (current.kind == TileKind.Start) 
+        if (current.kind == TileKind.Start)
             return;
 
         if (current.kind == TileKind.Floor)
         {
-            if (voidTile != null) 
+            if (voidTile != null)
                 groundTilemap.SetTile(cell, voidTile);
         }
         else if (current.kind == TileKind.Void)
         {
-            if (floorTile != null) 
+            if (floorTile != null)
                 groundTilemap.SetTile(cell, floorTile);
         }
     }
-    
-    public bool IsBlockingTile(Vector3Int cell) => blocksTilemap != null && blocksTilemap.HasTile(cell);
-    
-    public bool IsBeamBlocked(Vector3Int cell) => beamBlocked.Contains(cell);
+    #endregion
 
+    // ─────────────────────────────────────────────────────────────
+    #region Beams (MirrorObstacle integration)
     public void SetBeamCellsForOwner(int ownerId, List<Vector3Int> newCells)
     {
         if (beamByOwner.TryGetValue(ownerId, out var old))

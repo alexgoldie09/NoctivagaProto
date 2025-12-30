@@ -111,10 +111,8 @@ public class MirrorObstacle : ObstacleBase
             m.CastIfEnergized(visited);
         }
 
-        // After beams update, resolve player if trapped on a beam cell.
-        var player = FindFirstObjectByType<PlayerController>();
-        if (player != null)
-            ResolvePlayerIfOnBeam(player, g);
+        // After beams update, resolve occupants if trapped on a beam cell.
+        ResolveOccupantsIfOnBeam(g);
     }
 
     private void CastIfEnergized(HashSet<int> visited)
@@ -181,34 +179,125 @@ public class MirrorObstacle : ObstacleBase
         DrawLine(originWorld, endWorld);
     }
 
-    private static void ResolvePlayerIfOnBeam(PlayerController player, TilemapGridManager g)
+    private static void ResolveOccupantsIfOnBeam(TilemapGridManager g)
     {
-        Vector3Int pc = player.CellPosition;
-        if (!g.IsBeamBlocked(pc)) return;
-
-        // Try 4-direction nudge first
-        Vector3Int[] dirs =
+        // 1) Resolve player
+        var player = FindFirstObjectByType<PlayerController>();
+        if (player != null)
         {
-            new (1,0,0),
-            new (-1,0,0),
-            new (0,1,0),
-            new (0,-1,0),
+            ResolveSingleOccupant(
+                g,
+                player.CellPosition,
+                canEnter: g.CanEnterCell,
+                onMove: player.TeleportToCell,
+                onFail: () =>
+                {
+                    Vector3 fallStartWorld = g.CellToWorldCenter(player.CellPosition);
+                    player.StartVoidFallReset(g.GetStartCell(), fallStartWorld);
+                }
+            );
+        }
+
+        // 2) Resolve enemies
+        var enemies = FindObjectsByType<EnemyBase>(FindObjectsSortMode.None);
+        foreach (var e in enemies)
+        {
+            if (e == null) continue;
+
+            ResolveSingleOccupant(
+                g,
+                e.CellPosition,
+                canEnter: g.CanEnemyEnterCell,
+                onMove: e.WarpTo,
+                onFail: () =>
+                {
+                    // If an enemy is completely trapped, you can decide what to do.
+                    // For now: do nothing (they'll remain in place), or optionally kill them.
+                    Destroy(e.gameObject);
+                }
+            );
+        }
+    }
+
+    private static void ResolveSingleOccupant(
+        TilemapGridManager g,
+        Vector3Int currentCell,
+        System.Func<Vector3Int, bool> canEnter,
+        System.Action<Vector3Int> onMove,
+        System.Action onFail)
+    {
+        if (!g.IsBeamBlocked(currentCell))
+            return;
+
+        // Try neighbors (4-dir first feels like a "push")
+        Vector3Int[] dirs4 =
+        {
+            new(1,0,0), new(-1,0,0),
+            new(0,1,0), new(0,-1,0)
         };
 
-        foreach (var d in dirs)
+        foreach (var d in dirs4)
         {
-            var nc = pc + d;
-            if (g.CanEnterCell(nc))
+            var nc = currentCell + d;
+            if (canEnter(nc))
             {
-                player.TeleportToCell(nc);
+                onMove(nc);
                 return;
             }
         }
 
-        // If stuck, fall-reset to start (your existing logic)
-        Vector3 fallStartWorld = g.CellToWorldCenter(pc);
-        player.StartVoidFallReset(g.GetStartCell(), fallStartWorld);
+        // Then try diagonals as backup
+        Vector3Int[] dirsDiag =
+        {
+            new(1,1,0), new(-1,1,0),
+            new(1,-1,0), new(-1,-1,0)
+        };
+
+        foreach (var d in dirsDiag)
+        {
+            var nc = currentCell + d;
+            if (canEnter(nc))
+            {
+                onMove(nc);
+                return;
+            }
+        }
+
+        // Optional: small BFS search radius so we can "unstick" in tighter spaces
+        const int maxRadius = 4;
+        var visited = new HashSet<Vector3Int> { currentCell };
+        var queue = new Queue<(Vector3Int cell, int dist)>();
+        queue.Enqueue((currentCell, 0));
+
+        Vector3Int[] dirs8 =
+        {
+            new(1,0,0), new(-1,0,0), new(0,1,0), new(0,-1,0),
+            new(1,1,0), new(-1,1,0), new(1,-1,0), new(-1,-1,0)
+        };
+
+        while (queue.Count > 0)
+        {
+            var (c, dist) = queue.Dequeue();
+            if (dist >= maxRadius) continue;
+
+            foreach (var d in dirs8)
+            {
+                var nc = c + d;
+                if (!visited.Add(nc)) continue;
+
+                if (canEnter(nc))
+                {
+                    onMove(nc);
+                    return;
+                }
+
+                queue.Enqueue((nc, dist + 1));
+            }
+        }
+
+        onFail?.Invoke();
     }
+
 
     private Vector3Int GetStep(MirrorDirection dir)
     {
