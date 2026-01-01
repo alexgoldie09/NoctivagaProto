@@ -17,6 +17,7 @@ public class TilemapGridManager : MonoBehaviour
     [SerializeField] private Tilemap groundTilemap;   // Floor/Void/Start (painted with GameTile)
     [SerializeField] private Tilemap blocksTilemap;   // Walls/Gates (any tiles)
     [SerializeField] private Tilemap previewTilemap;  // TM_Preview
+    [SerializeField] private Tilemap overlayTilemap; // TM_Overlay
 
     [Header("Default Ground Tiles (GameTile assets)")]
     [SerializeField] private GameTile floorTile;
@@ -40,6 +41,11 @@ public class TilemapGridManager : MonoBehaviour
     // Preview ownership (telegraphs + shape preview)
     private readonly Dictionary<int, List<Vector3Int>> previewByOwner = new();
     private readonly Dictionary<int, int> previewTokenByOwner = new();
+    
+    // Overlay halftime
+    private const int OVERLAY_OWNER_HALFTIME = 9001;
+    private readonly Dictionary<int, List<Vector3Int>> overlayByOwner = new();
+    private Coroutine halfTimeRoutine;
 
     private BoundsInt groundBounds;
     private Vector3Int cachedStartCell;
@@ -172,6 +178,29 @@ public class TilemapGridManager : MonoBehaviour
         var g = GetGroundGameTile(cell);
         return g != null ? g.kind : TileKind.Void; // unpainted treated void-ish (but placement can restrict)
     }
+    
+    public HashSet<string> GetAllGateKeyIDsInMap()
+    {
+        var result = new HashSet<string>();
+
+        if (blocksTilemap == null)
+            return result;
+
+        // Ensure bounds are accurate for scanning
+        blocksTilemap.CompressBounds();
+        var bounds = blocksTilemap.cellBounds;
+
+        foreach (var cell in bounds.allPositionsWithin)
+        {
+            var t = blocksTilemap.GetTile<GameTile>(cell);
+            if (t == null) continue;
+
+            if (t.kind == TileKind.Gate && !string.IsNullOrEmpty(t.gateKeyID))
+                result.Add(t.gateKeyID);
+        }
+
+        return result;
+    }
 
     public bool IsBlockingTile(Vector3Int cell)
         => blocksTilemap != null && blocksTilemap.HasTile(cell);
@@ -228,6 +257,44 @@ public class TilemapGridManager : MonoBehaviour
         {
             player.StartVoidFallReset(GetStartCell(), fallStartWorld);
         }
+    }
+    
+    public bool IsGateCell(Vector3Int cell, out GameTile gateTile)
+    {
+        gateTile = null;
+
+        if (blocksTilemap == null || !blocksTilemap.HasTile(cell))
+            return false;
+
+        gateTile = blocksTilemap.GetTile<GameTile>(cell);
+        return gateTile != null && gateTile.kind == TileKind.Gate;
+    }
+
+    public bool TryUnlockGateAt(Vector3Int cell, PlayerInventory inventory)
+    {
+        if (inventory == null) return false;
+
+        if (!IsGateCell(cell, out var gateTile))
+            return false;
+
+        // Gate with empty keyID acts like a wall unless you want "free gates".
+        if (string.IsNullOrEmpty(gateTile.gateKeyID))
+            return false;
+
+        // Check key availability
+        if (inventory.GetKeyCount(gateTile.gateKeyID) <= 0) // PlayerInventory already supports this :contentReference[oaicite:3]{index=3}
+            return false;
+
+        // Consume key (optional)
+        if (gateTile.consumesKey)
+            inventory.UseKey(gateTile.gateKeyID); // decrements + UI update :contentReference[oaicite:4]{index=4}
+
+        // Remove the blocking tile and ensure ground is walkable
+        blocksTilemap.SetTile(cell, null);
+        if (groundTilemap != null && floorTile != null)
+            groundTilemap.SetTile(cell, floorTile);
+
+        return true;
     }
     #endregion
 
@@ -340,6 +407,97 @@ public class TilemapGridManager : MonoBehaviour
             yield break;
 
         ClearPreviewForOwner(ownerId);
+    }
+    #endregion
+    
+    // ─────────────────────────────────────────────────────────────
+    #region Overlay Effect
+    public void SetHalfTimeOverlay(bool enabled, Color overlayColor, float flashInterval = 0.2f)
+    {
+        if (overlayTilemap == null || previewFillTile == null) return;
+
+        StopHalfTimeOverlayRoutine();
+
+        if (!enabled)
+        {
+            ClearOverlayForOwner(OVERLAY_OWNER_HALFTIME);
+            return;
+        }
+
+        // cover the painted ground footprint only
+        var cells = new List<Vector3Int>();
+        foreach (var pos in groundBounds.allPositionsWithin)
+        {
+            if (GetGroundGameTile(pos) != null)
+                cells.Add(pos);
+        }
+
+        halfTimeRoutine = StartCoroutine(HalfTimeOverlayRoutine(cells, overlayColor, flashInterval));
+    }
+
+    private void StopHalfTimeOverlayRoutine()
+    {
+        if (halfTimeRoutine != null)
+        {
+            StopCoroutine(halfTimeRoutine);
+            halfTimeRoutine = null;
+        }
+    }
+
+    private IEnumerator HalfTimeOverlayRoutine(List<Vector3Int> cells, Color baseColor, float interval)
+    {
+        // Place tiles once
+        SetOverlayCells(OVERLAY_OWNER_HALFTIME, cells, baseColor);
+
+        bool on = true;
+        while (true)
+        {
+            on = !on;
+
+            Color c = baseColor;
+            c.a = on ? baseColor.a : 0f;
+
+            foreach (var cell in cells)
+                overlayTilemap.SetColor(cell, c);
+
+            yield return new WaitForSeconds(interval);
+        }
+    }
+    
+    public void SetOverlayCells(int ownerId, IReadOnlyList<Vector3Int> cells, Color color)
+    {
+        if (overlayTilemap == null || previewFillTile == null) return;
+
+        ClearOverlayForOwner(ownerId);
+        if (cells == null || cells.Count == 0) return;
+
+        var copy = new List<Vector3Int>(cells.Count);
+        for (int i = 0; i < cells.Count; i++)
+            copy.Add(cells[i]);
+
+        overlayByOwner[ownerId] = copy;
+
+        foreach (var c in copy)
+        {
+            overlayTilemap.SetTile(c, previewFillTile); // reuse same fill tile
+            overlayTilemap.SetColor(c, color);
+        }
+    }
+
+    public void ClearOverlayForOwner(int ownerId)
+    {
+        if (overlayTilemap == null) return;
+
+        if (overlayByOwner.TryGetValue(ownerId, out var cells))
+        {
+            foreach (var c in cells)
+            {
+                overlayTilemap.SetTile(c, null);
+                overlayTilemap.SetColor(c, Color.white);
+            }
+        }
+
+        overlayByOwner.Remove(ownerId);
     }
     #endregion
 

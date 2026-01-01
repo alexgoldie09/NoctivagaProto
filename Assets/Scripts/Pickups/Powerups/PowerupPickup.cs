@@ -15,44 +15,29 @@ public class PowerupPickup : MonoBehaviour
     [Tooltip("Duration of the powerup effect in seconds.")]
     public float duration = 5f;
 
-    [Tooltip("Grid position where this powerup spawns (converted to world position on Start).")]
-    public Vector2Int gridPosition;
-
-    // ─────────────────────────────────────────────────────────────────────────────
-
-    /// <summary>
-    /// Different types of powerups the player can collect.
-    /// </summary>
     public enum PowerupType { HalfTime, ShadowMode }
 
-    // ─────────────────────────────────────────────────────────────────────────────
-
-    /// <summary>
-    /// Aligns the powerup to the grid position when the scene starts.
-    /// </summary>
     private void Start()
     {
-        transform.position = new Vector3(gridPosition.x, gridPosition.y, 0f);
+        var grid = TilemapGridManager.Instance;
+        if (grid == null)
+        {
+            Debug.LogError("[PowerupPickup] TilemapGridManager.Instance not found.");
+            return;
+        }
+
+        Vector3Int cell = grid.WorldToCell(transform.position);
+        transform.position = grid.CellToWorldCenter(cell);
     }
 
-    // ─────────────────────────────────────────────────────────────────────────────
-
-    /// <summary>
-    /// Called when another collider enters the trigger zone.
-    /// If the player enters, the powerup effect is activated and this pickup is destroyed.
-    /// </summary>
     private void OnTriggerEnter2D(Collider2D other)
     {
-        if (other.CompareTag("Player"))
-        {
-            // Ask GameManager if we can activate this powerup
-            bool activated = GameManager.Instance.TryActivatePowerup(type, duration);
+        if (!other.CompareTag("Player"))
+            return;
 
-            if (activated)
-            {
-                Destroy(gameObject); // only destroy if effect actually applied
-            }
+        bool activated = GameManager.Instance.TryActivatePowerup(type, duration);
 
-        }
+        if (activated)
+            Destroy(gameObject);
     }
 }

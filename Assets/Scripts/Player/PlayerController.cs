@@ -304,8 +304,21 @@ public class PlayerController : MonoBehaviour
     {
         Vector3Int nextCell = cellPos + new Vector3Int(direction.x, direction.y, 0);
 
+        // If blocked, see if it's a gate and we can unlock it
         if (!grid.CanEnterCell(nextCell))
-            return;
+        {
+            var inv = GetComponent<PlayerInventory>();
+            if (grid.IsGateCell(nextCell, out _) && grid.TryUnlockGateAt(nextCell, inv))
+            {
+                // Now that it's unlocked, we should be able to enter.
+                if (!grid.CanEnterCell(nextCell))
+                    return;
+            }
+            else
+            {
+                return;
+            }
+        }
 
         cellPos = nextCell;
 

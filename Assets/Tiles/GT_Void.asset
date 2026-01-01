@@ -37,5 +37,5 @@ MonoBehaviour:
   kind: 1
   walkableByDefault: 1
   enterEffect: 1
-  blocksShapePlacement: 0
-  blocksBeam: 0
+  gateKeyID: 
+  consumesKey: 0

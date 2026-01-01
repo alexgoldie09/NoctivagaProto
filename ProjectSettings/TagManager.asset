@@ -39,6 +39,9 @@ TagManager:
   - 
   - 
   m_SortingLayers:
+  - name: VFX
+    uniqueID: 171950423
+    locked: 0
   - name: Tilemap
     uniqueID: 2858293849
     locked: 0

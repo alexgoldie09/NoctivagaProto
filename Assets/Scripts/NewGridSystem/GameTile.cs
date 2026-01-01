@@ -27,8 +27,11 @@ public class GameTile : Tile
 
     [Tooltip("What happens when the player enters this tile.")]
     public EnterEffect enterEffect = EnterEffect.None;
+    
+    [Header("Gate (only used if kind == Gate)")]
+    [Tooltip("Key ID required to unlock this gate, e.g. 'red', 'blue', 'gold'. Empty means 'no key required'.")]
+    public string gateKeyID = "red";
 
-    [Header("Placement / Hazards (optional)")]
-    public bool blocksShapePlacement = false;
-    public bool blocksBeam = false; // If you want tiles that inherently block beams
+    [Tooltip("If true, using the gate consumes one key from the inventory.")]
+    public bool consumesKey = true;
 }

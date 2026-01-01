@@ -155,7 +155,10 @@ public class GameManager : MonoBehaviour
     private IEnumerator HalfTimeRoutine(float duration)
     {
         RhythmManager.Instance.SetTempoMultiplier(0.5f);
-        GridManager.Instance.SetHalfTimeVisual(true); // turn grey
+
+        var grid = TilemapGridManager.Instance;
+        if (grid != null)
+            grid.SetHalfTimeOverlay(true, Color.black, 0.5f);
 
         if (halfTimeFog != null && halfTimeFX != null)
         {
@@ -168,7 +171,9 @@ public class GameManager : MonoBehaviour
         yield return new WaitForSeconds(duration);
 
         RhythmManager.Instance.ResetTempo();
-        GridManager.Instance.SetHalfTimeVisual(false); // restore
+
+        if (grid != null)
+            grid.SetHalfTimeOverlay(false, Color.black);
 
         if (halfTimeFog != null && halfTimeFX != null)
         {
@@ -177,7 +182,7 @@ public class GameManager : MonoBehaviour
             halfTimeFog.gameObject.SetActive(false);
             halfTimeFX.gameObject.SetActive(false);
         }
-        
+
         ClearActivePowerup();
     }
 

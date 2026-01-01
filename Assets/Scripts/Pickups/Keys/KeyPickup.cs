@@ -11,9 +11,6 @@ public class KeyPickup : MonoBehaviour
     [Tooltip("Unique identifier for the key (used for gates, etc).")]
     public string keyID = "default";
 
-    [Tooltip("Grid position where this key spawns (converted to world position on Start).")]
-    public Vector2Int gridPosition;
-
     // ─────────────────────────────────────────────────────────────────────────────
 
     /// <summary>
@@ -21,7 +18,15 @@ public class KeyPickup : MonoBehaviour
     /// </summary>
     private void Start()
     {
-        transform.position = new Vector3(gridPosition.x, gridPosition.y, 0f);
+        var grid = TilemapGridManager.Instance;
+        if (grid == null)
+        {
+            Debug.LogError("[KeyPickup] TilemapGridManager.Instance not found.");
+            return;
+        }
+
+        Vector3Int cell = grid.WorldToCell(transform.position);
+        transform.position = grid.CellToWorldCenter(cell);
     }
 
     // ─────────────────────────────────────────────────────────────────────────────

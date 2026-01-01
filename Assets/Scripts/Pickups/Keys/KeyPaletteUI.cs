@@ -15,6 +15,7 @@ public class KeyPaletteUI : MonoBehaviour
 
     private Dictionary<string, KeyIconUI> keyIcons = new(); // Maps keyID to UI element.
     private PlayerInventory inventory; // Cached player inventory.
+    private TilemapGridManager grid;
 
     /// <summary>
     /// Find PlayerInventory and initialize key icons on scene start.
@@ -22,29 +23,31 @@ public class KeyPaletteUI : MonoBehaviour
     void Start()
     {
         inventory = FindAnyObjectByType<PlayerInventory>();
+        grid = TilemapGridManager.Instance;
+
         InitFromMap();
         UpdateAll();
     }
 
     /// <summary>
-    /// Scans the map for all Gate tiles and extracts required key IDs.
+    /// Scans the tilemap for all Gate tiles and extracts required key IDs.
     /// Instantiates key icons for each unique key ID.
     /// </summary>
     void InitFromMap()
     {
-        HashSet<string> allKeyIDs = new();
-
-        foreach (var tile in GridManager.Instance.AllTiles)
+        if (grid == null)
         {
-            if (tile.tileType == TileType.Gate && tile.requiredKeyIds != null)
-            {
-                foreach (var key in tile.requiredKeyIds)
-                    allKeyIDs.Add(key);
-            }
+            Debug.LogWarning("[KeyPaletteUI] No TilemapGridManager.Instance found.");
+            return;
         }
+
+        HashSet<string> allKeyIDs = grid.GetAllGateKeyIDsInMap();
 
         foreach (string keyID in allKeyIDs)
         {
+            if (keyIcons.ContainsKey(keyID))
+                continue;
+
             GameObject entryObj = Instantiate(keyIconPrefab, container);
             KeyIconUI icon = entryObj.GetComponent<KeyIconUI>();
             icon.SetDisplay(keyID, defaultKeyIcon, 0);
@@ -57,10 +60,10 @@ public class KeyPaletteUI : MonoBehaviour
     /// </summary>
     public void UpdateKey(string keyID)
     {
+        if (inventory == null) return;
+
         if (keyIcons.TryGetValue(keyID, out var icon))
-        {
             icon.UpdateCount(inventory.GetKeyCount(keyID));
-        }
     }
 
     /// <summary>
@@ -68,10 +71,9 @@ public class KeyPaletteUI : MonoBehaviour
     /// </summary>
     public void UpdateAll()
     {
+        if (inventory == null) return;
+
         foreach (var pair in keyIcons)
-        {
-            string keyID = pair.Key;
-            pair.Value.UpdateCount(inventory.GetKeyCount(keyID));
-        }
+            pair.Value.UpdateCount(inventory.GetKeyCount(pair.Key));
     }
 }
