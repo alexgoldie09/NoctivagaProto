@@ -1,6 +1,9 @@
 using UnityEngine;
 using UnityEngine.Tilemaps;
 
+/// <summary>
+/// High-level classification for grid tiles.
+/// </summary>
 public enum TileKind
 {
     Floor,
@@ -10,12 +13,18 @@ public enum TileKind
     Gate
 }
 
+/// <summary>
+/// Effect applied when the player enters a tile.
+/// </summary>
 public enum EnterEffect
 {
     None,
     ResetToStart
 }
 
+/// <summary>
+/// Tile asset that stores gameplay metadata for grid interactions.
+/// </summary>
 [CreateAssetMenu(menuName = "Tiles/Game Tile")]
 public class GameTile : Tile
 {

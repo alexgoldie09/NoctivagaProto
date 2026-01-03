@@ -53,6 +53,9 @@ public class TilemapGridManager : MonoBehaviour
 
     // ─────────────────────────────────────────────────────────────
     #region Unity Events
+    /// <summary>
+    /// Initializes the singleton instance and caches ground bounds/start cell.
+    /// </summary>
     private void Awake()
     {
         if (Instance != null && Instance != this)
@@ -76,14 +79,25 @@ public class TilemapGridManager : MonoBehaviour
         hasCachedStart = true;
     }
     #endregion
-
     // ─────────────────────────────────────────────────────────────
     #region World/Cell conversion
+    /// <summary>
+    /// Converts a world position to a grid cell coordinate.
+    /// </summary>
+    /// <param name="worldPos">World position to convert.</param>
     public Vector3Int WorldToCell(Vector3 worldPos) => grid.WorldToCell(worldPos);
 
-    // Use Tilemap.GetCellCenterWorld since GridLayout doesn't expose it consistently
+    /// <summary>
+    /// Converts a cell coordinate to the world-space center of the ground tile.
+    /// </summary>
+    /// <param name="cell">Grid cell coordinate.</param>
     public Vector3 CellToWorldCenter(Vector3Int cell) => groundTilemap.GetCellCenterWorld(cell);
     
+    /// <summary>
+    /// Returns the entry edge world position for a beam entering a cell.
+    /// </summary>
+    /// <param name="hitCell">Cell hit by the beam.</param>
+    /// <param name="beamStep">Beam step direction.</param>
     public Vector3 GetCellEdgeWorld(Vector3Int hitCell, Vector3Int beamStep)
     {
         Vector3 center = CellToWorldCenter(hitCell);
@@ -94,6 +108,9 @@ public class TilemapGridManager : MonoBehaviour
         return center - new Vector3(s.x * half.x, s.y * half.y, 0f);
     }
     
+    /// <summary>
+    /// Returns half extents of a cell in world units.
+    /// </summary>
     private Vector2 GetCellHalfExtents()
     {
         // Prefer the Grid cell size if available; fallback to 0.5
@@ -103,7 +120,12 @@ public class TilemapGridManager : MonoBehaviour
 
         return new Vector2(0.5f, 0.5f);
     }
-
+    
+    /// <summary>
+    /// Converts a step vector into its sign components (-1, 0, or 1).
+    /// </summary>
+    /// <param name="step">Step vector to reduce.</param>
+    /// <returns>Signed x/y components.</returns>
     private Vector2Int StepSign(Vector3Int step)
     {
         int sx = step.x == 0 ? 0 : (step.x > 0 ? 1 : -1);
@@ -115,6 +137,8 @@ public class TilemapGridManager : MonoBehaviour
     /// Point on the edge of a cell on the OUTER side in the beam direction.
     /// Use when the beam goes out-of-bounds, to end at the last valid cell boundary.
     /// </summary>
+    /// <param name="lastValidCell">Last in-bounds cell before the beam exits.</param>
+    /// <param name="beamStep">Beam step direction.</param>
     public Vector3 GetCellOuterEdgeWorld(Vector3Int lastValidCell, Vector3Int beamStep)
     {
         Vector3 center = CellToWorldCenter(lastValidCell);
@@ -124,11 +148,18 @@ public class TilemapGridManager : MonoBehaviour
         return center + new Vector3(s.x * half.x, s.y * half.y, 0f);
     }
     #endregion
-
     // ─────────────────────────────────────────────────────────────
     #region Bounds / Start
+    /// <summary>
+    /// Checks whether a cell is within the ground tilemap bounds.
+    /// </summary>
+    /// <param name="cell">Cell to test.</param>
+    /// <returns>True if the cell lies within bounds.</returns>
     public bool IsInBounds(Vector3Int cell) => groundBounds.Contains(cell);
 
+    /// <summary>
+    /// Returns the cached start cell or recomputes it if needed.
+    /// </summary>
     public Vector3Int GetStartCell()
     {
         if (!hasCachedStart)
@@ -139,6 +170,10 @@ public class TilemapGridManager : MonoBehaviour
         return cachedStartCell;
     }
 
+    /// <summary>
+    /// Searches for a Start tile or falls back to the bounds center.
+    /// </summary>
+    /// <returns>Cell coordinate for the start position.</returns>
     private Vector3Int FindStartCellFallbackToBoundsCenter()
     {
         // Try find a Start tile within ground bounds.
@@ -157,15 +192,24 @@ public class TilemapGridManager : MonoBehaviour
         );
     }
     #endregion
-
     // ─────────────────────────────────────────────────────────────
     #region Tile access helpers
+    /// <summary>
+    /// Retrieves the GameTile asset from the ground tilemap at a cell.
+    /// </summary>
     private GameTile GetGroundGameTile(Vector3Int cell)
         => groundTilemap != null ? groundTilemap.GetTile<GameTile>(cell) : null;
 
+    /// <summary>
+    /// Retrieves the GameTile asset from the blocking tilemap at a cell.
+    /// </summary>
     private GameTile GetBlockGameTile(Vector3Int cell)
         => blocksTilemap != null ? blocksTilemap.GetTile<GameTile>(cell) : null;
 
+    /// <summary>
+    /// Determines the logical tile kind at a cell, accounting for blocking layers.
+    /// </summary>
+    /// <param name="cell">Cell to query.</param>
     public TileKind GetTileKind(Vector3Int cell)
     {
         // If something exists on the blocks layer, treat it as blocking first.
@@ -179,6 +223,10 @@ public class TilemapGridManager : MonoBehaviour
         return g != null ? g.kind : TileKind.Void; // unpainted treated void-ish (but placement can restrict)
     }
     
+    /// <summary>
+    /// Scans the blocks tilemap for all unique gate key IDs.
+    /// </summary>
+    /// <returns>Set of gate key IDs present in the map.</returns>
     public HashSet<string> GetAllGateKeyIDsInMap()
     {
         var result = new HashSet<string>();
@@ -202,15 +250,28 @@ public class TilemapGridManager : MonoBehaviour
         return result;
     }
 
+    /// <summary>
+    /// Checks whether a blocking tile exists at the cell.
+    /// </summary>
+    /// <param name="cell">Cell to test.</param>
     public bool IsBlockingTile(Vector3Int cell)
         => blocksTilemap != null && blocksTilemap.HasTile(cell);
 
+    /// <summary>
+    /// Checks whether the cell is blocked by a beam.
+    /// </summary>
+    /// <param name="cell">Cell to test.</param>
     public bool IsBeamBlocked(Vector3Int cell)
         => beamBlocked.Contains(cell);
     #endregion
-
     // ─────────────────────────────────────────────────────────────
     #region Walkability
+    /// <summary>
+    /// Central walkability rule that accounts for bounds, blocking layers, beams, obstacles, and void rules.
+    /// </summary>
+    /// <param name="cell">Cell to test for entry.</param>
+    /// <param name="allowVoid">Whether void tiles are allowed.</param>
+    /// <returns>True if the cell can be entered.</returns>
     private bool CanEnterCellInternal(Vector3Int cell, bool allowVoid)
     {
         if (!IsInBounds(cell))
@@ -234,18 +295,27 @@ public class TilemapGridManager : MonoBehaviour
 
         return ground.walkableByDefault;
     }
-
-    // Player rule
+    
+    /// <summary>
+    /// Determines whether the player can enter the specified cell.
+    /// </summary>
+    /// <param name="cell">Cell to test for entry.</param>
     public bool CanEnterCell(Vector3Int cell)
         => CanEnterCellInternal(cell, allowWalkingIntoVoid);
-
-    // Enemy rule (void never enterable)
+    
+    /// <summary>
+    /// Determines whether an enemy can enter the specified cell.
+    /// </summary>
+    /// <param name="cell">Cell to test for entry.</param>
     public bool CanEnemyEnterCell(Vector3Int cell)
         => CanEnterCellInternal(cell, allowVoid: false);
 
     /// <summary>
     /// Called after movement succeeds so tiles can apply enter effects (e.g. reset).
     /// </summary>
+    /// <param name="cell">Cell that was entered.</param>
+    /// <param name="player">Player entering the cell.</param>
+    /// <param name="fallStartWorld">World position where a fall should start from.</param>
     public void HandleEnteredCell(Vector3Int cell, PlayerController player, Vector3 fallStartWorld)
     {
         if (!voidResetsToStart) return;
@@ -259,6 +329,12 @@ public class TilemapGridManager : MonoBehaviour
         }
     }
     
+    /// <summary>
+    /// Checks whether a cell contains a gate tile and returns its metadata.
+    /// </summary>
+    /// <param name="cell">Cell to check.</param>
+    /// <param name="gateTile">Gate tile metadata, if present.</param>
+    /// <returns>True if the cell contains a gate tile.</returns>
     public bool IsGateCell(Vector3Int cell, out GameTile gateTile)
     {
         gateTile = null;
@@ -270,6 +346,12 @@ public class TilemapGridManager : MonoBehaviour
         return gateTile != null && gateTile.kind == TileKind.Gate;
     }
 
+    /// <summary>
+    /// Attempts to unlock and remove a gate using the player's inventory.
+    /// </summary>
+    /// <param name="cell">Gate cell to unlock.</param>
+    /// <param name="inventory">Player inventory used for key checks.</param>
+    /// <returns>True if the gate was unlocked and removed.</returns>
     public bool TryUnlockGateAt(Vector3Int cell, PlayerInventory inventory)
     {
         if (inventory == null) return false;
@@ -282,12 +364,12 @@ public class TilemapGridManager : MonoBehaviour
             return false;
 
         // Check key availability
-        if (inventory.GetKeyCount(gateTile.gateKeyID) <= 0) // PlayerInventory already supports this :contentReference[oaicite:3]{index=3}
+        if (inventory.GetKeyCount(gateTile.gateKeyID) <= 0) // PlayerInventory already supports this
             return false;
 
         // Consume key (optional)
         if (gateTile.consumesKey)
-            inventory.UseKey(gateTile.gateKeyID); // decrements + UI update :contentReference[oaicite:4]{index=4}
+            inventory.UseKey(gateTile.gateKeyID); // decrements + UI update
 
         // Remove the blocking tile and ensure ground is walkable
         blocksTilemap.SetTile(cell, null);
@@ -297,20 +379,32 @@ public class TilemapGridManager : MonoBehaviour
         return true;
     }
     #endregion
-
     // ─────────────────────────────────────────────────────────────
     #region Obstacle registration
+    /// <summary>
+    /// Registers an obstacle as occupying a specific grid cell.
+    /// </summary>
+    /// <param name="cell">Cell occupied by the obstacle.</param>
+    /// <param name="obstacle">Obstacle instance.</param>
     public void RegisterObstacle(Vector3Int cell, ObstacleBase obstacle)
     {
-        if (obstacle == null) return;
+        if (obstacle == null) 
+            return;
+        
         obstacleByCell[cell] = obstacle;
     }
 
+    /// <summary>
+    /// Removes all cell registrations for the given obstacle.
+    /// </summary>
+    /// <param name="obstacle">Obstacle instance to unregister.</param>
     public void UnregisterObstacle(ObstacleBase obstacle)
     {
-        if (obstacle == null) return;
+        if (obstacle == null) 
+            return;
 
         var toRemove = new List<Vector3Int>();
+        
         foreach (var kvp in obstacleByCell)
             if (kvp.Value == obstacle)
                 toRemove.Add(kvp.Key);
@@ -319,18 +413,31 @@ public class TilemapGridManager : MonoBehaviour
             obstacleByCell.Remove(c);
     }
 
+    /// <summary>
+    /// Attempts to retrieve an obstacle registered at a cell.
+    /// </summary>
+    /// <param name="cell">Cell to query.</param>
+    /// <param name="obstacle">Obstacle found at the cell.</param>
+    /// <returns>True if an obstacle is registered at the cell.</returns>
     public bool TryGetObstacle(Vector3Int cell, out ObstacleBase obstacle)
         => obstacleByCell.TryGetValue(cell, out obstacle);
     #endregion
-
     // ─────────────────────────────────────────────────────────────
     #region Preview (TM_Preview)
+    /// <summary>
+    /// Sets preview cells for an owner ID and tints them uniformly.
+    /// </summary>
+    /// <param name="ownerId">Owner identifier for the preview.</param>
+    /// <param name="cells">Cells to preview.</param>
+    /// <param name="color">Color to apply to each preview cell.</param>
     public void SetPreviewCellsForOwner(int ownerId, IReadOnlyList<Vector3Int> cells, Color color)
     {
-        if (previewTilemap == null || previewFillTile == null) return;
+        if (previewTilemap == null || previewFillTile == null) 
+            return;
 
         ClearPreviewForOwner(ownerId);
-        if (cells == null || cells.Count == 0) return;
+        if (cells == null || cells.Count == 0) 
+            return;
 
         var copy = new List<Vector3Int>(cells.Count);
         for (int i = 0; i < cells.Count; i++)
@@ -345,12 +452,21 @@ public class TilemapGridManager : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Sets preview cells for an owner ID with per-cell colors.
+    /// </summary>
+    /// <param name="ownerId">Owner identifier for the preview.</param>
+    /// <param name="cells">Cells to preview.</param>
+    /// <param name="perCellColors">Colors to apply per cell.</param>
     public void SetPreviewCellsForOwner(int ownerId, IReadOnlyList<Vector3Int> cells, IReadOnlyList<Color> perCellColors)
     {
-        if (previewTilemap == null || previewFillTile == null) return;
+        if (previewTilemap == null || previewFillTile == null) 
+            return;
 
         ClearPreviewForOwner(ownerId);
-        if (cells == null || cells.Count == 0) return;
+        
+        if (cells == null || cells.Count == 0) 
+            return;
 
         var copy = new List<Vector3Int>(cells.Count);
         for (int i = 0; i < cells.Count; i++)
@@ -368,10 +484,20 @@ public class TilemapGridManager : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Temporarily displays a preview for a duration, with token-based invalidation.
+    /// </summary>
+    /// <param name="ownerId">Owner identifier for the preview.</param>
+    /// <param name="cells">Cells to preview.</param>
+    /// <param name="color">Color to apply to each preview cell.</param>
+    /// <param name="duration">Seconds to display the preview.</param>
     public void FlashPreviewCellsForOwner(int ownerId, IReadOnlyList<Vector3Int> cells, Color color, float duration)
     {
-        if (previewTilemap == null || previewFillTile == null) return;
-        if (cells == null || cells.Count == 0) return;
+        if (previewTilemap == null || previewFillTile == null) 
+            return;
+        
+        if (cells == null || cells.Count == 0) 
+            return;
 
         // bump token so older coroutines don’t clear a newer telegraph
         int token = 1;
@@ -383,9 +509,14 @@ public class TilemapGridManager : MonoBehaviour
         StartCoroutine(ClearPreviewAfterDelay(ownerId, token, duration));
     }
 
+    /// <summary>
+    /// Clears any preview tiles owned by the specified owner ID.
+    /// </summary>
+    /// <param name="ownerId">Owner identifier for the preview.</param>
     public void ClearPreviewForOwner(int ownerId)
     {
-        if (previewTilemap == null) return;
+        if (previewTilemap == null) 
+            return;
 
         if (previewByOwner.TryGetValue(ownerId, out var cells))
         {
@@ -399,6 +530,12 @@ public class TilemapGridManager : MonoBehaviour
         previewByOwner.Remove(ownerId);
     }
 
+    /// <summary>
+    /// Clears a preview after a delay if its token still matches the current owner token.
+    /// </summary>
+    /// <param name="ownerId">Owner identifier for the preview.</param>
+    /// <param name="token">Token captured when the preview was shown.</param>
+    /// <param name="duration">Seconds to wait before clearing.</param>
     private IEnumerator ClearPreviewAfterDelay(int ownerId, int token, float duration)
     {
         yield return new WaitForSeconds(duration);
@@ -409,12 +546,18 @@ public class TilemapGridManager : MonoBehaviour
         ClearPreviewForOwner(ownerId);
     }
     #endregion
-    
     // ─────────────────────────────────────────────────────────────
     #region Overlay Effect
+    /// <summary>
+    /// Enables or disables the halftime overlay effect across ground tiles.
+    /// </summary>
+    /// <param name="enabled">Whether the overlay should be active.</param>
+    /// <param name="overlayColor">Base overlay color.</param>
+    /// <param name="flashInterval">Seconds between opacity pulses.</param>
     public void SetHalfTimeOverlay(bool enabled, Color overlayColor, float flashInterval = 0.2f)
     {
-        if (overlayTilemap == null || previewFillTile == null) return;
+        if (overlayTilemap == null || previewFillTile == null) 
+            return;
 
         StopHalfTimeOverlayRoutine();
 
@@ -435,6 +578,9 @@ public class TilemapGridManager : MonoBehaviour
         halfTimeRoutine = StartCoroutine(HalfTimeOverlayRoutine(cells, overlayColor, flashInterval));
     }
 
+    /// <summary>
+    /// Stops any active halftime overlay coroutine.
+    /// </summary>
     private void StopHalfTimeOverlayRoutine()
     {
         if (halfTimeRoutine != null)
@@ -444,6 +590,12 @@ public class TilemapGridManager : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Pulses overlay tile colors at a fixed interval.
+    /// </summary>
+    /// <param name="cells">Cells to overlay.</param>
+    /// <param name="baseColor">Base color to pulse.</param>
+    /// <param name="interval">Seconds between pulses.</param>
     private IEnumerator HalfTimeOverlayRoutine(List<Vector3Int> cells, Color baseColor, float interval)
     {
         // Place tiles once
@@ -464,12 +616,21 @@ public class TilemapGridManager : MonoBehaviour
         }
     }
     
+    /// <summary>
+    /// Sets overlay tiles for an owner ID and tints them uniformly.
+    /// </summary>
+    /// <param name="ownerId">Owner identifier for the overlay.</param>
+    /// <param name="cells">Cells to overlay.</param>
+    /// <param name="color">Color to apply to each overlay cell.</param>
     public void SetOverlayCells(int ownerId, IReadOnlyList<Vector3Int> cells, Color color)
     {
-        if (overlayTilemap == null || previewFillTile == null) return;
+        if (overlayTilemap == null || previewFillTile == null) 
+            return;
 
         ClearOverlayForOwner(ownerId);
-        if (cells == null || cells.Count == 0) return;
+        
+        if (cells == null || cells.Count == 0) 
+            return;
 
         var copy = new List<Vector3Int>(cells.Count);
         for (int i = 0; i < cells.Count; i++)
@@ -484,9 +645,14 @@ public class TilemapGridManager : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Clears overlay tiles owned by the specified owner ID.
+    /// </summary>
+    /// <param name="ownerId">Owner identifier for the overlay.</param>
     public void ClearOverlayForOwner(int ownerId)
     {
-        if (overlayTilemap == null) return;
+        if (overlayTilemap == null) 
+            return;
 
         if (overlayByOwner.TryGetValue(ownerId, out var cells))
         {
@@ -500,7 +666,6 @@ public class TilemapGridManager : MonoBehaviour
         overlayByOwner.Remove(ownerId);
     }
     #endregion
-
     // ─────────────────────────────────────────────────────────────
     #region Shape placement (Void -> Floor)
     /// <summary>
@@ -509,6 +674,11 @@ public class TilemapGridManager : MonoBehaviour
     /// - every cell must currently be a *painted* Void GameTile
     /// - must NOT be blocked by blocks tilemap, beam, or an obstacle that BlocksShapePlacement
     /// </summary>
+    /// <param name="originCell">Origin cell where the shape is anchored.</param>
+    /// <param name="offsets">Offsets that form the shape footprint.</param>
+    /// <param name="playerCell">Current player cell for overlap checks.</param>
+    /// <param name="overlapsPlayer">Outputs whether the shape overlaps the player cell.</param>
+    /// <returns>True if placement rules allow the shape.</returns>
     public bool CanPlaceShapeOnVoid(Vector3Int originCell, Vector2Int[] offsets, Vector3Int playerCell, out bool overlapsPlayer)
     {
         overlapsPlayer = false;
@@ -551,10 +721,18 @@ public class TilemapGridManager : MonoBehaviour
         return true;
     }
 
+    /// <summary>
+    /// Converts void tiles under a shape footprint into floor tiles.
+    /// </summary>
+    /// <param name="originCell">Origin cell where the shape is anchored.</param>
+    /// <param name="offsets">Offsets that form the shape footprint.</param>
     public void ApplyShapeToVoid(Vector3Int originCell, Vector2Int[] offsets)
     {
-        if (groundTilemap == null || floorTile == null) return;
-        if (offsets == null) return;
+        if (groundTilemap == null || floorTile == null) 
+            return;
+        
+        if (offsets == null) 
+            return;
 
         for (int i = 0; i < offsets.Length; i++)
         {
@@ -569,9 +747,12 @@ public class TilemapGridManager : MonoBehaviour
         }
     }
     #endregion
-
     // ─────────────────────────────────────────────────────────────
-    #region Lever helper (Floor <-> Void)
+    #region Lever Obstacle
+    /// <summary>
+    /// Toggles a floor tile to void (or vice versa) if safe to do so.
+    /// </summary>
+    /// <param name="cell">Cell to toggle.</param>
     public void ToggleFloorVoidAt(Vector3Int cell)
     {
         if (groundTilemap == null)
@@ -601,9 +782,13 @@ public class TilemapGridManager : MonoBehaviour
         }
     }
     #endregion
-
     // ─────────────────────────────────────────────────────────────
-    #region Beams (MirrorObstacle integration)
+    #region Mirror Obstacle
+    /// <summary>
+    /// Updates beam-blocked cells for a specific owner.
+    /// </summary>
+    /// <param name="ownerId">Owner identifier for the beam.</param>
+    /// <param name="newCells">Cells to mark as beam-blocked.</param>
     public void SetBeamCellsForOwner(int ownerId, List<Vector3Int> newCells)
     {
         if (beamByOwner.TryGetValue(ownerId, out var old))
@@ -616,6 +801,10 @@ public class TilemapGridManager : MonoBehaviour
         foreach (var c in newCells) beamBlocked.Add(c);
     }
 
+    /// <summary>
+    /// Clears beam-blocked cells for a specific owner.
+    /// </summary>
+    /// <param name="ownerId">Owner identifier for the beam.</param>
     public void ClearBeamCellsForOwner(int ownerId)
     {
         if (!beamByOwner.TryGetValue(ownerId, out var old)) return;

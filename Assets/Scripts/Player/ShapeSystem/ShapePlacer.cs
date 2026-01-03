@@ -11,9 +11,9 @@ using System.Collections.Generic;
 public class ShapePlacer : MonoBehaviour
 {
     [Header("Preview Colors")]
-    public Color validColor = new Color(0f, 1f, 0f, 0.5f);
-    public Color invalidColor = new Color(1f, 0f, 0f, 0.5f);
-    public Color overPlayerColor = new Color(0f, 1f, 1f, 0.5f);
+    public Color validColor = new (0f, 1f, 0f, 0.5f);
+    public Color invalidColor = new (1f, 0f, 0f, 0.5f);
+    public Color overPlayerColor = new (0f, 1f, 1f, 0.5f);
 
     private int currentShapeIndex = 0;
     private int currentRotation = 0;
@@ -25,6 +25,9 @@ public class ShapePlacer : MonoBehaviour
     private readonly List<Vector3Int> previewCells = new();
     private readonly List<Color> previewColors = new();
 
+    /// <summary>
+    /// Gets the current shape index in the inventory list.
+    /// </summary>
     public int CurrentIndex => currentShapeIndex;
 
     private ShapeInventoryEntry CurrentShapeEntry =>
@@ -32,21 +35,31 @@ public class ShapePlacer : MonoBehaviour
             ? inventory.shapeInventory[currentShapeIndex]
             : null;
 
+    #region Unity Lifecycle
+    /// <summary>
+    /// Initializes references and sets an initial shape preview.
+    /// </summary>
     private void Start()
     {
         player = FindFirstObjectByType<PlayerController>();
         inventory = FindFirstObjectByType<PlayerInventory>();
         grid = TilemapGridManager.Instance;
 
-        if (player == null) Debug.LogError("[ShapePlacer] PlayerController not found.");
-        if (inventory == null) Debug.LogError("[ShapePlacer] PlayerInventory not found.");
-        if (grid == null) Debug.LogError("[ShapePlacer] TilemapGridManager.Instance not found.");
+        if (player == null) 
+            Debug.LogError("[ShapePlacer] PlayerController not found.");
+        if (inventory == null) 
+            Debug.LogError("[ShapePlacer] PlayerInventory not found.");
+        if (grid == null) 
+            Debug.LogError("[ShapePlacer] TilemapGridManager.Instance not found.");
 
         // Ensure we start with a valid index
         CycleShape(0);
         UpdatePreview();
     }
 
+    /// <summary>
+    /// Maintains placement preview visibility based on placement mode and freeze state.
+    /// </summary>
     private void Update()
     {
         if (Utilities.IsGameFrozen)
@@ -63,10 +76,12 @@ public class ShapePlacer : MonoBehaviour
         else
             grid.ClearPreviewForOwner(GetInstanceID());
     }
-
+    #endregion
     // ─────────────────────────────────────────────────────────────
-    #region Public API (called by PlayerController)
-
+    #region Public API
+    /// <summary>
+    /// Toggles placement mode and refreshes the placement preview.
+    /// </summary>
     public void TogglePlacementMode()
     {
         Utilities.IsPlacementModeActive = !Utilities.IsPlacementModeActive;
@@ -82,43 +97,74 @@ public class ShapePlacer : MonoBehaviour
         UpdatePreview();
     }
 
+    /// <summary>
+    /// Rotates the current shape clockwise in placement mode.
+    /// </summary>
     public void RotateCW()
     {
-        if (!Utilities.IsPlacementModeActive) return;
+        if (!Utilities.IsPlacementModeActive) 
+            return;
+        
         currentRotation = (currentRotation + 1) % 4;
         UpdatePreview();
     }
 
+    /// <summary>
+    /// Rotates the current shape counterclockwise in placement mode.
+    /// </summary>
     public void RotateCCW()
     {
-        if (!Utilities.IsPlacementModeActive) return;
+        if (!Utilities.IsPlacementModeActive) 
+            return;
+        
         currentRotation = (currentRotation + 3) % 4; // -1 mod 4
         UpdatePreview();
     }
 
+    /// <summary>
+    /// Selects the next available shape in the inventory.
+    /// </summary>
     public void CycleNext()
     {
-        if (!Utilities.IsPlacementModeActive) return;
+        if (!Utilities.IsPlacementModeActive) 
+            return;
+        
         CycleShape(1);
         UpdatePreview();
     }
 
+    /// <summary>
+    /// Selects the previous available shape in the inventory.
+    /// </summary>
     public void CyclePrev()
     {
-        if (!Utilities.IsPlacementModeActive) return;
+        if (!Utilities.IsPlacementModeActive) 
+            return;
+        
         CycleShape(-1);
         UpdatePreview();
     }
 
+    /// <summary>
+    /// Attempts to place the current shape on valid void tiles.
+    /// </summary>
     public void TryPlace()
     {
-        if (!Utilities.IsPlacementModeActive) return;
-        if (player == null || inventory == null || grid == null) return;
-        if (inventory.shapeInventory == null || inventory.shapeInventory.Count == 0) return;
+        if (!Utilities.IsPlacementModeActive) 
+            return;
+        
+        if (player == null || inventory == null || grid == null) 
+            return;
+        
+        if (inventory.shapeInventory == null || inventory.shapeInventory.Count == 0) 
+            return;
 
         var entry = CurrentShapeEntry;
-        if (entry == null || entry.shapeData == null) return;
-        if (!inventory.HasShape(entry.shapeData)) return;
+        if (entry == null || entry.shapeData == null) 
+            return;
+        
+        if (!inventory.HasShape(entry.shapeData)) 
+            return;
 
         var rotatedOffsets = GetRotatedOffsets(entry.shapeData.tileOffsets, currentRotation);
 
@@ -150,14 +196,23 @@ public class ShapePlacer : MonoBehaviour
 
         UpdatePreview();
     }
-
+    
+    /// <summary>
+    /// Clears any preview tiles owned by this ShapePlacer.
+    /// </summary>
+    public void ClearPreview()
+    {
+        grid?.ClearPreviewForOwner(GetInstanceID());
+    }
     #endregion
     // ─────────────────────────────────────────────────────────────
-
+    #region Cycle/Rotator Functions
     /// <summary>
     /// Returns a placement origin one cell in front of the player,
     /// then nudges forward if the rotated shape would overlap the player cell.
     /// </summary>
+    /// <param name="rotatedOffsets">Offsets for the current rotation.</param>
+    /// <returns>Sanitized origin cell for placement.</returns>
     private Vector3Int GetSanitizedOriginCell(Vector2Int[] rotatedOffsets)
     {
         Vector2Int f = player.FacingDirection;
@@ -189,6 +244,13 @@ public class ShapePlacer : MonoBehaviour
         return origin;
     }
 
+    /// <summary>
+    /// Checks whether a shape footprint would overlap the player cell.
+    /// </summary>
+    /// <param name="origin">Origin cell for the shape.</param>
+    /// <param name="offsets">Offsets that form the shape footprint.</param>
+    /// <param name="playerCell">Current player cell.</param>
+    /// <returns>True if the shape overlaps the player cell.</returns>
     private static bool WouldOverlapPlayer(Vector3Int origin, Vector2Int[] offsets, Vector3Int playerCell)
     {
         if (offsets == null) return false;
@@ -204,6 +266,10 @@ public class ShapePlacer : MonoBehaviour
         return false;
     }
 
+    /// <summary>
+    /// Advances the current shape index to the next available shape.
+    /// </summary>
+    /// <param name="direction">Direction to cycle (+1 or -1).</param>
     private void CycleShape(int direction)
     {
         if (inventory == null || inventory.shapeInventory == null) return;
@@ -221,10 +287,16 @@ public class ShapePlacer : MonoBehaviour
         while (CurrentShapeEntry != null && CurrentShapeEntry.count <= 0 && tries < count);
     }
 
+    /// <summary>
+    /// Builds and shows preview tiles for the current shape placement.
+    /// </summary>
     private void UpdatePreview()
     {
-        if (player == null || inventory == null || grid == null) return;
-        if (inventory.shapeInventory == null || inventory.shapeInventory.Count == 0) return;
+        if (player == null || inventory == null || grid == null) 
+            return;
+        
+        if (inventory.shapeInventory == null || inventory.shapeInventory.Count == 0) 
+            return;
 
         var entry = CurrentShapeEntry;
         if (entry == null || entry.shapeData == null)
@@ -268,6 +340,12 @@ public class ShapePlacer : MonoBehaviour
         grid.SetPreviewCellsForOwner(GetInstanceID(), previewCells, previewColors);
     }
 
+    /// <summary>
+    /// Returns a copy of offsets rotated clockwise by the given steps.
+    /// </summary>
+    /// <param name="original">Original shape offsets.</param>
+    /// <param name="rotationStepsCw">Number of 90-degree clockwise rotations.</param>
+    /// <returns>Rotated offsets.</returns>
     private static Vector2Int[] GetRotatedOffsets(Vector2Int[] original, int rotationStepsCw)
     {
         if (original == null) return Array.Empty<Vector2Int>();
@@ -284,4 +362,5 @@ public class ShapePlacer : MonoBehaviour
 
         return result;
     }
+    #endregion
 }

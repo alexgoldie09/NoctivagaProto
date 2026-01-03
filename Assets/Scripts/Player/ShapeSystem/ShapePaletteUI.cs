@@ -19,8 +19,9 @@ public class ShapePaletteUI : MonoBehaviour
     private ShapePlacer shapePlacer; // Cached shape placer system.
     private PlayerInventory inventory; // Cached player inventory.
 
-    // ─────────────────────────────────────────────────────────────────────────────
-
+    /// <summary>
+    /// Finds required references and builds the initial icon set.
+    /// </summary>
     private void Start()
     {
         shapePlacer = FindAnyObjectByType<ShapePlacer>();
@@ -36,12 +37,13 @@ public class ShapePaletteUI : MonoBehaviour
         CreateIcons();
     }
 
+    /// <summary>
+    /// Refreshes icon visuals each frame to reflect selection and counts.
+    /// </summary>
     private void Update()
     {
         UpdateIcons();
     }
-
-    // ─────────────────────────────────────────────────────────────────────────────
 
     /// <summary>
     /// Instantiates icons for each shape in the player's inventory.

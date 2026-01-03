@@ -18,7 +18,7 @@ public class KeyPaletteUI : MonoBehaviour
     private TilemapGridManager grid;
 
     /// <summary>
-    /// Find PlayerInventory and initialize key icons on scene start.
+    /// Finds inventory/grid references and initializes key icons for the map.
     /// </summary>
     void Start()
     {
@@ -30,8 +30,7 @@ public class KeyPaletteUI : MonoBehaviour
     }
 
     /// <summary>
-    /// Scans the tilemap for all Gate tiles and extracts required key IDs.
-    /// Instantiates key icons for each unique key ID.
+    /// Scans the map for gate key IDs and creates UI entries for each unique key.
     /// </summary>
     void InitFromMap()
     {
@@ -58,6 +57,7 @@ public class KeyPaletteUI : MonoBehaviour
     /// <summary>
     /// Updates a specific key icon's count from inventory.
     /// </summary>
+    /// <param name="keyID">Key identifier to update.</param>
     public void UpdateKey(string keyID)
     {
         if (inventory == null) return;

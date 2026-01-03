@@ -15,8 +15,14 @@ public class PowerupPickup : MonoBehaviour
     [Tooltip("Duration of the powerup effect in seconds.")]
     public float duration = 5f;
 
+    /// <summary>
+    /// Supported powerup effect types.
+    /// </summary>
     public enum PowerupType { HalfTime, ShadowMode }
 
+    /// <summary>
+    /// Snaps the pickup to the center of its grid cell.
+    /// </summary>
     private void Start()
     {
         var grid = TilemapGridManager.Instance;
@@ -30,6 +36,10 @@ public class PowerupPickup : MonoBehaviour
         transform.position = grid.CellToWorldCenter(cell);
     }
 
+    /// <summary>
+    /// Activates the powerup when the player enters the trigger.
+    /// </summary>
+    /// <param name="other">Collider that entered the trigger.</param>
     private void OnTriggerEnter2D(Collider2D other)
     {
         if (!other.CompareTag("Player"))

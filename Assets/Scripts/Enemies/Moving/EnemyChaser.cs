@@ -1,5 +1,5 @@
 using UnityEngine;
-using System.Linq; // for OrderBy random shuffle
+using System.Linq;
 
 /// <summary>
 /// A chasing enemy that moves toward the player’s cell position
@@ -11,12 +11,18 @@ public class EnemyChaser : EnemyBase
 {
     private SpriteRenderer spriteRenderer;
 
+    /// <summary>
+    /// Initializes the chaser sprite renderer reference.
+    /// </summary>
     protected override void Start()
     {
         base.Start();
         spriteRenderer = GetComponent<SpriteRenderer>();
     }
 
+    /// <summary>
+    /// Moves toward the player on active beats, or wanders in shadow mode.
+    /// </summary>
     protected override void OnBeatAction()
     {
         if (player == null || grid == null) return;
@@ -68,6 +74,8 @@ public class EnemyChaser : EnemyBase
     /// Chooses the primary direction to step toward the player
     /// (the axis with the greater absolute distance).
     /// </summary>
+    /// <param name="targetCell">Player grid position to chase.</param>
+    /// <returns>Primary chase direction on the grid.</returns>
     private Vector3Int GetChaseDirection(Vector3Int targetCell)
     {
         int dx = targetCell.x - cellPos.x;
@@ -82,6 +90,9 @@ public class EnemyChaser : EnemyBase
     /// <summary>
     /// Chooses the alternate direction (orthogonal axis) if the first choice is blocked.
     /// </summary>
+    /// <param name="targetCell">Player grid position to chase.</param>
+    /// <param name="triedDir">Primary direction that was attempted.</param>
+    /// <returns>Fallback direction on the orthogonal axis.</returns>
     private Vector3Int GetAlternateDirection(Vector3Int targetCell, Vector3Int triedDir)
     {
         int dx = targetCell.x - cellPos.x;

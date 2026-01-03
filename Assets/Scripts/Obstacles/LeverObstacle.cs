@@ -5,6 +5,9 @@ using UnityEngine;
 using UnityEditor;
 #endif
 
+/// <summary>
+/// Obstacle that toggles target cells between floor and void when interacted with.
+/// </summary>
 public class LeverObstacle : ObstacleBase
 {
     [Header("Target Markers (recommended)")]
@@ -22,16 +25,25 @@ public class LeverObstacle : ObstacleBase
     // Runtime cached cells (derived from markers)
     private readonly List<Vector3Int> targetCells = new();
 
+    /// <summary>
+    /// Rebuilds cached target cells when inspector values change.
+    /// </summary>
     private void OnValidate()
     {
         RebuildTargetCellsFromMarkers();
     }
 
+    /// <summary>
+    /// Initializes cached target cells at runtime.
+    /// </summary>
     private void Awake()
     {
         RebuildTargetCellsFromMarkers();
     }
 
+    /// <summary>
+    /// Converts marker transforms into unique grid cell positions.
+    /// </summary>
     private void RebuildTargetCellsFromMarkers()
     {
         targetCells.Clear();
@@ -52,6 +64,9 @@ public class LeverObstacle : ObstacleBase
         }
     }
 
+    /// <summary>
+    /// Toggles target tiles, triggers player fall reset, and optionally eliminates enemies on new void tiles.
+    /// </summary>
     public override void Interact()
     {
         var grid = TilemapGridManager.Instance;
@@ -104,10 +119,20 @@ public class LeverObstacle : ObstacleBase
         }
     }
 
+    /// <summary>
+    /// Levers remain blocking for player movement.
+    /// </summary>
     public override bool BlocksMovement() => true;
+
+    /// <summary>
+    /// Levers remain blocking for shape placement.
+    /// </summary>
     public override bool BlocksShapePlacement() => true;
 
 #if UNITY_EDITOR
+    /// <summary>
+    /// Draws gizmos for target cells and optional labels in the editor.
+    /// </summary>
     private void OnDrawGizmosSelected()
     {
         if (!drawGizmos) return;

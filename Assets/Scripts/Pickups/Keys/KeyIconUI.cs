@@ -22,6 +22,9 @@ public class KeyIconUI : MonoBehaviour
     /// Sets the visual display of the key icon, ID label, and count.
     /// Called when the UI element is initialized or refreshed.
     /// </summary>
+    /// <param name="keyID">Key identifier label to display.</param>
+    /// <param name="icon">Sprite used for the key icon.</param>
+    /// <param name="count">Number of keys owned.</param>
     public void SetDisplay(string keyID, Sprite icon, int count)
     {
         keyIDText.text = keyID;
@@ -32,6 +35,7 @@ public class KeyIconUI : MonoBehaviour
     /// <summary>
     /// Updates the displayed count of how many keys the player currently holds.
     /// </summary>
+    /// <param name="newCount">New key count to display.</param>
     public void UpdateCount(int newCount)
     {
         countText.text = $"x {newCount}";

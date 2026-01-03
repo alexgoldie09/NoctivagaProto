@@ -30,6 +30,9 @@ public class GameManager : MonoBehaviour
     private PowerupPickup.PowerupType? activePowerup = null;
     private Coroutine activePowerupRoutine = null;
     
+    /// <summary>
+    /// Establishes the singleton instance and resolves the player reference.
+    /// </summary>
     private void Awake()
     {
         if (Instance == null) 
@@ -39,7 +42,6 @@ public class GameManager : MonoBehaviour
         
         player = FindFirstObjectByType<PlayerController>();
     }
-    
     // ─────────────────────────────────────────────
     #region Lose handling
     /// <summary>
@@ -48,7 +50,12 @@ public class GameManager : MonoBehaviour
     /// </summary>
     public void PlayerKilled()
     {
-        if (player == null) return;
+        if (player == null) 
+            return;
+        
+        // Get shape placer and clear previews
+        ShapePlacer shapePlacer = player.GetShapePlacer;
+        shapePlacer?.ClearPreview();
 
         // Hide player object
         player.gameObject.SetActive(false);
@@ -57,7 +64,10 @@ public class GameManager : MonoBehaviour
         StartCoroutine(ShowDeathScreenAfterDelay(3f)); // 3 second delay before UI fade
     }
 
-
+    /// <summary>
+    /// Waits for a delay, freezes gameplay, and displays the death screen UI.
+    /// </summary>
+    /// <param name="delay">Seconds to wait before showing the death UI.</param>
     private IEnumerator ShowDeathScreenAfterDelay(float delay)
     {
         yield return new WaitForSeconds(delay);
@@ -77,13 +87,16 @@ public class GameManager : MonoBehaviour
     #endregion
     // ─────────────────────────────────────────────
     #region Win handling
-
     /// <summary>
     /// Called when the player collides with the goal (waifu object).
     /// Finalizes score, freezes gameplay, pauses music, and shows the win screen UI.
     /// </summary>
     public void PlayerWon()
     {
+        // Get shape placer and clear previews
+        ShapePlacer shapePlacer = player != null ? player.GetShapePlacer : null;
+        shapePlacer?.ClearPreview();
+        
         // Finalize score
         if (ScoreManager.Instance != null)
             ScoreManager.Instance.FinalizeScore();
@@ -107,6 +120,9 @@ public class GameManager : MonoBehaviour
     /// Attempts to activate a powerup effect.
     /// Returns true if activated, false if blocked.
     /// </summary>
+    /// <param name="type">Powerup type to activate.</param>
+    /// <param name="duration">Duration of the powerup effect in seconds.</param>
+    /// <returns>True if the powerup activates or refreshes; otherwise false.</returns>
     public bool TryActivatePowerup(PowerupPickup.PowerupType type, float duration)
     {
         // If another type is active, block
@@ -152,6 +168,7 @@ public class GameManager : MonoBehaviour
     /// Coroutine that slows down the rhythm system by half for a set duration.
     /// Music pitch and beat interval are adjusted via RhythmManager.
     /// </summary>
+    /// <param name="duration">Duration of the half-time effect in seconds.</param>
     private IEnumerator HalfTimeRoutine(float duration)
     {
         RhythmManager.Instance.SetTempoMultiplier(0.5f);
@@ -192,6 +209,7 @@ public class GameManager : MonoBehaviour
     /// Coroutine that makes the player hidden from enemies (shadow mode).
     /// While active, chasers do not target the player and the player sprite is semi-transparent.
     /// </summary>
+    /// <param name="duration">Duration of the shadow mode effect in seconds.</param>
     private IEnumerator ShadowModeRoutine(float duration)
     {
         if (player != null)

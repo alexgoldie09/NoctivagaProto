@@ -30,6 +30,7 @@ public static class Utilities
     {
         Time.timeScale = 1f;
         IsGameFrozen = false;
+        IsPlacementModeActive = false;
     }
     
     /// <summary>

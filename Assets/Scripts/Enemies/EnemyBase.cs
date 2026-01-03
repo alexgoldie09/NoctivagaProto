@@ -50,17 +50,25 @@ public abstract class EnemyBase : MonoBehaviour
 
     // ─────────────────────────────────────────────────────────────
     #region Unity lifecycle
-
+    /// <summary>
+    /// Subscribes to the rhythm beat event when the enemy becomes active.
+    /// </summary>
     protected virtual void OnEnable()
     {
         RhythmManager.OnBeat += HandleBeat;
     }
-
+    
+    /// <summary>
+    /// Unsubscribes from the rhythm beat event when the enemy is disabled.
+    /// </summary>
     protected virtual void OnDisable()
     {
         RhythmManager.OnBeat -= HandleBeat;
     }
 
+    /// <summary>
+    /// Resolves grid, animator, and player references and snaps to the grid if requested.
+    /// </summary>
     protected virtual void Start()
     {
         grid = TilemapGridManager.Instance;
@@ -81,16 +89,22 @@ public abstract class EnemyBase : MonoBehaviour
     }
     #endregion
     // ─────────────────────────────────────────────────────────────
-
     #region Rhythm
-
+    /// <summary>
+    /// Handles rhythm beat callbacks and triggers actions on the configured cadence.
+    /// </summary>
     private void HandleBeat()
     {
-        if (Utilities.IsGameFrozen) return; // skip beat if frozen
-        if (isDying) return;
+        if (Utilities.IsGameFrozen) 
+            return; // skip beat if frozen
+        
+        if (isDying) 
+            return;
 
-        int phase = (localBeatCounter + beatOffset);
-        if (beatsPerAction <= 0) beatsPerAction = 1;
+        int phase = localBeatCounter + beatOffset;
+        
+        if (beatsPerAction <= 0) 
+            beatsPerAction = 1;
 
         if (phase % beatsPerAction == 0)
         {
@@ -107,8 +121,12 @@ public abstract class EnemyBase : MonoBehaviour
 
     #endregion
     // ─────────────────────────────────────────────────────────────
-
     #region Movement helpers
+    /// <summary>
+    /// Attempts to move the enemy by a grid direction if the destination is valid.
+    /// </summary>
+    /// <param name="dir">Grid direction delta.</param>
+    /// <returns>True if the move succeeds.</returns>
     protected bool TryMove(Vector3Int dir)
     {
         if (isDying) return false;
@@ -121,27 +139,40 @@ public abstract class EnemyBase : MonoBehaviour
         return true;
     }
 
+    /// <summary>
+    /// Checks if the enemy can enter the requested grid cell.
+    /// </summary>
+    /// <param name="cell">Grid coordinate to test.</param>
+    /// <returns>True if the cell is walkable for enemies.</returns>
     protected bool CanEnter(Vector3Int cell)
     {
-        if (grid == null) return false;
+        if (grid == null) 
+            return false;
+        
         return grid.CanEnemyEnterCell(cell);
     }
-
+    
+    /// <summary>
+    /// Instantly moves the enemy to a grid cell without interpolation.
+    /// </summary>
+    /// <param name="cell">Target grid coordinate.</param>
     public void WarpTo(Vector3Int cell)
     {
-        if (isDying) return;
+        if (isDying) 
+            return;
 
         cellPos = cell;
         if (grid != null)
             transform.position = grid.CellToWorldCenter(cellPos);
     }
-
+    
+    /// <summary>
+    /// Gets the current grid cell position of the enemy.
+    /// </summary>
     public Vector3Int CellPosition => cellPos;
     #endregion
     // ─────────────────────────────────────────────────────────────
-
     #region Void elimination
-
     /// <summary>
     /// Called when the tile under the enemy becomes Void.
     /// Plays a fall/shrink animation and destroys the enemy.
@@ -152,6 +183,10 @@ public abstract class EnemyBase : MonoBehaviour
         StartCoroutine(VoidDeathRoutine(fallStartWorld));
     }
 
+    /// <summary>
+    /// Runs a shrink-and-fall animation before destroying the enemy.
+    /// </summary>
+    /// <param name="fallStartWorld">World-space start position for the fall.</param>
     private IEnumerator VoidDeathRoutine(Vector3 fallStartWorld)
     {
         isDying = true;
@@ -181,12 +216,13 @@ public abstract class EnemyBase : MonoBehaviour
 
         Destroy(gameObject);
     }
-
     #endregion
     // ─────────────────────────────────────────────────────────────
-
     #region Contact handling (Physics)
-
+    /// <summary>
+    /// Detects trigger contact with the player and applies contact behavior.
+    /// </summary>
+    /// <param name="other">Collider that entered the trigger.</param>
     private void OnTriggerEnter2D(Collider2D other)
     {
         if (!lethalOnContact) return;
@@ -201,11 +237,13 @@ public abstract class EnemyBase : MonoBehaviour
     /// Default contact behavior: reset the level.
     /// Override to customize (knockback, SFX, etc).
     /// </summary>
-    protected virtual void OnPlayerContact()
+    protected void OnPlayerContact()
     {
+        if (player != null && player.IsShadowMode)
+            return;
+        
         if (GameManager.Instance != null)
             GameManager.Instance.PlayerKilled();
     }
-
     #endregion
 }

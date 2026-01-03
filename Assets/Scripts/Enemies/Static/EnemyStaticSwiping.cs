@@ -26,11 +26,14 @@ public class EnemyStaticSwiping : EnemyStatic
     [SerializeField] private AttackDirection attackDirection = AttackDirection.Up;
 
     [Header("Telegraph")]
-    [SerializeField] private Color telegraphColor = new Color(1f, 0.2f, 0.2f, 0.8f);
+    [SerializeField] private Color telegraphColor = new (1f, 0.2f, 0.2f, 0.8f);
     [SerializeField] private float telegraphDuration = 0.30f;
 
     private List<Vector3Int> pendingAttackCells = new();
 
+    /// <summary>
+    /// Alternates between telegraphing and executing the swipe on active beats.
+    /// </summary>
     protected override void OnBeatAction()
     {
         base.OnBeatAction();
@@ -54,6 +57,10 @@ public class EnemyStaticSwiping : EnemyStatic
         }
     }
 
+    /// <summary>
+    /// Spawns swipe effects and applies player contact if they are inside the swipe cells.
+    /// </summary>
+    /// <param name="cells">Cells affected by the swipe.</param>
     private void ExecuteSwipe(List<Vector3Int> cells)
     {
         // Spawn swipe VFX at cell centers
@@ -74,11 +81,13 @@ public class EnemyStaticSwiping : EnemyStatic
         if (player != null && cells.Contains(player.CellPosition))
             OnPlayerContact();
     }
-
+    
     /// <summary>
     /// Returns valid cell positions for the swipe quad in the given direction.
     /// Filters out cells that are not enterable (out of bounds, walls, beam-blocked, etc).
     /// </summary>
+    /// <param name="dir">Cardinal direction to build the swipe quad.</param>
+    /// <returns>Filtered list of swipe target cells.</returns>
     private List<Vector3Int> GetSwipeCells(Vector3Int dir)
     {
         var cells = new List<Vector3Int>();
@@ -110,6 +119,11 @@ public class EnemyStaticSwiping : EnemyStatic
         return cells;
     }
 
+    /// <summary>
+    /// Converts an attack direction enum into a grid direction vector.
+    /// </summary>
+    /// <param name="dir">Attack direction enum.</param>
+    /// <returns>Cardinal grid direction vector.</returns>
     private static Vector3Int GetDirectionVector(AttackDirection dir)
     {
         return dir switch
@@ -126,8 +140,11 @@ public class EnemyStaticSwiping : EnemyStatic
     [Header("Gizmos")]
     [SerializeField] private bool drawGizmos = true;
     [SerializeField] private bool drawLabels = true;
-    [SerializeField] private Color gizmoColor = new Color(1f, 0.3f, 0.3f, 0.7f);
-
+    [SerializeField] private Color gizmoColor = new (1f, 0.3f, 0.3f, 0.7f);
+    
+    /// <summary>
+    /// Draws editor gizmos showing the swipe quad area for this enemy.
+    /// </summary>
     private void OnDrawGizmosSelected()
     {
         if (!drawGizmos) return;

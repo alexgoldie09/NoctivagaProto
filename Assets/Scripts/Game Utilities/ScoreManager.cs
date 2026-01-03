@@ -38,7 +38,9 @@ public class ScoreManager : MonoBehaviour
 
     // ─────────────────────────────────────────────────────────────────────────────
     #region Unity lifecycle
-
+    /// <summary>
+    /// Establishes the singleton instance for score management.
+    /// </summary>
     private void Awake()
     {
         if (Instance == null)
@@ -46,7 +48,10 @@ public class ScoreManager : MonoBehaviour
         else
             Destroy(gameObject);
     }
-
+    
+    /// <summary>
+    /// Initializes UI values and clears any lingering feedback text.
+    /// </summary>
     private void Start()
     {
         UpdateUI();
@@ -54,6 +59,9 @@ public class ScoreManager : MonoBehaviour
             feedbackText.text = ""; // clear on start
     }
     
+    /// <summary>
+    /// Counts down and hides rhythm feedback after its display duration.
+    /// </summary>
     private void Update()
     {
         // Handle feedback timeout
@@ -68,9 +76,7 @@ public class ScoreManager : MonoBehaviour
     }
     #endregion
     // ─────────────────────────────────────────────────────────────────────────────
-
     #region Score management
-
     /// <summary>
     /// Adds rhythm score to the base score and shows feedback.
     /// </summary>
@@ -117,14 +123,18 @@ public class ScoreManager : MonoBehaviour
             feedbackText.text = "";
     }
     
+    /// <summary>
+    /// Returns the last computed final score after penalties.
+    /// </summary>
     public int GetFinalScore() => finalScore;
-    public int GetMoveCount() => moveCount;
 
+    /// <summary>
+    /// Returns the number of registered moves.
+    /// </summary>
+    public int GetMoveCount() => moveCount;
     #endregion
     // ─────────────────────────────────────────────────────────────────────────────
-
     #region UI
-
     /// <summary>
     /// Updates score and move count on the UI.
     /// </summary>
@@ -140,6 +150,8 @@ public class ScoreManager : MonoBehaviour
     /// <summary>
     /// Displays rhythm hit quality feedback with message and color.
     /// </summary>
+    /// <param name="quality">Timing grade for the hit.</param>
+    /// <param name="points">Points awarded for the hit.</param>
     private void ShowFeedback(BeatHitQuality quality, int points)
     {
         if (feedbackText == null) return;
@@ -171,6 +183,5 @@ public class ScoreManager : MonoBehaviour
         feedbackText.color = color;
         feedbackTimer = feedbackDuration; // reset timer
     }
-
     #endregion
 }

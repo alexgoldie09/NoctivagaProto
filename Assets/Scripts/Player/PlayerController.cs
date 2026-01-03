@@ -3,6 +3,7 @@ using UnityEngine;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine.InputSystem;
+using UnityEngine.VFX;
 
 /// <summary>
 /// Controls player movement and interaction on a tile-based grid.
@@ -20,6 +21,10 @@ public class PlayerController : MonoBehaviour
     [SerializeField] private InputActionReference placeActionRef;
     [SerializeField] private InputActionReference rotateActionRef;      // float axis
     [SerializeField] private InputActionReference cycleShapeActionRef;  // float axis
+    
+    [Header("Fog VFX")]
+    [SerializeField] private VisualEffect fogVFX;
+    [SerializeField] private Vector3 fogCenterOffset = new (4f, 1f, 0f);
 
     private InputAction moveAction;
     private InputAction interactAction;
@@ -42,7 +47,7 @@ public class PlayerController : MonoBehaviour
     // Facing state
     public bool FacingRight { get; private set; } = true;
 
-    // Void reset VFX fields (keep your existing ones if you already added them)
+    // Void reset VFX fields
     [Header("Void Fall Reset")]
     [SerializeField] private float voidFallDuration = 0.35f;
     [SerializeField] private float voidFallDropDistance = 0.25f;
@@ -54,8 +59,12 @@ public class PlayerController : MonoBehaviour
     private Vector3 initialScale;
     private Coroutine resetRoutine;
     
+    // ─────────────────────────────────────────────
     #region Unity Events
     // ─────────────────────────────────────────────
+    /// <summary>
+    /// Initializes component references and snaps the player to the start cell.
+    /// </summary>
     private void Start() 
     {
         sr = GetComponent<SpriteRenderer>();
@@ -79,17 +88,27 @@ public class PlayerController : MonoBehaviour
         rb.position = grid.CellToWorldCenter(cellPos);
     }
 
+    /// <summary>
+    /// Per-frame update used to short-circuit input when the game is frozen.
+    /// </summary>
     private void Update()
     {
         // Stop player input if game is frozen
         // Temporary fallback if you haven't wired interact yet
         if (Utilities.IsGameFrozen || isResetting) 
             return;
+        
+        // Move fog vfx with player
+        if(fogVFX  != null)
+            fogVFX.SetVector3("ColliderPos", transform.position + fogCenterOffset);
 
         // if (interactActionRef == null && Input.GetKeyDown(KeyCode.E))
         //     TryInteract();
     }
     
+    /// <summary>
+    /// Binds and enables input actions.
+    /// </summary>
     private void OnEnable()
     {
         // MOVE
@@ -115,7 +134,7 @@ public class PlayerController : MonoBehaviour
             placementModeAction.performed += OnPlacementModePerformed;
             placementModeAction.Enable();
         }
-
+        
         // PLACE CONFIRM
         if (placeActionRef != null)
         {
@@ -141,6 +160,9 @@ public class PlayerController : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Unbinds and disables input actions.
+    /// </summary>
     private void OnDisable()
     {
         // MOVE
@@ -192,12 +214,12 @@ public class PlayerController : MonoBehaviour
         }
     }
     #endregion
-
+    // ─────────────────────────────────────────────
     #region Input Callback Stubs
-
-    // ─────────────────────────────────────────────
-    // Input Callbacks
-    // ─────────────────────────────────────────────
+    /// <summary>
+    /// Handles movement input and attempts to move the player.
+    /// </summary>
+    /// <param name="ctx">Input callback context.</param>
     private void OnMovePerformed(InputAction.CallbackContext ctx)
     {
         if (Utilities.IsGameFrozen || isResetting) 
@@ -217,7 +239,11 @@ public class PlayerController : MonoBehaviour
 
         TryMove(dir);
     }
-
+    
+    /// <summary>
+    /// Handles interact input and attempts to use the forward obstacle.
+    /// </summary>
+    /// <param name="ctx">Input callback context.</param>
     private void OnInteractPerformed(InputAction.CallbackContext ctx)
     {
         if (Utilities.IsGameFrozen || isResetting) 
@@ -226,6 +252,11 @@ public class PlayerController : MonoBehaviour
         TryInteract();
     }
 
+    /// <summary>
+    /// Converts a raw input vector into a cardinal grid direction.
+    /// </summary>
+    /// <param name="v">Raw input vector.</param>
+    /// <returns>Cardinal direction or zero if input is negligible.</returns>
     private static Vector2Int ToCardinal(Vector2 v)
     {
         // With WASD composites, v is usually already cardinal,
@@ -241,6 +272,10 @@ public class PlayerController : MonoBehaviour
         return new Vector2Int(0, v.y > 0 ? 1 : -1);
     }
     
+    /// <summary>
+    /// Handles input for toggling shape placement mode.
+    /// </summary>
+    /// <param name="ctx">Input callback context.</param>
     private void OnPlacementModePerformed(InputAction.CallbackContext ctx)
     {
         if (Utilities.IsGameFrozen || isResetting) 
@@ -249,6 +284,10 @@ public class PlayerController : MonoBehaviour
         shapePlacer?.TogglePlacementMode();
     }
 
+    /// <summary>
+    /// Handles input for confirming a shape placement.
+    /// </summary>
+    /// <param name="ctx">Input callback context.</param>
     private void OnPlacePerformed(InputAction.CallbackContext ctx)
     {
         if (Utilities.IsGameFrozen || isResetting) 
@@ -257,6 +296,10 @@ public class PlayerController : MonoBehaviour
         shapePlacer?.TryPlace();
     }
 
+    /// <summary>
+    /// Handles input for rotating the placement shape.
+    /// </summary>
+    /// <param name="ctx">Input callback context.</param>
     private void OnRotatePerformed(InputAction.CallbackContext ctx)
     {
         if (Utilities.IsGameFrozen || isResetting) 
@@ -276,6 +319,10 @@ public class PlayerController : MonoBehaviour
             shapePlacer.RotateCCW();
     }
 
+    /// <summary>
+    /// Handles input for cycling through available shapes.
+    /// </summary>
+    /// <param name="ctx">Input callback context.</param>
     private void OnCycleShapePerformed(InputAction.CallbackContext ctx)
     {
         if (Utilities.IsGameFrozen || isResetting) 
@@ -295,11 +342,12 @@ public class PlayerController : MonoBehaviour
             shapePlacer.CyclePrev();
     }
     #endregion
-    
+    // ─────────────────────────────────────────────
     #region Actions
-    // ─────────────────────────────────────────────
-    // Movement / Actions
-    // ─────────────────────────────────────────────
+    /// <summary>
+    /// Attempts to move the player, unlocking gates if possible and applying enter effects.
+    /// </summary>
+    /// <param name="direction">Cardinal direction to move.</param>
     private void TryMove(Vector2Int direction)
     {
         Vector3Int nextCell = cellPos + new Vector3Int(direction.x, direction.y, 0);
@@ -333,6 +381,9 @@ public class PlayerController : MonoBehaviour
         grid.HandleEnteredCell(cellPos, this, fallStartWorld);
     }
 
+    /// <summary>
+    /// Attempts to interact with the obstacle in front of the player.
+    /// </summary>
     private void TryInteract()
     {
         Vector3Int targetCell = cellPos + new Vector3Int(lastDirection.x, lastDirection.y, 0);
@@ -346,13 +397,18 @@ public class PlayerController : MonoBehaviour
         // Optional: debug if nothing to interact with
         // Debug.Log($"No obstacle to interact with at {targetCell}");
     }
-
     #endregion
-    
+    // ─────────────────────────────────────────────
     #region Void Fall
+    /// <summary>
+    /// Starts a void fall reset animation and respawns the player at the start cell.
+    /// </summary>
+    /// <param name="startCell">Target start cell to teleport to.</param>
+    /// <param name="fallStartWorld">World position where the fall begins.</param>
     public void StartVoidFallReset(Vector3Int startCell, Vector3 fallStartWorld)
     {
-        if (isResetting) return;
+        if (isResetting) 
+            return;
 
         if (resetRoutine != null)
             StopCoroutine(resetRoutine);
@@ -360,6 +416,11 @@ public class PlayerController : MonoBehaviour
         resetRoutine = StartCoroutine(VoidFallResetRoutine(startCell, fallStartWorld));
     }
 
+    /// <summary>
+    /// Plays the fall animation and teleports the player to the start cell afterward.
+    /// </summary>
+    /// <param name="startCell">Target start cell to teleport to.</param>
+    /// <param name="fallStartWorld">World position where the fall begins.</param>
     private IEnumerator VoidFallResetRoutine(Vector3Int startCell, Vector3 fallStartWorld)
     {
         isResetting = true;
@@ -396,14 +457,13 @@ public class PlayerController : MonoBehaviour
 
         isResetting = false;
     }
-    
     #endregion
     // ─────────────────────────────────────────────
     #region Scoring
-
     /// <summary>
     /// Determines rhythm quality, calculates points, and notifies ScoreManager.
     /// </summary>
+    /// <param name="actionType">Action label used for logging or future extensions.</param>
     private void RegisterActionScore(string actionType)
     {
         BeatHitQuality quality = RhythmManager.Instance.GetHitQuality();
@@ -416,7 +476,6 @@ public class PlayerController : MonoBehaviour
     #endregion
     // ─────────────────────────────────────────────
     #region Helpers
-
     /// <summary>
     /// Moves the player instantly to a new cell position.
     /// </summary>
@@ -429,7 +488,7 @@ public class PlayerController : MonoBehaviour
     /// <summary>
     /// Flip the player sprite.
     /// </summary>
-    /// <param name="faceRight"></param>
+    /// <param name="faceRight">Whether the player should face right.</param>
     private void Flip(bool faceRight)
     {
         FacingRight = faceRight;
@@ -439,9 +498,31 @@ public class PlayerController : MonoBehaviour
             sr.flipX = !FacingRight;
     }
 
+    /// <summary>
+    /// Gets the current cell position for the player.
+    /// </summary>
     public Vector3Int CellPosition => cellPos;
-    public Vector2Int GridPosition => new (cellPos.x, cellPos.y);
+
+    /// <summary>
+    /// Gets the current grid position as a 2D coordinate.
+    /// </summary>
+    public Vector2Int GridPosition => new(cellPos.x, cellPos.y);
+
+    /// <summary>
+    /// Gets the last movement direction used for interactions.
+    /// </summary>
     public Vector2Int FacingDirection => lastDirection;
-    public bool ChangeShadowMode(bool isShadowMode) => IsShadowMode = isShadowMode;
+    
+    /// <summary>
+    /// Gets player's shapeplacer component
+    /// </summary>
+    public ShapePlacer GetShapePlacer => shapePlacer;
+
+    /// <summary>
+    /// Enables or disables shadow mode on the player.
+    /// </summary>
+    /// <param name="isShadowMode">True to enable shadow mode.</param>
+    /// <returns>The new shadow mode state.</returns>
+    public void ChangeShadowMode(bool isShadowMode) => IsShadowMode = isShadowMode;
     #endregion
 }

@@ -2,9 +2,15 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
+/// <summary>
+/// Mirror obstacle that casts diagonal beam lines and blocks tiles along the beam path.
+/// </summary>
 [RequireComponent(typeof(LineRenderer))]
 public class MirrorObstacle : ObstacleBase
 {
+    /// <summary>
+    /// Cardinal diagonal directions for beam emission.
+    /// </summary>
     public enum MirrorDirection
     {
         UpRight,   // ↗
@@ -33,6 +39,9 @@ public class MirrorObstacle : ObstacleBase
 
     private int OwnerId => GetInstanceID();
 
+    /// <summary>
+    /// Initializes the line renderer used to draw beam visuals.
+    /// </summary>
     private void Awake()
     {
         line = GetComponent<LineRenderer>();
@@ -42,6 +51,9 @@ public class MirrorObstacle : ObstacleBase
         line.useWorldSpace = true;
     }
 
+    /// <summary>
+    /// Waits one frame to ensure obstacles register before rebuilding beams.
+    /// </summary>
     private IEnumerator Start()
     {
         // Ensures all mirrors have Awake() called and have registered their cells
@@ -49,6 +61,9 @@ public class MirrorObstacle : ObstacleBase
         RebuildAllBeams();
     }
 
+    /// <summary>
+    /// Clears this mirror's beam, unregisters it, and rebuilds beam chains.
+    /// </summary>
     protected override void OnDisable()
     {
         // 1) Clear this mirror's beam cells first (or after, either is fine)
@@ -66,12 +81,18 @@ public class MirrorObstacle : ObstacleBase
         RebuildAllBeams();
     }
 
+    /// <summary>
+    /// Rotates the mirror and rebuilds all beams.
+    /// </summary>
     public override void Interact()
     {
         RotateClockwise();
         RebuildAllBeams();
     }
 
+    /// <summary>
+    /// Rotates the mirror direction clockwise.
+    /// </summary>
     private void RotateClockwise()
     {
         // Cycle directions clockwise: UR -> DR -> DL -> UL -> UR
@@ -84,9 +105,9 @@ public class MirrorObstacle : ObstacleBase
         }
     }
 
-    // -------------------------------------------
-    // Beam Rebuild (emitters energize chains)
-    // -------------------------------------------
+    /// <summary>
+    /// Rebuilds beam chains for all mirrors, starting from emitters.
+    /// </summary>
     public static void RebuildAllBeams()
     {
         var g = TilemapGridManager.Instance;
@@ -115,16 +136,24 @@ public class MirrorObstacle : ObstacleBase
         ResolveOccupantsIfOnBeam(g);
     }
 
+    /// <summary>
+    /// Emits a beam from this mirror if energized, chaining to mirrors hit.
+    /// </summary>
+    /// <param name="visited">Set of mirror instance IDs already processed.</param>
     private void CastIfEnergized(HashSet<int> visited)
     {
-        if (visited.Contains(OwnerId)) return;
+        if (visited.Contains(OwnerId)) 
+            return;
+        
         visited.Add(OwnerId);
 
         if (!beamActive)
             return;
 
         grid = TilemapGridManager.Instance;
-        if (grid == null) return;
+        
+        if (grid == null) 
+            return;
 
         Vector3Int originCell = grid.WorldToCell(transform.position);
         Vector3 originWorld = grid.CellToWorldCenter(originCell);
@@ -179,6 +208,10 @@ public class MirrorObstacle : ObstacleBase
         DrawLine(originWorld, endWorld);
     }
 
+    /// <summary>
+    /// Moves the player or enemies off beam cells if possible, otherwise resolves failures.
+    /// </summary>
+    /// <param name="g">Grid manager used for movement checks.</param>
     private static void ResolveOccupantsIfOnBeam(TilemapGridManager g)
     {
         // 1) Resolve player
@@ -219,6 +252,14 @@ public class MirrorObstacle : ObstacleBase
         }
     }
 
+    /// <summary>
+    /// Attempts to move a single occupant off a beam, falling back to onFail if blocked.
+    /// </summary>
+    /// <param name="g">Grid manager for beam checks.</param>
+    /// <param name="currentCell">Current occupant cell.</param>
+    /// <param name="canEnter">Function that checks if a cell is enterable.</param>
+    /// <param name="onMove">Action to invoke when a valid cell is found.</param>
+    /// <param name="onFail">Action to invoke when no escape cell is found.</param>
     private static void ResolveSingleOccupant(
         TilemapGridManager g,
         Vector3Int currentCell,
@@ -298,7 +339,11 @@ public class MirrorObstacle : ObstacleBase
         onFail?.Invoke();
     }
 
-
+    /// <summary>
+    /// Converts a mirror direction into a diagonal step vector.
+    /// </summary>
+    /// <param name="dir">Mirror direction enum.</param>
+    /// <returns>Diagonal step vector.</returns>
     private Vector3Int GetStep(MirrorDirection dir)
     {
         return dir switch
@@ -311,6 +356,11 @@ public class MirrorObstacle : ObstacleBase
         };
     }
 
+    /// <summary>
+    /// Draws the beam line between two world positions.
+    /// </summary>
+    /// <param name="start">World-space start position.</param>
+    /// <param name="end">World-space end position.</param>
     private void DrawLine(Vector3 start, Vector3 end)
     {
         if (line == null) 
@@ -325,13 +375,25 @@ public class MirrorObstacle : ObstacleBase
         line.SetPosition(1, end);
     }
 
+    /// <summary>
+    /// Clears and disables the beam line renderer.
+    /// </summary>
     private void ClearLine()
     {
-        if (line == null) return;
+        if (line == null) 
+            return;
+        
         line.positionCount = 0;
         line.enabled = false;
     }
 
+    /// <summary>
+    /// Mirrors block movement to occupy their tile.
+    /// </summary>
     public override bool BlocksMovement() => true;
+
+    /// <summary>
+    /// Mirrors block shape placement on their tile.
+    /// </summary>
     public override bool BlocksShapePlacement() => true;
 }

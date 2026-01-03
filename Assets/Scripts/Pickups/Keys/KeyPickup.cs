@@ -11,8 +11,6 @@ public class KeyPickup : MonoBehaviour
     [Tooltip("Unique identifier for the key (used for gates, etc).")]
     public string keyID = "default";
 
-    // ─────────────────────────────────────────────────────────────────────────────
-
     /// <summary>
     /// Aligns the key to the grid position when the scene starts.
     /// </summary>
@@ -28,8 +26,6 @@ public class KeyPickup : MonoBehaviour
         Vector3Int cell = grid.WorldToCell(transform.position);
         transform.position = grid.CellToWorldCenter(cell);
     }
-
-    // ─────────────────────────────────────────────────────────────────────────────
 
     /// <summary>
     /// Called when another collider enters the trigger zone.

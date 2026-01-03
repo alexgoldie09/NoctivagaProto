@@ -17,12 +17,15 @@ public class EnemyChaserBruiser : EnemyChaser
     [SerializeField] private int punishCycleBeats = 4;
 
     [Header("Telegraph")]
-    [SerializeField] private Color telegraphColor = new Color(1f, 0f, 0f, 0.5f);
+    [SerializeField] private Color telegraphColor = new (1f, 0f, 0f, 0.5f);
     [SerializeField] private float telegraphDuration = 0.30f;
 
     private List<Vector3Int> pendingPunishCells = new();
     private int phaseCounter = 0;
 
+    /// <summary>
+    /// Executes the bruise cycle: telegraph, slam, or chase depending on beat phase.
+    /// </summary>
     protected override void OnBeatAction()
     {
         if (punishCycleBeats < 2) punishCycleBeats = 2;
@@ -51,7 +54,10 @@ public class EnemyChaserBruiser : EnemyChaser
         // Otherwise: chase like normal
         base.OnBeatAction();
     }
-
+    
+    /// <summary>
+    /// Selects nearby target cells and flashes a telegraph preview.
+    /// </summary>
     private void TelegraphPunish()
     {
         if (grid == null) return;
@@ -65,6 +71,10 @@ public class EnemyChaserBruiser : EnemyChaser
             animator.SetTrigger("OnBeat");
     }
 
+    /// <summary>
+    /// Spawns slam effects, shakes the camera, and damages the player on targeted cells.
+    /// </summary>
+    /// <param name="cells">Cells to punish with the slam attack.</param>
     private void ExecutePunish(List<Vector3Int> cells)
     {
         if (grid == null) 
@@ -90,6 +100,10 @@ public class EnemyChaserBruiser : EnemyChaser
             animator.SetTrigger("OnBeat");
     }
 
+    /// <summary>
+    /// Collects the surrounding 8 cells that are valid enemy-walkable tiles.
+    /// </summary>
+    /// <returns>List of filtered neighboring cells.</returns>
     private List<Vector3Int> GetSurroundingCellsFiltered()
     {
         var cells = new List<Vector3Int>();
@@ -106,7 +120,7 @@ public class EnemyChaserBruiser : EnemyChaser
         {
             Vector3Int pos = cellPos + off;
 
-            // Match original intent: only punish tiles that are "valid walkable" tiles
+            // Only punish tiles that are "valid walkable" tiles
             if (grid.IsInBounds(pos) && grid.CanEnemyEnterCell(pos))
                 cells.Add(pos);
         }
@@ -120,6 +134,9 @@ public class EnemyChaserBruiser : EnemyChaser
     [SerializeField] private bool drawLabels = true;
     [SerializeField] private Color gizmoColor = new(1f, 0.3f, 0.3f, 0.7f);
 
+    /// <summary>
+    /// Draws gizmo outlines and labels for the bruiser slam range in the editor.
+    /// </summary>
     private void OnDrawGizmosSelected()
     {
         if (!drawGizmos) return;

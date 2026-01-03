@@ -1,19 +1,21 @@
 using System;
 using UnityEngine;
-
-/// <summary>
-/// Controls rhythm synchronization using AudioSettings.dspTime for precise beat tracking.
-/// Relies on native audio looping to ensure perfect sync with beat timing.
-/// </summary>
  
+/// <summary>
+/// Timing grades for beat-aligned actions.
+/// </summary>
 public enum BeatHitQuality 
 { 
     Perfect, 
     Good, 
     Okay, 
     Bad 
-} // Beat hits and their grading
+}
 
+/// <summary>
+/// Controls rhythm synchronization using AudioSettings.dspTime for precise beat tracking.
+/// Relies on native audio looping to ensure perfect sync with beat timing.
+/// </summary>
 [RequireComponent(typeof(AudioSource))]
 public class RhythmManager : MonoBehaviour
 {
@@ -32,7 +34,10 @@ public class RhythmManager : MonoBehaviour
     private bool isPlaying = false;
 
     // ─────────────────────────────────────────────────────────────────────────────
-
+    #region Unity Lifecycle
+    /// <summary>
+    /// Establishes the singleton instance and caches the audio source.
+    /// </summary>
     private void Awake()
     {
         if (Instance != null && Instance != this)
@@ -45,6 +50,9 @@ public class RhythmManager : MonoBehaviour
         audioSource = GetComponent<AudioSource>();
     }
     
+    /// <summary>
+    /// Starts playing the configured track if one is assigned.
+    /// </summary>
     private void Start()
     {
         if (currentTrack != null)
@@ -53,9 +61,13 @@ public class RhythmManager : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Advances beat timing and fires beat events while playing.
+    /// </summary>
     private void Update()
     {
-        if (Utilities.IsGameFrozen) return; // skip ticking while frozen
+        if (Utilities.IsGameFrozen) 
+            return; // skip ticking while frozen
         
         if (!isPlaying || currentTrack == null || !audioSource.isPlaying)
             return;
@@ -69,9 +81,9 @@ public class RhythmManager : MonoBehaviour
             nextBeatTime += beatInterval;
         }
     }
-
+    #endregion
     // ─────────────────────────────────────────────────────────────────────────────
-
+    #region Audio Functions
     /// <summary>
     /// Begins playback of a rhythm track using precise DSP scheduling.
     /// </summary>
@@ -214,4 +226,5 @@ public class RhythmManager : MonoBehaviour
     {
         SetTempoMultiplier(1f);
     }
+    #endregion
 }
