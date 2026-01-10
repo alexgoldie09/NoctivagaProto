@@ -18,6 +18,19 @@ public class ShapePaletteUI : MonoBehaviour
     private List<ShapeIconUI> iconInstances = new List<ShapeIconUI>(); // Current shape icons.
     private ShapePlacer shapePlacer; // Cached shape placer system.
     private PlayerInventory inventory; // Cached player inventory.
+    
+    private void OnEnable()
+    {
+        // If Start hasn't run yet, we might not have refs. We'll subscribe in Start too.
+        if (inventory != null)
+            inventory.OnShapeInventoryStructureChanged += RebuildIcons;
+    }
+
+    private void OnDisable()
+    {
+        if (inventory != null)
+            inventory.OnShapeInventoryStructureChanged -= RebuildIcons;
+    }
 
     /// <summary>
     /// Finds required references and builds the initial icon set.
@@ -34,7 +47,11 @@ public class ShapePaletteUI : MonoBehaviour
             return;
         }
 
-        CreateIcons();
+        // Ensure we are subscribed
+        inventory.OnShapeInventoryStructureChanged -= RebuildIcons;
+        inventory.OnShapeInventoryStructureChanged += RebuildIcons;
+
+        RebuildIcons();
     }
 
     /// <summary>
@@ -42,7 +59,30 @@ public class ShapePaletteUI : MonoBehaviour
     /// </summary>
     private void Update()
     {
+        // Safety: if list size changes without firing the event, fix it once.
+        if (inventory != null && iconInstances.Count != inventory.shapeInventory.Count)
+        {
+            RebuildIcons();
+        }
+        
         UpdateIcons();
+    }
+    
+    /// <summary>
+    /// Clears and recreates icons to match current shapeInventory structure.
+    /// </summary>
+    public void RebuildIcons()
+    {
+        // Destroy old icons
+        for (int i = 0; i < iconInstances.Count; i++)
+        {
+            if (iconInstances[i] != null)
+                Destroy(iconInstances[i].gameObject);
+        }
+        iconInstances.Clear();
+
+        CreateIcons();
+        UpdateIcons(); // immediate refresh so you see it right away
     }
 
     /// <summary>

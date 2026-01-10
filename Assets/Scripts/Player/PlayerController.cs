@@ -391,6 +391,8 @@ public class PlayerController : MonoBehaviour
         if (grid.TryGetObstacle(targetCell, out ObstacleBase obstacle) && obstacle != null)
         {
             // Debug.Log($"Obstacle {obstacle.name} to interact with at {targetCell}");
+            // Apply scoring
+            RegisterActionScore("Obstacle");
             obstacle.Interact();
         }
 
@@ -466,6 +468,9 @@ public class PlayerController : MonoBehaviour
     /// <param name="actionType">Action label used for logging or future extensions.</param>
     private void RegisterActionScore(string actionType)
     {
+        if (ScoreManager.Instance == null)
+            return;
+        
         BeatHitQuality quality = RhythmManager.Instance.GetHitQuality();
         int points = Utilities.GetPointsForQuality(quality);
 

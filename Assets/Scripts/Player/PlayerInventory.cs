@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 using System.Collections.Generic;
 
@@ -16,6 +17,12 @@ public class PlayerInventory : MonoBehaviour
 
     [Header("UI References")]
     public KeyPaletteUI keyPaletteUI;
+    
+    /// <summary>
+    /// Fired when the SHAPE inventory structure changes (e.g., a brand new shape entry is added).
+    /// Does NOT fire for count changes, since those can be refreshed by UI update logic.
+    /// </summary>
+    public event Action OnShapeInventoryStructureChanged;
     
     // ─────────────────────────────────────────────────────────────────────────────
     #region SHAPE INVENTORY METHODS
@@ -46,6 +53,9 @@ public class PlayerInventory : MonoBehaviour
                 shapeData = shape,
                 count = amount
             });
+            
+            // Only rebuild UI when the list structure changes (new icon needed)
+            OnShapeInventoryStructureChanged?.Invoke();
         }
     }
 

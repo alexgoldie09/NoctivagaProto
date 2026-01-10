@@ -187,8 +187,11 @@ public class ShapePlacer : MonoBehaviour
         BeatHitQuality quality = RhythmManager.Instance.GetHitQuality();
         int points = Utilities.GetPointsForQuality(quality);
 
-        ScoreManager.Instance.RegisterMove();
-        ScoreManager.Instance.AddRhythmScore(points, quality);
+        if (ScoreManager.Instance != null)
+        {
+            ScoreManager.Instance.RegisterMove();
+            ScoreManager.Instance.AddRhythmScore(points, quality);
+        }
 
         // If we ran out, move to next available shape
         if (!inventory.HasShape(entry.shapeData))
