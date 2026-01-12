@@ -12,6 +12,7 @@ GameObject:
   - component: {fileID: 8030724847132833633}
   - component: {fileID: 2604818735695586343}
   - component: {fileID: 3173951952616137955}
+  - component: {fileID: -4245934945990603466}
   m_Layer: 0
   m_Name: LTilePickup
   m_TagString: Untagged
@@ -152,3 +153,16 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ShapePickup
   shapeData: {fileID: 11400000, guid: 61849dc9b36094bd38b5857b6373ea0b, type: 2}
   amount: 1
+--- !u!114 &-4245934945990603466
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3114234836768373229}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fba7b7649f5234f9f98ce7a5ece4dd86, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SelfDestroy
+  destroyDelay: 6

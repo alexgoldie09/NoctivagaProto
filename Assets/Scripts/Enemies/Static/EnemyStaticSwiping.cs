@@ -53,7 +53,7 @@ public class EnemyStaticSwiping : EnemyStatic
             pendingAttackCells = GetSwipeCells(dir);
 
             // In-game telegraph using TM_Preview (per-owner safe)
-            grid.FlashPreviewCellsForOwner(GetInstanceID(), pendingAttackCells, telegraphColor, telegraphDuration);
+            grid.FlashTelegraphCellsForOwner(GetInstanceID(), pendingAttackCells, telegraphColor, telegraphDuration);
         }
     }
 

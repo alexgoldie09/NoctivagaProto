@@ -113,6 +113,27 @@ public class GameManager : MonoBehaviour
             winScreenUI.SetActive(true);
     }
 
+    /// <summary>
+    /// Called when the boss reaches 0 HP.
+    /// Uses the same win screen flow as PlayerWon, but does not rely on score.
+    /// </summary>
+    public void BossDefeated()
+    {
+        // Clear previews
+        ShapePlacer shapePlacer = player != null ? player.GetShapePlacer : null;
+        shapePlacer?.ClearPreview();
+
+        // Freeze gameplay
+        Utilities.FreezeGame();
+
+        // Pause rhythm/music (optional for bosses, but consistent)
+        if (RhythmManager.Instance != null)
+            RhythmManager.Instance.Stop();
+
+        // Show Win Screen
+        if (winScreenUI != null)
+            winScreenUI.SetActive(true);
+    }
     #endregion
     // ─────────────────────────────────────────────
     #region Powerups

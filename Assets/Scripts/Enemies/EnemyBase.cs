@@ -64,8 +64,11 @@ public abstract class EnemyBase : MonoBehaviour
     protected virtual void OnDisable()
     {
         RhythmManager.OnBeat -= HandleBeat;
+        
+        if (grid != null)
+            grid.ClearTelegraphForOwner(GetInstanceID());
     }
-
+    
     /// <summary>
     /// Resolves grid, animator, and player references and snaps to the grid if requested.
     /// </summary>

@@ -19,7 +19,8 @@ public enum TileKind
 public enum EnterEffect
 {
     None,
-    ResetToStart
+    ResetToStart,
+    FallToDeath
 }
 
 /// <summary>

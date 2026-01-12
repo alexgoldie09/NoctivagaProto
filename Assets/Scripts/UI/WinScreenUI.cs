@@ -42,6 +42,13 @@ public class WinScreenUI : MonoBehaviour
             finalScoreText.text = $"Final Score: {ScoreManager.Instance.GetFinalScore()}";
             finalMovesText.text = $"Moves: {ScoreManager.Instance.GetMoveCount()}";
         }
+        else
+        {
+            if (finalScoreText != null) 
+                finalScoreText.text = "";
+            if (finalMovesText != null) 
+                finalMovesText.text = "";
+        }
 
         // Reset state
         if (canvasGroup != null)

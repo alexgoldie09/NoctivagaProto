@@ -405,8 +405,6 @@ public class PlayerController : MonoBehaviour
     /// <summary>
     /// Starts a void fall reset animation and respawns the player at the start cell.
     /// </summary>
-    /// <param name="startCell">Target start cell to teleport to.</param>
-    /// <param name="fallStartWorld">World position where the fall begins.</param>
     public void StartVoidFallReset(Vector3Int startCell, Vector3 fallStartWorld)
     {
         if (isResetting) 
@@ -415,15 +413,42 @@ public class PlayerController : MonoBehaviour
         if (resetRoutine != null)
             StopCoroutine(resetRoutine);
 
-        resetRoutine = StartCoroutine(VoidFallResetRoutine(startCell, fallStartWorld));
+        resetRoutine = StartCoroutine(VoidFallRoutine(
+            fallStartWorld,
+            onComplete: () =>
+            {
+                TeleportToCell(startCell);
+                StartCoroutine(RestoreAfterDelay(voidFallDuration));
+            }));
+    }
+    
+    /// <summary>
+    /// Starts a void fall animation and then kills the player (boss void).
+    /// </summary>
+    public void StartVoidFallDeath(Vector3 fallStartWorld)
+    {
+        if (isResetting)
+            return;
+
+        if (resetRoutine != null)
+            StopCoroutine(resetRoutine);
+
+        resetRoutine = StartCoroutine(VoidFallRoutine(
+            fallStartWorld,
+            onComplete: () =>
+            {
+                // Restore scale so death screen doesn't show a tiny player sprite in-scene
+                transform.localScale = initialScale;
+
+                // Trigger death flow
+                GameManager.Instance?.PlayerKilled();
+            }));
     }
 
     /// <summary>
-    /// Plays the fall animation and teleports the player to the start cell afterward.
+    /// Shared fall routine (shrink + drop + shake). Calls onComplete at the end.
     /// </summary>
-    /// <param name="startCell">Target start cell to teleport to.</param>
-    /// <param name="fallStartWorld">World position where the fall begins.</param>
-    private IEnumerator VoidFallResetRoutine(Vector3Int startCell, Vector3 fallStartWorld)
+    private IEnumerator VoidFallRoutine(Vector3 fallStartWorld, System.Action onComplete)
     {
         isResetting = true;
         rb.linearVelocity = Vector2.zero;
@@ -451,12 +476,13 @@ public class PlayerController : MonoBehaviour
             yield return null;
         }
 
-        TeleportToCell(startCell);
-        
-        yield return new WaitForSeconds(voidFallDuration);
-        
-        transform.localScale = initialScale;
+        onComplete?.Invoke();
+    }
 
+    private IEnumerator RestoreAfterDelay(float delay)
+    {
+        yield return new WaitForSeconds(delay);
+        transform.localScale = initialScale;
         isResetting = false;
     }
     #endregion

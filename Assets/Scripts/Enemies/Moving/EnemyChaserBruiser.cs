@@ -65,7 +65,7 @@ public class EnemyChaserBruiser : EnemyChaser
         pendingPunishCells = GetSurroundingCellsFiltered();
 
         // In-game telegraph (TM_Preview)
-        grid.FlashPreviewCellsForOwner(GetInstanceID(), pendingPunishCells, telegraphColor, telegraphDuration);
+        grid.FlashTelegraphCellsForOwner(GetInstanceID(), pendingPunishCells, telegraphColor, telegraphDuration);
 
         if (animator != null)
             animator.SetTrigger("OnBeat");

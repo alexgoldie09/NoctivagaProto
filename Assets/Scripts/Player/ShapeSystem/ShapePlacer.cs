@@ -24,6 +24,12 @@ public class ShapePlacer : MonoBehaviour
 
     private readonly List<Vector3Int> previewCells = new();
     private readonly List<Color> previewColors = new();
+    
+    /// <summary>
+    /// Fired after a successful placement that converted void -> floor.
+    /// Provides the list of cells affected by that placement.
+    /// </summary>
+    public event Action<IReadOnlyList<Vector3Int>> OnShapePlaced;
 
     /// <summary>
     /// Gets the current shape index in the inventory list.
@@ -179,6 +185,15 @@ public class ShapePlacer : MonoBehaviour
 
         // Apply: Void -> Floor
         grid.ApplyShapeToVoid(originCell, rotatedOffsets);
+        
+        // Notify listeners (boss, achievements, etc.) which cells were placed
+        // Build list once per placement; reuse a local list to avoid allocations if you want later.
+        var placedCells = new List<Vector3Int>(rotatedOffsets.Length);
+        foreach (var off in rotatedOffsets)
+        {
+            placedCells.Add(originCell + new Vector3Int(off.x, off.y, 0));
+        }
+        OnShapePlaced?.Invoke(placedCells);
 
         // Consume inventory
         inventory.ConsumeShape(entry.shapeData);

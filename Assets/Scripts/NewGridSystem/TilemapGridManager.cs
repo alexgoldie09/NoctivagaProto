@@ -18,6 +18,7 @@ public class TilemapGridManager : MonoBehaviour
     [SerializeField] private Tilemap blocksTilemap;   // Walls/Gates (any tiles)
     [SerializeField] private Tilemap previewTilemap;  // TM_Preview
     [SerializeField] private Tilemap overlayTilemap; // TM_Overlay
+    [SerializeField] private Tilemap telegraphTilemap; // TM_Telegraph (enemy/boss telegraphs)
 
     [Header("Default Ground Tiles (GameTile assets)")]
     [SerializeField] private GameTile floorTile;
@@ -30,9 +31,6 @@ public class TilemapGridManager : MonoBehaviour
     [Tooltip("If true, the player can step onto Void tiles. (You can still reset on enter.)")]
     [SerializeField] private bool allowWalkingIntoVoid = false;
 
-    [Tooltip("If true, stepping onto a Reset tile (void) triggers fall + return to start.")]
-    [SerializeField] private bool voidResetsToStart = true;
-
     // Obstacles + Hazards
     private readonly Dictionary<Vector3Int, ObstacleBase> obstacleByCell = new();
     private readonly HashSet<Vector3Int> beamBlocked = new();
@@ -41,6 +39,10 @@ public class TilemapGridManager : MonoBehaviour
     // Preview ownership (telegraphs + shape preview)
     private readonly Dictionary<int, List<Vector3Int>> previewByOwner = new();
     private readonly Dictionary<int, int> previewTokenByOwner = new();
+    
+    // Telegraph ownership (boss/enemy telegraphs)
+    private readonly Dictionary<int, List<Vector3Int>> telegraphByOwner = new();
+    private readonly Dictionary<int, int> telegraphTokenByOwner = new();
     
     // Overlay halftime
     private const int OVERLAY_OWNER_HALFTIME = 9001;
@@ -205,6 +207,36 @@ public class TilemapGridManager : MonoBehaviour
     /// </summary>
     private GameTile GetBlockGameTile(Vector3Int cell)
         => blocksTilemap != null ? blocksTilemap.GetTile<GameTile>(cell) : null;
+    
+    /// <summary>
+    /// True if the ground tilemap has a painted tile at this cell.
+    /// (Unpainted cells inside bounds return false.)
+    /// </summary>
+    public bool IsPaintedGroundCell(Vector3Int cell) 
+        => groundTilemap != null && groundTilemap.HasTile(cell);
+
+    /// <summary>
+    /// Returns all painted cells on the ground tilemap (map footprint).
+    /// </summary>
+    public List<Vector3Int> GetAllPaintedGroundCells()
+    {
+        var result = new List<Vector3Int>();
+
+        if (groundTilemap == null)
+            return result;
+
+        // Bounds are already compressed in Awake, but safe to do here too if you change maps dynamically.
+        groundTilemap.CompressBounds();
+        var b = groundTilemap.cellBounds;
+
+        foreach (var c in b.allPositionsWithin)
+        {
+            if (groundTilemap.HasTile(c))
+                result.Add(c);
+        }
+
+        return result;
+    }
 
     /// <summary>
     /// Determines the logical tile kind at a cell, accounting for blocking layers.
@@ -318,14 +350,19 @@ public class TilemapGridManager : MonoBehaviour
     /// <param name="fallStartWorld">World position where a fall should start from.</param>
     public void HandleEnteredCell(Vector3Int cell, PlayerController player, Vector3 fallStartWorld)
     {
-        if (!voidResetsToStart) return;
-
         var ground = GetGroundGameTile(cell);
-        if (ground == null) return;
+        if (ground == null) 
+            return;
 
-        if (ground.enterEffect == EnterEffect.ResetToStart)
+        switch (ground.enterEffect)
         {
-            player.StartVoidFallReset(GetStartCell(), fallStartWorld);
+            case EnterEffect.ResetToStart:
+                player.StartVoidFallReset(GetStartCell(), fallStartWorld);
+                break;
+
+            case EnterEffect.FallToDeath:
+                player.StartVoidFallDeath(fallStartWorld);
+                break;
         }
     }
     
@@ -425,34 +462,6 @@ public class TilemapGridManager : MonoBehaviour
     // ─────────────────────────────────────────────────────────────
     #region Preview (TM_Preview)
     /// <summary>
-    /// Sets preview cells for an owner ID and tints them uniformly.
-    /// </summary>
-    /// <param name="ownerId">Owner identifier for the preview.</param>
-    /// <param name="cells">Cells to preview.</param>
-    /// <param name="color">Color to apply to each preview cell.</param>
-    public void SetPreviewCellsForOwner(int ownerId, IReadOnlyList<Vector3Int> cells, Color color)
-    {
-        if (previewTilemap == null || previewFillTile == null) 
-            return;
-
-        ClearPreviewForOwner(ownerId);
-        if (cells == null || cells.Count == 0) 
-            return;
-
-        var copy = new List<Vector3Int>(cells.Count);
-        for (int i = 0; i < cells.Count; i++)
-            copy.Add(cells[i]);
-
-        previewByOwner[ownerId] = copy;
-
-        foreach (var c in copy)
-        {
-            previewTilemap.SetTile(c, previewFillTile);
-            previewTilemap.SetColor(c, color);
-        }
-    }
-
-    /// <summary>
     /// Sets preview cells for an owner ID with per-cell colors.
     /// </summary>
     /// <param name="ownerId">Owner identifier for the preview.</param>
@@ -485,31 +494,6 @@ public class TilemapGridManager : MonoBehaviour
     }
 
     /// <summary>
-    /// Temporarily displays a preview for a duration, with token-based invalidation.
-    /// </summary>
-    /// <param name="ownerId">Owner identifier for the preview.</param>
-    /// <param name="cells">Cells to preview.</param>
-    /// <param name="color">Color to apply to each preview cell.</param>
-    /// <param name="duration">Seconds to display the preview.</param>
-    public void FlashPreviewCellsForOwner(int ownerId, IReadOnlyList<Vector3Int> cells, Color color, float duration)
-    {
-        if (previewTilemap == null || previewFillTile == null) 
-            return;
-        
-        if (cells == null || cells.Count == 0) 
-            return;
-
-        // bump token so older coroutines don’t clear a newer telegraph
-        int token = 1;
-        if (previewTokenByOwner.TryGetValue(ownerId, out int existing))
-            token = existing + 1;
-        previewTokenByOwner[ownerId] = token;
-
-        SetPreviewCellsForOwner(ownerId, cells, color);
-        StartCoroutine(ClearPreviewAfterDelay(ownerId, token, duration));
-    }
-
-    /// <summary>
     /// Clears any preview tiles owned by the specified owner ID.
     /// </summary>
     /// <param name="ownerId">Owner identifier for the preview.</param>
@@ -529,21 +513,74 @@ public class TilemapGridManager : MonoBehaviour
 
         previewByOwner.Remove(ownerId);
     }
+    #endregion
+    // ─────────────────────────────────────────────────────────────
+    #region Telegraph (TM_Telegraph)
+    public void SetTelegraphCellsForOwner(int ownerId, IReadOnlyList<Vector3Int> cells, Color color)
+    {
+        if (telegraphTilemap == null || previewFillTile == null)
+            return;
 
-    /// <summary>
-    /// Clears a preview after a delay if its token still matches the current owner token.
-    /// </summary>
-    /// <param name="ownerId">Owner identifier for the preview.</param>
-    /// <param name="token">Token captured when the preview was shown.</param>
-    /// <param name="duration">Seconds to wait before clearing.</param>
-    private IEnumerator ClearPreviewAfterDelay(int ownerId, int token, float duration)
+        ClearTelegraphForOwner(ownerId);
+        if (cells == null || cells.Count == 0)
+            return;
+
+        var copy = new List<Vector3Int>(cells.Count);
+        for (int i = 0; i < cells.Count; i++)
+            copy.Add(cells[i]);
+
+        telegraphByOwner[ownerId] = copy;
+
+        foreach (var c in copy)
+        {
+            telegraphTilemap.SetTile(c, previewFillTile);
+            telegraphTilemap.SetColor(c, color);
+        }
+    }
+
+    public void FlashTelegraphCellsForOwner(int ownerId, IReadOnlyList<Vector3Int> cells, Color color, float duration)
+    {
+        if (telegraphTilemap == null || previewFillTile == null)
+            return;
+
+        if (cells == null || cells.Count == 0)
+            return;
+
+        // bump token so older coroutines don’t clear a newer telegraph
+        int token = 1;
+        if (telegraphTokenByOwner.TryGetValue(ownerId, out int existing))
+            token = existing + 1;
+        telegraphTokenByOwner[ownerId] = token;
+
+        SetTelegraphCellsForOwner(ownerId, cells, color);
+        StartCoroutine(ClearTelegraphAfterDelay(ownerId, token, duration));
+    }
+
+    public void ClearTelegraphForOwner(int ownerId)
+    {
+        if (telegraphTilemap == null)
+            return;
+
+        if (telegraphByOwner.TryGetValue(ownerId, out var cells))
+        {
+            foreach (var c in cells)
+            {
+                telegraphTilemap.SetTile(c, null);
+                telegraphTilemap.SetColor(c, Color.white);
+            }
+        }
+
+        telegraphByOwner.Remove(ownerId);
+    }
+
+    private IEnumerator ClearTelegraphAfterDelay(int ownerId, int token, float duration)
     {
         yield return new WaitForSeconds(duration);
 
-        if (!previewTokenByOwner.TryGetValue(ownerId, out int current) || current != token)
+        if (!telegraphTokenByOwner.TryGetValue(ownerId, out int current) || current != token)
             yield break;
 
-        ClearPreviewForOwner(ownerId);
+        ClearTelegraphForOwner(ownerId);
     }
     #endregion
     // ─────────────────────────────────────────────────────────────
