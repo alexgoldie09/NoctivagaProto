@@ -39,14 +39,15 @@ public class BossHealth : MonoBehaviour
     public event Action<int, int> OnHealthChanged;          // current, max
     public event Action<BossPhase> OnPhaseChanged;          // new phase
     public event Action OnDied;
-
+    public event Action OnPlayerDied;
+    
     public string BossName => bossName;
     public int MaxHP => maxHP;
     public int CurrentHP { get; private set; }
     public int DamagePerHit => damagePerHit;
     public BossPhase CurrentPhase { get; private set; } = BossPhase.Phase1;
 
-    public float Health01 => (maxHP <= 0) ? 0f : Mathf.Clamp01((float)CurrentHP / maxHP);
+    public float Health01 => maxHP <= 0 ? 0f : Mathf.Clamp01((float)CurrentHP / maxHP);
 
     private void Awake()
     {
@@ -144,5 +145,10 @@ public class BossHealth : MonoBehaviour
             CurrentPhase = newPhase;
             OnPhaseChanged?.Invoke(CurrentPhase);
         }
+    }
+    
+    public void NotifyPlayerDied()
+    {
+        OnPlayerDied?.Invoke();
     }
 }

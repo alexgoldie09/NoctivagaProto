@@ -42,6 +42,7 @@ public class BossHUD : MonoBehaviour
         bossHealth.OnHealthChanged += HandleHealthChanged;
         bossHealth.OnPhaseChanged += HandlePhaseChanged;
         bossHealth.OnDied += HandleDied;
+        bossHealth.OnPlayerDied += HandleDied;
 
         // Initialize display immediately
         HandleHealthChanged(bossHealth.CurrentHP, bossHealth.MaxHP);
@@ -60,6 +61,7 @@ public class BossHUD : MonoBehaviour
         bossHealth.OnHealthChanged -= HandleHealthChanged;
         bossHealth.OnPhaseChanged -= HandlePhaseChanged;
         bossHealth.OnDied -= HandleDied;
+        bossHealth.OnPlayerDied -= HandleDied;
     }
 
     private void HandleHealthChanged(int current, int max)
@@ -80,7 +82,6 @@ public class BossHUD : MonoBehaviour
 
     private void HandleDied()
     {
-        // Optional: hide HUD on death (or leave it at 0 HP).
-        // gameObject.SetActive(false);
+        gameObject.SetActive(false);
     }
 }

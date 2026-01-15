@@ -59,6 +59,10 @@ public class GameManager : MonoBehaviour
 
         // Hide player object
         player.gameObject.SetActive(false);
+        
+        // Hide Boss HUD (if it exists)
+        var boss = FindAnyObjectByType<BossHealth>();
+        boss?.NotifyPlayerDied();
 
         // Start delayed death screen
         StartCoroutine(ShowDeathScreenAfterDelay(3f)); // 3 second delay before UI fade

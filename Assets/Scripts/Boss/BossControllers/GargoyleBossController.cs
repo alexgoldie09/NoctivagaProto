@@ -17,6 +17,7 @@ public class GargoyleBossController : MonoBehaviour
     private enum BombAoePattern { Square, Cross }
 
     [Header("References")]
+    [SerializeField] private SpriteRenderer spriteRenderer;
     [SerializeField] private BossHealth bossHealth;
     [SerializeField] private TilemapGridManager grid;
     [SerializeField] private PlayerController player;
@@ -72,14 +73,17 @@ public class GargoyleBossController : MonoBehaviour
     [SerializeField] private float landingSpeed = 10f;
     [SerializeField] private float preRestHoverTime = 0.10f;
 
-    [Header("Bomb Targeting")]
-    [Tooltip("Bombs will never target the player's current cell.")]
-    [SerializeField] private bool neverBombPlayerCell = true;
+    [Header("Bomb Targeting - Near Bucket")]
+    [Tooltip("Manhattan distance of the nearby cells.")]
+    [SerializeField] private int nearRadius = 6;               // Manhattan distance in cells
+    [Tooltip("Chance to pick from nearby tiles.")]
+    [SerializeField, Range(0f, 1f)] private float nearPickChance = 0.8f;       // chance to pick from near tiles if any exist
     [Tooltip("Optional: avoid bombing tiles too close to player (in cells). 0 = no minimum.")]
     [SerializeField] private int minDistanceFromPlayer = 0;
-    [Tooltip("Weights bomb selection toward nearby tiles. Higher means more near-player pressure.")]
-    [Range(0f, 10f)]
-    [SerializeField] private float nearPlayerBias = 3.0f;
+    [Tooltip("Check to allow bomb on start tile.")]
+    [SerializeField] private bool allowBombingStartTile = true; // you currently allow Start as candidate
+    [Tooltip("Check to allow bomb on player current tile.")]
+    [SerializeField] private bool allowBombPlayerCell = true;
     
     [Header("Bomb Delivery - Fly then Throw")]
     [SerializeField] private float hoverHeight = 2.0f;              // world units above target cell
@@ -133,6 +137,9 @@ public class GargoyleBossController : MonoBehaviour
         
         if (bossHealth == null) 
             bossHealth = GetComponent<BossHealth>();
+        
+        if(spriteRenderer == null)
+            spriteRenderer = GetComponent<SpriteRenderer>();
     }
 
     private void OnEnable()
@@ -141,7 +148,10 @@ public class GargoyleBossController : MonoBehaviour
             shapePlacer.OnShapePlaced += HandleShapePlaced;
 
         if (bossHealth != null)
+        {
             bossHealth.OnDied += HandleBossDied;
+            bossHealth.OnPlayerDied += HandleBossDied;
+        }
     }
 
     private void OnDisable()
@@ -150,7 +160,10 @@ public class GargoyleBossController : MonoBehaviour
             shapePlacer.OnShapePlaced -= HandleShapePlaced;
 
         if (bossHealth != null)
+        {
             bossHealth.OnDied -= HandleBossDied;
+            bossHealth.OnPlayerDied -= HandleBossDied;
+        }
     }
 
     private void Start()
@@ -278,6 +291,8 @@ public class GargoyleBossController : MonoBehaviour
         while (Vector3.Distance(transform.position, targetWorld) > arriveEpsilon)
         {
             if (State == BossState.Dead) yield break;
+            
+            UpdateFacingTowards(targetWorld);
 
             transform.position = Vector3.MoveTowards(
                 transform.position,
@@ -289,6 +304,21 @@ public class GargoyleBossController : MonoBehaviour
         }
     }
     
+    private void UpdateFacingTowards(Vector3 targetWorld)
+    {
+        if (spriteRenderer == null) 
+            return;
+
+        float dx = targetWorld.x - transform.position.x;
+
+        // Avoid jitter when basically vertical movement
+        if (Mathf.Abs(dx) < 0.01f) 
+            return;
+
+        // Default faces LEFT, so flipX when we want RIGHT
+        spriteRenderer.flipX = dx > 0f;
+    }
+    
     private IEnumerator LandToWorldPoint(Vector3 targetWorld)
     {
         // Ensure we’re in Land anim while traveling
@@ -297,6 +327,8 @@ public class GargoyleBossController : MonoBehaviour
         while (Vector3.Distance(transform.position, targetWorld) > arriveEpsilon)
         {
             if (State == BossState.Dead) yield break;
+            
+            UpdateFacingTowards(targetWorld);
 
             transform.position = Vector3.MoveTowards(
                 transform.position,
@@ -350,74 +382,77 @@ public class GargoyleBossController : MonoBehaviour
     // ─────────────────────────────────────────────────────────────
     // Bomb logic
     // ─────────────────────────────────────────────────────────────
-
     private bool TryPickBombTarget(out Vector3Int cell)
     {
         cell = default;
 
-        if (paintedGroundCells == null || paintedGroundCells.Count == 0)
+        if (paintedGroundCells == null || paintedGroundCells.Count == 0 || grid == null)
             return false;
 
-        Vector3Int playerCell = player != null ? player.CellPosition : new Vector3Int(int.MinValue, int.MinValue, 0);
+        bool hasPlayer = player != null;
+        Vector3Int playerCell = hasPlayer ? player.CellPosition : default;
 
-        // Weighted random pick among FLOOR tiles (exclude start/gates/void/walls).
-        // We do a single pass to compute weights.
-        float totalWeight = 0f;
-        int validCount = 0;
-
-        // We’ll keep a small temporary list of candidates for this selection.
-        // If you want to avoid allocs later, we can pool this list.
-        List<(Vector3Int c, float w)> candidates = new();
+        List<Vector3Int> near = new List<Vector3Int>(64);
+        List<Vector3Int> far = new List<Vector3Int>(128);
 
         for (int i = 0; i < paintedGroundCells.Count; i++)
         {
             var c = paintedGroundCells[i];
 
-            // Must be painted and floor kind
             if (!grid.IsPaintedGroundCell(c))
                 continue;
 
             TileKind k = grid.GetTileKind(c);
-            if (k != TileKind.Floor && k != TileKind.Start)
+
+            bool isValidKind =
+                k == TileKind.Floor ||
+                (allowBombingStartTile && k == TileKind.Start);
+
+            if (!isValidKind)
                 continue;
 
-            if (neverBombPlayerCell && c == playerCell)
-                continue;
-
-            int dist = Mathf.Abs(c.x - playerCell.x) + Mathf.Abs(c.y - playerCell.y);
-            if (minDistanceFromPlayer > 0 && dist < minDistanceFromPlayer)
-                continue;
-
-            // Weight nearer tiles higher (pressure) but still random.
-            // weight = 1 + bias / (dist+1)
-            float w = 1f;
-            if (player != null)
-                w += nearPlayerBias / (dist + 1f);
-
-            candidates.Add((c, w));
-            totalWeight += w;
-            validCount++;
-        }
-
-        if (validCount == 0)
-            return false;
-
-        float roll = Random.value * totalWeight;
-        float acc = 0f;
-
-        for (int i = 0; i < candidates.Count; i++)
-        {
-            acc += candidates[i].w;
-            if (roll <= acc)
+            if (hasPlayer)
             {
-                cell = candidates[i].c;
-                return true;
+                int dist = Mathf.Abs(c.x - playerCell.x) + Mathf.Abs(c.y - playerCell.y);
+
+                // If you set minDistanceFromPlayer > 0, this will exclude the player cell (dist=0) too.
+                if (minDistanceFromPlayer > 0 && dist < minDistanceFromPlayer)
+                    continue;
+
+                // Only skip the exact player cell if we don't allow it
+                if (!allowBombPlayerCell && dist == 0)
+                    continue;
+
+                if (nearRadius > 0 && dist <= nearRadius)
+                    near.Add(c);
+                else
+                    far.Add(c);
+            }
+            else
+            {
+                far.Add(c);
             }
         }
 
-        // Fallback
-        cell = candidates[candidates.Count - 1].c;
-        return true;
+        if (near.Count > 0 && Random.value <= nearPickChance)
+        {
+            cell = near[Random.Range(0, near.Count)];
+            return true;
+        }
+
+        if (far.Count > 0)
+        {
+            cell = far[Random.Range(0, far.Count)];
+            return true;
+        }
+
+        if (near.Count > 0)
+        {
+            cell = near[Random.Range(0, near.Count)];
+            return true;
+        }
+
+        return false;
     }
 
     private void SpawnBombProjectile(Vector3Int targetCell, float travelTime)
