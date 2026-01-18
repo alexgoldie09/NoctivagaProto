@@ -39,7 +39,7 @@ public class MainMenuUI : MonoBehaviour
     private void PlayGame()
     {
         // Replace with your actual game scene name
-        SceneManager.LoadScene("LevelScene");
+        SceneManager.LoadScene("LevelSceneTilemap");
     }
 
     private void QuitGame()

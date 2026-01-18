@@ -11,6 +11,9 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/Scenes/LevelSceneTilemap.unity
     guid: 74c36a985e8654cf0ab1c5df9ed49290
+  - enabled: 1
+    path: Assets/Scenes/BossSceneTilemap.unity
+    guid: 4511bb4da23dd47a7a2ed074899bd663
   m_configObjects:
     com.unity.input.settings.actions: {fileID: -944628639613478452, guid: 2bcd2660ca9b64942af0de543d8d7100, type: 3}
   m_UseUCBPForAssetBundles: 0

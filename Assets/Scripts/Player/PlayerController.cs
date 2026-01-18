@@ -38,8 +38,10 @@ public class PlayerController : MonoBehaviour
     private Vector2Int lastDirection = Vector2Int.right;
 
     private SpriteRenderer sr;
+    private Animator anim;
     private Rigidbody2D rb;
     private TilemapGridManager grid;
+    private ObstacleBase currentPrompt;
     
     // Shadow mode state
     public bool IsShadowMode { get; private set; } = false;
@@ -67,8 +69,12 @@ public class PlayerController : MonoBehaviour
     /// </summary>
     private void Start() 
     {
-        sr = GetComponent<SpriteRenderer>();
-        rb = GetComponent<Rigidbody2D>();
+        if (sr == null)
+            sr = GetComponent<SpriteRenderer>();
+        if (rb == null)
+            rb = GetComponent<Rigidbody2D>();
+        if (anim == null)
+            anim = GetComponent<Animator>();
         
         grid = TilemapGridManager.Instance;
 
@@ -101,9 +107,9 @@ public class PlayerController : MonoBehaviour
         // Move fog vfx with player
         if(fogVFX  != null)
             fogVFX.SetVector3("ColliderPos", transform.position + fogCenterOffset);
-
-        // if (interactActionRef == null && Input.GetKeyDown(KeyCode.E))
-        //     TryInteract();
+        
+        // Check for prompts
+        UpdateInteractPrompt();
     }
     
     /// <summary>
@@ -373,6 +379,10 @@ public class PlayerController : MonoBehaviour
         // Move player to cell center
         rb.MovePosition(grid.CellToWorldCenter(cellPos));
         
+        // Move player anim
+        if (anim != null)
+            anim.SetTrigger("Moving");
+        
         // Apply scoring
         RegisterActionScore("Move");
 
@@ -504,6 +514,43 @@ public class PlayerController : MonoBehaviour
         ScoreManager.Instance.AddRhythmScore(points, quality);
     }
 
+    #endregion
+    // ─────────────────────────────────────────────
+    #region Interact Prompts
+    private void UpdateInteractPrompt()
+    {
+        if (TilemapGridManager.Instance == null)
+        {
+            ClearPrompt(); 
+            return;
+        }
+
+        Vector3Int targetCell = cellPos + new Vector3Int(lastDirection.x, lastDirection.y, 0);
+
+        if (TilemapGridManager.Instance.TryGetObstacle(targetCell, out ObstacleBase obstacle) &&
+            obstacle != null &&
+            obstacle.CanInteract(this))
+        {
+            if (currentPrompt != obstacle)
+            {
+                ClearPrompt();
+                currentPrompt = obstacle;
+                currentPrompt.ShowPrompt(this);
+            }
+            return;
+        }
+
+        ClearPrompt();
+    }
+
+    private void ClearPrompt()
+    {
+        if (currentPrompt != null)
+        {
+            currentPrompt.HidePrompt();
+            currentPrompt = null;
+        }
+    }
     #endregion
     // ─────────────────────────────────────────────
     #region Helpers

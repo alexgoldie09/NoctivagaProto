@@ -93,7 +93,7 @@ LightmapSettings:
     m_ExportTrainingData: 0
     m_TrainingDataDestination: TrainingData
     m_LightProbeSampleCountMultiplier: 4
-  m_LightingDataAsset: {fileID: 112000002, guid: 4c892fadc1cfb49e0a6a856449e97321, type: 2}
+  m_LightingDataAsset: {fileID: 112000000, guid: c980767c47d0040fd8975c3b3eda69f0, type: 2}
   m_LightingSettings: {fileID: 0}
 --- !u!196 &4
 NavMeshSettings:
@@ -647,7 +647,7 @@ GameObject:
   - component: {fileID: 211011808}
   - component: {fileID: 211011807}
   m_Layer: 5
-  m_Name: RestartLevelButton
+  m_Name: NextLevelButton
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -719,7 +719,7 @@ MonoBehaviour:
       m_Calls:
       - m_Target: {fileID: 1633616186}
         m_TargetAssemblyTypeName: WinScreenUI, Assembly-CSharp
-        m_MethodName: RestartLevel
+        m_MethodName: NextLevel
         m_Mode: 1
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
@@ -1369,146 +1369,6 @@ PrefabInstance:
     - target: {fileID: 604551229118579298, guid: df53db57533844a0ebc20a29ec27d090, type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 2866602005061999137, guid: df53db57533844a0ebc20a29ec27d090, type: 3}
-      propertyPath: maxSteps
-      value: 1000
-      objectReference: {fileID: 0}
-    - target: {fileID: 2866602005061999137, guid: df53db57533844a0ebc20a29ec27d090, type: 3}
-      propertyPath: beamWidth
-      value: 0.25
-      objectReference: {fileID: 0}
-    - target: {fileID: 2866602005061999137, guid: df53db57533844a0ebc20a29ec27d090, type: 3}
-      propertyPath: direction
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 2866602005061999137, guid: df53db57533844a0ebc20a29ec27d090, type: 3}
-      propertyPath: isEmitter
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 4214148750003342410, guid: df53db57533844a0ebc20a29ec27d090, type: 3}
-      propertyPath: m_SortingLayer
-      value: -1
-      objectReference: {fileID: 0}
-    - target: {fileID: 4214148750003342410, guid: df53db57533844a0ebc20a29ec27d090, type: 3}
-      propertyPath: m_SortingOrder
-      value: 50
-      objectReference: {fileID: 0}
-    - target: {fileID: 4214148750003342410, guid: df53db57533844a0ebc20a29ec27d090, type: 3}
-      propertyPath: m_SortingLayerID
-      value: -1436673447
-      objectReference: {fileID: 0}
-    - target: {fileID: 4214148750003342410, guid: df53db57533844a0ebc20a29ec27d090, type: 3}
-      propertyPath: m_Parameters.textureMode
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 4214148750003342410, guid: df53db57533844a0ebc20a29ec27d090, type: 3}
-      propertyPath: 'm_Materials.Array.data[0]'
-      value: 
-      objectReference: {fileID: 2100000, guid: b5e165bd20254774d84be998858676af, type: 2}
-    - target: {fileID: 4214148750003342410, guid: df53db57533844a0ebc20a29ec27d090, type: 3}
-      propertyPath: m_Parameters.colorGradient.atime0
-      value: 193
-      objectReference: {fileID: 0}
-    - target: {fileID: 4214148750003342410, guid: df53db57533844a0ebc20a29ec27d090, type: 3}
-      propertyPath: m_Parameters.colorGradient.atime1
-      value: 40092
-      objectReference: {fileID: 0}
-    - target: {fileID: 4214148750003342410, guid: df53db57533844a0ebc20a29ec27d090, type: 3}
-      propertyPath: m_Parameters.colorGradient.atime2
-      value: 65535
-      objectReference: {fileID: 0}
-    - target: {fileID: 4214148750003342410, guid: df53db57533844a0ebc20a29ec27d090, type: 3}
-      propertyPath: m_Parameters.colorGradient.atime3
-      value: 65535
-      objectReference: {fileID: 0}
-    - target: {fileID: 4214148750003342410, guid: df53db57533844a0ebc20a29ec27d090, type: 3}
-      propertyPath: m_Parameters.colorGradient.ctime0
-      value: 5397
-      objectReference: {fileID: 0}
-    - target: {fileID: 4214148750003342410, guid: df53db57533844a0ebc20a29ec27d090, type: 3}
-      propertyPath: m_Parameters.colorGradient.ctime1
-      value: 57825
-      objectReference: {fileID: 0}
-    - target: {fileID: 4214148750003342410, guid: df53db57533844a0ebc20a29ec27d090, type: 3}
-      propertyPath: m_Parameters.colorGradient.ctime2
-      value: 65535
-      objectReference: {fileID: 0}
-    - target: {fileID: 4214148750003342410, guid: df53db57533844a0ebc20a29ec27d090, type: 3}
-      propertyPath: m_Parameters.colorGradient.ctime3
-      value: 65535
-      objectReference: {fileID: 0}
-    - target: {fileID: 4214148750003342410, guid: df53db57533844a0ebc20a29ec27d090, type: 3}
-      propertyPath: m_Parameters.colorGradient.key0.a
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 4214148750003342410, guid: df53db57533844a0ebc20a29ec27d090, type: 3}
-      propertyPath: m_Parameters.colorGradient.key0.b
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 4214148750003342410, guid: df53db57533844a0ebc20a29ec27d090, type: 3}
-      propertyPath: m_Parameters.colorGradient.key0.g
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 4214148750003342410, guid: df53db57533844a0ebc20a29ec27d090, type: 3}
-      propertyPath: m_Parameters.colorGradient.key0.r
-      value: 0.9752312
-      objectReference: {fileID: 0}
-    - target: {fileID: 4214148750003342410, guid: df53db57533844a0ebc20a29ec27d090, type: 3}
-      propertyPath: m_Parameters.colorGradient.key1.a
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 4214148750003342410, guid: df53db57533844a0ebc20a29ec27d090, type: 3}
-      propertyPath: m_Parameters.colorGradient.key1.b
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 4214148750003342410, guid: df53db57533844a0ebc20a29ec27d090, type: 3}
-      propertyPath: m_Parameters.colorGradient.key1.g
-      value: 0.7001361
-      objectReference: {fileID: 0}
-    - target: {fileID: 4214148750003342410, guid: df53db57533844a0ebc20a29ec27d090, type: 3}
-      propertyPath: m_Parameters.colorGradient.key1.r
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 4214148750003342410, guid: df53db57533844a0ebc20a29ec27d090, type: 3}
-      propertyPath: m_Parameters.colorGradient.key2.a
-      value: 0.23529412
-      objectReference: {fileID: 0}
-    - target: {fileID: 4214148750003342410, guid: df53db57533844a0ebc20a29ec27d090, type: 3}
-      propertyPath: m_Parameters.colorGradient.key2.b
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 4214148750003342410, guid: df53db57533844a0ebc20a29ec27d090, type: 3}
-      propertyPath: m_Parameters.colorGradient.key2.g
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 4214148750003342410, guid: df53db57533844a0ebc20a29ec27d090, type: 3}
-      propertyPath: m_Parameters.colorGradient.key2.r
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 4214148750003342410, guid: df53db57533844a0ebc20a29ec27d090, type: 3}
-      propertyPath: m_Parameters.colorGradient.key3.b
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 4214148750003342410, guid: df53db57533844a0ebc20a29ec27d090, type: 3}
-      propertyPath: m_Parameters.colorGradient.key3.g
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 4214148750003342410, guid: df53db57533844a0ebc20a29ec27d090, type: 3}
-      propertyPath: m_Parameters.colorGradient.key3.r
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 4214148750003342410, guid: df53db57533844a0ebc20a29ec27d090, type: 3}
-      propertyPath: m_Parameters.colorGradient.m_ColorSpace
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 4214148750003342410, guid: df53db57533844a0ebc20a29ec27d090, type: 3}
-      propertyPath: m_Parameters.colorGradient.m_NumAlphaKeys
-      value: 3
-      objectReference: {fileID: 0}
-    - target: {fileID: 4214148750003342410, guid: df53db57533844a0ebc20a29ec27d090, type: 3}
-      propertyPath: m_Parameters.colorGradient.m_NumColorKeys
-      value: 3
       objectReference: {fileID: 0}
     - target: {fileID: 8184025694766334217, guid: df53db57533844a0ebc20a29ec27d090, type: 3}
       propertyPath: m_Name
@@ -2351,7 +2211,7 @@ Camera:
   far clip plane: 1000
   field of view: 34
   orthographic: 1
-  orthographic size: 4.0625
+  orthographic size: 4.21875
   m_Depth: -1
   m_CullingMask:
     serializedVersion: 2
@@ -3015,7 +2875,7 @@ SpriteRenderer:
   m_SortingLayerID: 1715175555
   m_SortingLayer: 1
   m_SortingOrder: 0
-  m_Sprite: {fileID: 1843850012483549754, guid: 97d5ce53f3ac76e4888319c6a53c7ff3, type: 3}
+  m_Sprite: {fileID: 1271583087773419049, guid: b7fefb40810444048943dc6bd03219a1, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
   m_FlipY: 0
@@ -3129,7 +2989,7 @@ BoxCollider2D:
   m_SpriteTilingProperty:
     border: {x: 0, y: 0, z: 0, w: 0}
     pivot: {x: 0.5, y: 0.5}
-    oldSize: {x: 1, y: 1}
+    oldSize: {x: 0.61333334, y: 1.04}
     newSize: {x: 1, y: 1}
     adaptiveTilingThreshold: 0.5
     drawMode: 0
@@ -3201,7 +3061,7 @@ MonoBehaviour:
   m_Intensity: 1
   m_LightVolumeIntensity: 1
   m_LightVolumeEnabled: 0
-  m_ApplyToSortingLayers: 00000000591a5eaa83803b6657c13f0a
+  m_ApplyToSortingLayers: 00000000591a5eaa83803b6657c13f0a19723ba6
   m_LightCookieSprite: {fileID: 0}
   m_DeprecatedPointLightCookieSprite: {fileID: 0}
   m_LightOrder: 0
@@ -8002,7 +7862,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: Restart Level
+  m_text: Next Level
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
   m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
@@ -8420,6 +8280,7 @@ MonoBehaviour:
   finalMovesText: {fileID: 1421328869}
   canvasGroup: {fileID: 1633616187}
   fadeDuration: 1
+  nextLevelName: BossSceneTilemap
 --- !u!225 &1633616187
 CanvasGroup:
   m_ObjectHideFlags: 0
@@ -8776,6 +8637,15 @@ VisualEffect:
       - m_Value: 15
         m_Name: FogSizeMax
         m_Overridden: 1
+      - m_Value: 25
+        m_Name: BoxSizeX
+        m_Overridden: 1
+      - m_Value: 15
+        m_Name: BoxSizeY
+        m_Overridden: 1
+      - m_Value: 5
+        m_Name: FogSizeMin
+        m_Overridden: 1
     m_Vector2f:
       m_Array: []
     m_Vector3f:
@@ -8786,6 +8656,9 @@ VisualEffect:
       - m_Value: {x: 1, y: 0.7, z: 0}
         m_Name: WindSpeedMax
         m_Overridden: 1
+      - m_Value: {x: 0, y: 0, z: 0}
+        m_Name: ColliderPos
+        m_Overridden: 0
     m_Vector4f:
       m_Array:
       - m_Value: {x: 0.8500368, y: 1.1486983, z: 1.0912634, w: 0}

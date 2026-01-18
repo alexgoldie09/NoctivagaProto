@@ -17,6 +17,9 @@ public class WinScreenUI : MonoBehaviour
 
     [Header("Fade Settings")]
     [SerializeField] private float fadeDuration = 2f;
+    
+    [Header("Next Level Settings")]
+    [SerializeField] private string nextLevelName;
 
     private void Start()
     {
@@ -86,6 +89,15 @@ public class WinScreenUI : MonoBehaviour
         Utilities.UnfreezeGame();
         Scene scene = SceneManager.GetActiveScene();
         SceneManager.LoadScene(scene.buildIndex);
+    }
+    
+    /// <summary>
+    /// Go to the next level.
+    /// </summary>
+    public void NextLevel()
+    {
+        Utilities.UnfreezeGame();
+        SceneManager.LoadScene(nextLevelName);
     }
 
     /// <summary>

@@ -7,6 +7,10 @@ using System.Collections.Generic;
 /// </summary>
 public abstract class ObstacleBase : MonoBehaviour
 {
+    [Header("Interact Prompt")]
+    [SerializeField, TextArea] private string interactPrompt = "Press Interact";
+    [SerializeField] private WorldPromptBubble promptBubble;
+    
     /// <summary>
     /// Save position and register the obstacle prefab on generation.
     /// </summary>
@@ -42,17 +46,28 @@ public abstract class ObstacleBase : MonoBehaviour
     /// Whether this obstacle blocks player movement.
     /// Override for custom logic like rotating mirrors.
     /// </summary>
-    public virtual bool BlocksMovement()
-    {
-        return true;
-    }
+    public virtual bool BlocksMovement() => true;
 
     /// <summary>
     /// Whether this obstacle blocks shape placement.
     /// </summary>
-    public virtual bool BlocksShapePlacement()
+    public virtual bool BlocksShapePlacement() => true;
+    
+    public virtual bool CanInteract(PlayerController player) => true;
+    public virtual string GetInteractPrompt(PlayerController player) => interactPrompt;
+
+    public WorldPromptBubble PromptBubble => promptBubble;
+
+    public void ShowPrompt(PlayerController player)
     {
-        return true;
+        if (promptBubble != null)
+            promptBubble.Show(GetInteractPrompt(player));
+    }
+
+    public void HidePrompt()
+    {
+        if (promptBubble != null)
+            promptBubble.Hide();
     }
 
     /// <summary>

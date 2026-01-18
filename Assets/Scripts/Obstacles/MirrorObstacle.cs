@@ -31,11 +31,15 @@ public class MirrorObstacle : ObstacleBase
     [Tooltip("Safety cap: max tiles the beam can travel before stopping.")]
     [SerializeField] private int maxSteps = 100;
 
+    [Header("Mirror Visuals")]
+    [SerializeField] private Sprite[] mirrorSprites;
+    
     [Header("Beam Visuals")]
     [SerializeField] private float beamWidth = 0.1f;
 
     private LineRenderer line;
     private TilemapGridManager grid;
+    private SpriteRenderer sr;
 
     private int OwnerId => GetInstanceID();
 
@@ -49,6 +53,12 @@ public class MirrorObstacle : ObstacleBase
         line.startWidth = beamWidth;
         line.endWidth = beamWidth;
         line.useWorldSpace = true;
+        
+        sr = GetComponent<SpriteRenderer>();
+        
+        // Changes visuals
+        if (sr != null)
+            ChangeSprite();
     }
 
     /// <summary>
@@ -102,6 +112,25 @@ public class MirrorObstacle : ObstacleBase
             case MirrorDirection.DownRight: direction = MirrorDirection.DownLeft; break;
             case MirrorDirection.DownLeft: direction = MirrorDirection.UpLeft; break;
             case MirrorDirection.UpLeft: direction = MirrorDirection.UpRight; break;
+        }
+        
+        // Changes visuals
+        if (sr != null)
+            ChangeSprite();
+    }
+    
+    /// <summary>
+    /// Swap sprite visuals based on Mirror Direction
+    /// </summary>
+    private void ChangeSprite()
+    {
+        // Cycle directions clockwise: UR -> DR -> DL -> UL -> UR
+        switch (direction)
+        {
+            case MirrorDirection.UpRight: sr.sprite = mirrorSprites[0]; break;
+            case MirrorDirection.DownRight: sr.sprite = mirrorSprites[1]; break;
+            case MirrorDirection.DownLeft: sr.sprite = mirrorSprites[2]; break;
+            case MirrorDirection.UpLeft: sr.sprite = mirrorSprites[3]; break;
         }
     }
 
