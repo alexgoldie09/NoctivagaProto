@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2f12577fff4b348a694a337437911686, type: 3}
   m_Name: GT_Floor
   m_EditorClassIdentifier: Assembly-CSharp::GameTile
-  m_Sprite: {fileID: 21300000, guid: 2538710101d0f1f4e8976b3495cd1f75, type: 3}
+  m_Sprite: {fileID: 7223950226953391895, guid: d4172e516e49547de883b61d100a68cc, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_Transform:
     e00: 1

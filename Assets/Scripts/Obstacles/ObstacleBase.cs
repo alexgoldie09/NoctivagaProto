@@ -11,12 +11,15 @@ public abstract class ObstacleBase : MonoBehaviour
     [SerializeField, TextArea] private string interactPrompt = "Press Interact";
     [SerializeField] private WorldPromptBubble promptBubble;
     
+    protected TilemapGridManager grid;
+    protected SpriteRenderer sr;
+    
     /// <summary>
     /// Save position and register the obstacle prefab on generation.
     /// </summary>
     protected virtual void OnEnable()
     {
-        var grid = TilemapGridManager.Instance;
+        grid = TilemapGridManager.Instance;
         if (grid == null)
         {
             Debug.LogWarning($"[ObstacleBase] No TilemapGridManager.Instance when enabling {name}");
@@ -34,7 +37,7 @@ public abstract class ObstacleBase : MonoBehaviour
     /// </summary>
     protected virtual void OnDisable()
     {
-        var grid = TilemapGridManager.Instance;
+        grid = TilemapGridManager.Instance;
         
         if (grid == null) 
             return;
@@ -53,18 +56,18 @@ public abstract class ObstacleBase : MonoBehaviour
     /// </summary>
     public virtual bool BlocksShapePlacement() => true;
     
-    public virtual bool CanInteract(PlayerController player) => true;
-    public virtual string GetInteractPrompt(PlayerController player) => interactPrompt;
+    public bool CanInteract(PlayerController player) => true;
+    public string GetInteractPrompt(PlayerController player) => interactPrompt;
 
     public WorldPromptBubble PromptBubble => promptBubble;
 
-    public void ShowPrompt(PlayerController player)
+    public virtual void ShowPrompt(PlayerController player)
     {
         if (promptBubble != null)
             promptBubble.Show(GetInteractPrompt(player));
     }
 
-    public void HidePrompt()
+    public virtual void HidePrompt()
     {
         if (promptBubble != null)
             promptBubble.Hide();

@@ -22,6 +22,7 @@ public class TilemapGridManager : MonoBehaviour
 
     [Header("Default Ground Tiles (GameTile assets)")]
     [SerializeField] private GameTile floorTile;
+    [SerializeField] private GameTile floorGateTile;
     [SerializeField] private GameTile voidTile;
 
     [Header("Preview")]
@@ -410,8 +411,8 @@ public class TilemapGridManager : MonoBehaviour
 
         // Remove the blocking tile and ensure ground is walkable
         blocksTilemap.SetTile(cell, null);
-        if (groundTilemap != null && floorTile != null)
-            groundTilemap.SetTile(cell, floorTile);
+        if (groundTilemap != null && floorGateTile != null)
+            groundTilemap.SetTile(cell, floorGateTile);
 
         return true;
     }

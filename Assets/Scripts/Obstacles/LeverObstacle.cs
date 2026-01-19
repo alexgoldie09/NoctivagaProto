@@ -13,6 +13,12 @@ public class LeverObstacle : ObstacleBase
     [Header("Target Markers (recommended)")]
     [Tooltip("Place empty transforms snapped to grid cells. These will be converted to tilemap cells automatically.")]
     [SerializeField] private List<Transform> targetMarkers = new();
+    
+    [Header("Lever Visuals")]
+    [SerializeField] private Sprite leverOffSprite;
+    [SerializeField] private Sprite leverOnSprite;
+
+    private bool isOn = false;
 
     [Header("Debug / Visuals")]
     [SerializeField] private bool drawGizmos = true;
@@ -39,6 +45,9 @@ public class LeverObstacle : ObstacleBase
     private void Awake()
     {
         RebuildTargetCellsFromMarkers();
+        
+        sr = GetComponent<SpriteRenderer>();
+        ApplyLeverVisual();
     }
 
     /// <summary>
@@ -47,8 +56,7 @@ public class LeverObstacle : ObstacleBase
     private void RebuildTargetCellsFromMarkers()
     {
         targetCells.Clear();
-
-        var grid = TilemapGridManager.Instance;
+        
         // In edit mode, Instance might not exist; try to find one in the scene.
         if (grid == null) grid = FindFirstObjectByType<TilemapGridManager>();
 
@@ -69,12 +77,17 @@ public class LeverObstacle : ObstacleBase
     /// </summary>
     public override void Interact()
     {
-        var grid = TilemapGridManager.Instance;
         if (grid == null)
         {
             Debug.LogWarning("[LeverObstacle] No TilemapGridManager.Instance found.");
             return;
         }
+        
+        // Toggle
+        isOn = !isOn;
+
+        // Visual update
+        ApplyLeverVisual();
 
         // Track which cells become void this interaction (event-driven enemy elimination)
         var voidedSet = new HashSet<Vector3Int>();
@@ -128,6 +141,19 @@ public class LeverObstacle : ObstacleBase
     /// Levers remain blocking for shape placement.
     /// </summary>
     public override bool BlocksShapePlacement() => true;
+    
+    /// <summary>
+    /// Changes sprites for the lever
+    /// </summary>
+    private void ApplyLeverVisual()
+    {
+        if (sr == null) return;
+
+        sr.sprite = isOn ? leverOnSprite : leverOffSprite;
+
+        if (sr.sprite == null)
+            Debug.LogWarning($"[LeverObstacle] Missing lever sprite (isOn={isOn}) on {name}", this);
+    }
 
 #if UNITY_EDITOR
     /// <summary>
@@ -137,9 +163,12 @@ public class LeverObstacle : ObstacleBase
     {
         if (!drawGizmos) return;
 
-        var grid = TilemapGridManager.Instance;
-        if (grid == null) grid = FindFirstObjectByType<TilemapGridManager>();
-        if (grid == null) return;
+        grid = TilemapGridManager.Instance;
+        if (grid == null) 
+            grid = FindFirstObjectByType<TilemapGridManager>();
+        
+        if (grid == null) 
+            return;
 
         // Always rebuild in editor so gizmos match moved markers
         RebuildTargetCellsFromMarkers();

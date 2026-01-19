@@ -150,7 +150,7 @@ public class GargoyleBossController : MonoBehaviour
         if (bossHealth != null)
         {
             bossHealth.OnDied += HandleBossDied;
-            bossHealth.OnPlayerDied += HandleBossDied;
+            bossHealth.OnPlayerDied += HandlePlayerDied;
         }
     }
 
@@ -162,7 +162,7 @@ public class GargoyleBossController : MonoBehaviour
         if (bossHealth != null)
         {
             bossHealth.OnDied -= HandleBossDied;
-            bossHealth.OnPlayerDied -= HandleBossDied;
+            bossHealth.OnPlayerDied -= HandlePlayerDied;
         }
     }
 
@@ -729,6 +729,30 @@ public class GargoyleBossController : MonoBehaviour
     {
         yield return new WaitForSeconds(delay);
         GameManager.Instance?.BossDefeated();
+    }
+    
+    private void HandlePlayerDied()
+    {
+        if (State == BossState.Dead) return;
+
+        State = BossState.Dead;
+        TriggerAnim("Death");
+
+        // Clear boss telegraphs
+        grid.ClearTelegraphForOwner(PREVIEW_OWNER_BOSS);
+
+        // Stop all boss behavior
+        if (mainRoutine != null)
+            StopCoroutine(mainRoutine);
+
+        // End level after a short delay to allow death anim (tune later)
+        StartCoroutine(EndAfterPlayerDelay(3.0f));
+    }
+
+    private IEnumerator EndAfterPlayerDelay(float delay)
+    {
+        yield return new WaitForSeconds(delay);
+        GameManager.Instance?.PlayerKilled();
     }
 
     private void TriggerAnim(string trigger)

@@ -19,13 +19,6 @@ public class DeathScreenUI : MonoBehaviour
         {
             gameObject.SetActive(false);
         }
-
-        if (canvasGroup != null)
-        {
-            canvasGroup.alpha = 0f;
-            canvasGroup.interactable = false;
-            canvasGroup.blocksRaycasts = false;
-        }
     }
 
     private void OnEnable()

@@ -32,14 +32,15 @@ public class MirrorObstacle : ObstacleBase
     [SerializeField] private int maxSteps = 100;
 
     [Header("Mirror Visuals")]
-    [SerializeField] private Sprite[] mirrorSprites;
+    [SerializeField] private Sprite upRightSprite;
+    [SerializeField] private Sprite downRightSprite;
+    [SerializeField] private Sprite downLeftSprite;
+    [SerializeField] private Sprite upLeftSprite;
     
     [Header("Beam Visuals")]
     [SerializeField] private float beamWidth = 0.1f;
 
     private LineRenderer line;
-    private TilemapGridManager grid;
-    private SpriteRenderer sr;
 
     private int OwnerId => GetInstanceID();
 
@@ -77,7 +78,6 @@ public class MirrorObstacle : ObstacleBase
     protected override void OnDisable()
     {
         // 1) Clear this mirror's beam cells first (or after, either is fine)
-        var grid = TilemapGridManager.Instance;
         if (grid != null)
             grid.ClearBeamCellsForOwner(GetInstanceID());
 
@@ -124,14 +124,20 @@ public class MirrorObstacle : ObstacleBase
     /// </summary>
     private void ChangeSprite()
     {
-        // Cycle directions clockwise: UR -> DR -> DL -> UL -> UR
-        switch (direction)
+        if (sr == null) 
+            return;
+
+        sr.sprite = direction switch
         {
-            case MirrorDirection.UpRight: sr.sprite = mirrorSprites[0]; break;
-            case MirrorDirection.DownRight: sr.sprite = mirrorSprites[1]; break;
-            case MirrorDirection.DownLeft: sr.sprite = mirrorSprites[2]; break;
-            case MirrorDirection.UpLeft: sr.sprite = mirrorSprites[3]; break;
-        }
+            MirrorDirection.UpRight   => upRightSprite,
+            MirrorDirection.DownRight => downRightSprite,
+            MirrorDirection.DownLeft  => downLeftSprite,
+            MirrorDirection.UpLeft    => upLeftSprite,
+            _ => upRightSprite
+        };
+
+        if (sr.sprite == null)
+            Debug.LogWarning($"[MirrorObstacle] Missing sprite for {direction} on {name}", this);
     }
 
     /// <summary>
@@ -171,15 +177,11 @@ public class MirrorObstacle : ObstacleBase
     /// <param name="visited">Set of mirror instance IDs already processed.</param>
     private void CastIfEnergized(HashSet<int> visited)
     {
-        if (visited.Contains(OwnerId)) 
+        if (!visited.Add(OwnerId)) 
             return;
-        
-        visited.Add(OwnerId);
 
         if (!beamActive)
             return;
-
-        grid = TilemapGridManager.Instance;
         
         if (grid == null) 
             return;
