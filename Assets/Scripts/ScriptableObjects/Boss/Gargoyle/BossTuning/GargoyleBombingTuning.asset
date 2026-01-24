@@ -1,0 +1,17 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f08ef28897bb2457bb287cd853fdbb04, type: 3}
+  m_Name: GargoyleBombingTuning
+  m_EditorClassIdentifier: Assembly-CSharp::BossPhaseTuning
+  phase1: {fileID: 11400000, guid: cfcbdfa1d720d4583b7d2c7d3ef73496, type: 2}
+  phase2: {fileID: 11400000, guid: b14d7c6c8f26843048d7d550cf979b4c, type: 2}
+  phase3: {fileID: 11400000, guid: ffe753c3386294931a70167592964e40, type: 2}

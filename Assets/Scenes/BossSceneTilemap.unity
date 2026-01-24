@@ -7874,8 +7874,10 @@ GameObject:
   - component: {fileID: 1255325479}
   - component: {fileID: 1255325478}
   - component: {fileID: 1255325481}
-  - component: {fileID: 1255325482}
   - component: {fileID: 1255325480}
+  - component: {fileID: 1255325482}
+  - component: {fileID: 1255325484}
+  - component: {fileID: 1255325483}
   m_Layer: 8
   m_Name: Boss
   m_TagString: Untagged
@@ -8009,53 +8011,73 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f7cee18cde18a44b1a09c7c53ad2fb84, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::GargoyleBossController
-  spriteRenderer: {fileID: 1255325478}
   bossHealth: {fileID: 1255325480}
+  animator: {fileID: 1255325481}
+  spriteRenderer: {fileID: 1255325478}
+  actions: []
+  autoCollectActions: 1
+  allowDamageShake: 1
+  damageShakeForce: 0.8
   grid: {fileID: 1618167678}
   player: {fileID: 619124175}
   shapePlacer: {fileID: 686342522}
   footprintSize: {x: 2, y: 2}
-  aoeChance: 0.8
+  bombingAction: {fileID: 1255325484}
+  restAction: {fileID: 1255325483}
+--- !u!114 &1255325483
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1255325477}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: acdc0b43f200d44a9aa5428e2eed3358, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::GargoyleRestAction
+  actionName: Rest
+  restHoverHeight: 1.5
+  landingSpeed: 6
+  preRestHoverTime: 0.1
+  damagePerRestHit: 2
+  oneHitPerRest: 1
+  phaseTuning: {fileID: 11400000, guid: 98537ed42d257495a9574157da461211, type: 2}
+  arriveEpsilon: 0.05
+--- !u!114 &1255325484
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1255325477}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bfa5f3b60c377485a81a10adb3d32d7c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::GargoyleBombingAction
+  actionName: Bombing
+  bombSpawnPoint: {fileID: 1185692715}
+  bombProjectilePrefab: {fileID: 7620136039024307061, guid: c392f33f233454a0480dbf0ee7dc8a38, type: 3}
+  bombExplosionVfxPrefab: {fileID: 2433282508537954060, guid: 3ef3ae421f71c5c4e97fe12dc2fc6312, type: 3}
+  shapePickupPrefab: {fileID: 5242986340660831232, guid: 96957801749a74fffb0ae20f38ab7df4, type: 3}
+  aoeChance: 0.9
   aoeRadius: 1
   crossPatternChance: 0.5
   aoeMaxCells: 0
-  bombsPerFlight_P1: 3
-  bombsPerFlight_P2: 6
-  bombsPerFlight_P3: 10
-  flyMoveSpeed_P1: 3
-  flyMoveSpeed_P2: 6
-  flyMoveSpeed_P3: 12
-  bombInterval_P1: 2
-  bombInterval_P2: 1
-  bombInterval_P3: 0.6
-  telegraphDuration_P1: 0.8
-  telegraphDuration_P2: 0.6
-  telegraphDuration_P3: 0.45
-  restDuration: 6
-  damagePerRestHit: 9
-  oneHitPerRest: 1
-  restHoverHeight: 1
-  landingSpeed: 3
-  preRestHoverTime: 0.1
+  phaseTuning: {fileID: 11400000, guid: 237bb7a66d5b349259b11f7d23331c5a, type: 2}
   nearRadius: 2
   nearPickChance: 0.9
   minDistanceFromPlayer: 0
   allowBombingStartTile: 1
   allowBombPlayerCell: 1
-  hoverHeight: 2.5
+  hoverHeight: 1.5
   preThrowHoverTime: 0.1
   throwWindupTime: 0.5
   arriveEpsilon: 0.05
   postThrowRecoverTime: 0.25
   betweenBombMoveDelay: 0.15
-  shapeDropChance: 0.8
-  shapePickupPrefab: {fileID: 5242986340660831232, guid: 96957801749a74fffb0ae20f38ab7df4, type: 3}
-  animator: {fileID: 1255325481}
-  bombSpawnPoint: {fileID: 1185692715}
-  bombProjectilePrefab: {fileID: 7620136039024307061, guid: c392f33f233454a0480dbf0ee7dc8a38, type: 3}
-  bombExplosionVfxPrefab: {fileID: 8194992990867289339, guid: 99bc28c0d45f51c4fbac01080b73edc7, type: 3}
-  allowDamageShake: 1
-  damageShakeForce: 0.8
+  shapeDropChance: 0.9
   bombTelegraphColor: {r: 1, g: 0.2, b: 0.2, a: 0.9}
 --- !u!1 &1345068180
 GameObject:
