@@ -7,6 +7,7 @@ using UnityEngine;
 public abstract class BossAction : MonoBehaviour
 {
     [Header("Action Identity")]
+    [Tooltip("The name of the boss action. Used for lookup and identification.")]
     [SerializeField] private string actionName;
 
     /// <summary>

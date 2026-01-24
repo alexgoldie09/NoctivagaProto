@@ -3,6 +3,7 @@ using UnityEngine;
 public class SelfDestroy : MonoBehaviour
 {
     [Header("Self Destruct Settings")]
+    [Tooltip("Time for the effect or object to destroy itself.")]
     [SerializeField] float destroyDelay = 1.5f;    // set ≈ your effect length
 
     void Start()
