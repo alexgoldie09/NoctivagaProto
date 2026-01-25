@@ -27,12 +27,20 @@ public abstract class BossControllerBase : MonoBehaviour
     [SerializeField] protected Animator animator;
     [Tooltip("SpriteRenderer used for boss facing direction. If null, it will be auto-fetched in Awake().")]
     [SerializeField] protected SpriteRenderer spriteRenderer;
+    [Tooltip("Primary grid manager used for cell queries, world conversions, and telegraph clearing.")]
+    [SerializeField] protected TilemapGridManager grid;
+    [Tooltip("Player reference used by action context. If null, will be auto-found in Awake().")]
+    [SerializeField] protected PlayerController player;
 
     [Header("Actions")]
     [Tooltip("Action modules available to this boss. If Auto Collect Actions is enabled, this list is rebuilt from components at runtime.")]
     [SerializeField] private List<BossAction> actions = new();
     [Tooltip("If true, clears and collects BossAction components on this GameObject at runtime (Awake).")]
     [SerializeField] private bool autoCollectActions = true;
+    
+    [Header("Boss Footprint")]
+    [Tooltip("Size of the boss footprint in cells. Anchor is top-left; footprint covers (x+, y-).")]
+    [SerializeField] protected Vector2Int footprintSize = new(2, 2);
 
     [Header("Damage Force")]
     [Tooltip("If true, allow camera shake when the boss takes damage.")]
@@ -76,6 +84,12 @@ public abstract class BossControllerBase : MonoBehaviour
     /// </summary>
     protected virtual void Awake()
     {
+        if (grid == null)
+            grid = TilemapGridManager.Instance;
+
+        if (player == null)
+            player = FindAnyObjectByType<PlayerController>();
+        
         if (bossHealth == null)
             bossHealth = GetComponent<BossHealth>();
 

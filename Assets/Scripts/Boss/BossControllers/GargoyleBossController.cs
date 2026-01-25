@@ -23,17 +23,9 @@ public class GargoyleBossController : BossControllerBase
     /// </summary>
     public const int PREVIEW_OWNER_BOSS = 7001;
 
-    [Header("References")]
-    [Tooltip("Primary grid manager used for cell queries, world conversions, and telegraph clearing.")]
-    [SerializeField] private TilemapGridManager grid;
-    [Tooltip("Player reference used by action context. If null, will be auto-found in Awake().")]
-    [SerializeField] private PlayerController player;
+    [Header("Gargoyle References")]
     [Tooltip("Shape placer used to detect placed shapes during Rest phase. If null, will be auto-found in Awake().")]
     [SerializeField] private ShapePlacer shapePlacer;
-
-    [Header("Boss Footprint")]
-    [Tooltip("Size of the boss footprint in cells. Anchor is top-left; footprint covers (x+, y-).")]
-    [SerializeField] private Vector2Int footprintSize = new(2, 2);
 
     [Header("Actions (Optional Overrides)")]
     [Tooltip("Explicit bombing action override (used if action lookup by name fails).")]
@@ -53,12 +45,6 @@ public class GargoyleBossController : BossControllerBase
     /// </summary>
     protected override void Awake()
     {
-        if (grid == null)
-            grid = TilemapGridManager.Instance;
-
-        if (player == null)
-            player = FindAnyObjectByType<PlayerController>();
-
         if (shapePlacer == null)
             shapePlacer = FindAnyObjectByType<ShapePlacer>();
 

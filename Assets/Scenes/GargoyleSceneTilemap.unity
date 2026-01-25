@@ -8014,14 +8014,14 @@ MonoBehaviour:
   bossHealth: {fileID: 1255325480}
   animator: {fileID: 1255325481}
   spriteRenderer: {fileID: 1255325478}
-  actions: []
-  autoCollectActions: 1
-  allowDamageShake: 1
-  damageShakeForce: 0.8
   grid: {fileID: 1618167678}
   player: {fileID: 619124175}
-  shapePlacer: {fileID: 686342522}
+  actions: []
+  autoCollectActions: 1
   footprintSize: {x: 2, y: 2}
+  allowDamageShake: 1
+  damageShakeForce: 0.8
+  shapePlacer: {fileID: 686342522}
   bombingAction: {fileID: 1255325484}
   restAction: {fileID: 1255325483}
 --- !u!114 &1255325483
