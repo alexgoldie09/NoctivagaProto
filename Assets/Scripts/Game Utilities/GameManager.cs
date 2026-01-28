@@ -19,6 +19,8 @@ public class GameManager : MonoBehaviour
     [SerializeField] private ParticleSystem shadowModeFog;
     [Tooltip("Shadow Player particle system that plays during shadow mode.")]
     [SerializeField] private ParticleSystem shadowModeFX;
+    [Tooltip("Melee Player particle system that plays during melee mode.")]
+    [SerializeField] private ParticleSystem meleeFX;
 
     [Header("UI")]
     [Tooltip("Reference to the Win Screen UI canvas (pre-placed, disabled by default).")]
@@ -58,6 +60,7 @@ public class GameManager : MonoBehaviour
         shapePlacer?.ClearPreview();
 
         // Hide player object
+        player.ClearMeleePreview();
         player.gameObject.SetActive(false);
         
         // Hide Boss HUD (if it exists)
@@ -100,6 +103,8 @@ public class GameManager : MonoBehaviour
         // Get shape placer and clear previews
         ShapePlacer shapePlacer = player != null ? player.GetShapePlacer : null;
         shapePlacer?.ClearPreview();
+        
+        player.ClearMeleePreview();
         
         // Finalize score
         if (ScoreManager.Instance != null)
@@ -172,6 +177,9 @@ public class GameManager : MonoBehaviour
                 break;
             case PowerupPickup.PowerupType.ShadowMode:
                 activePowerupRoutine = StartCoroutine(ShadowModeRoutine(duration));
+                break;
+            case PowerupPickup.PowerupType.Melee:
+                activePowerupRoutine = StartCoroutine(MeleePowerupRoutine(duration));
                 break;
         }
 
@@ -274,6 +282,46 @@ public class GameManager : MonoBehaviour
                 shadowModeFog.Stop();
                 shadowModeFX.gameObject.SetActive(false);
                 shadowModeFog.gameObject.SetActive(false);
+            }
+        }
+        
+        ClearActivePowerup(); 
+    }
+    
+    /// <summary>
+    /// Coroutine that enables melee hits for a set duration.
+    /// </summary>
+    /// <param name="duration">Duration of the melee powerup effect in seconds.</param>
+    private IEnumerator MeleePowerupRoutine(float duration)
+    {
+        if (player != null)
+        {
+            player.SetMeleePowerupActive(true);
+            
+            Utilities.IsPlacementModeActive = false;
+            // Get shape placer and clear previews
+            ShapePlacer shapePlacer = player.GetShapePlacer;
+            shapePlacer?.ClearPreview();
+
+            // Play particle FX
+            if (meleeFX != null)
+            {
+                meleeFX.gameObject.SetActive(true);
+                meleeFX.Play();
+            }
+        }
+
+        yield return new WaitForSeconds(duration);
+
+        if (player != null)
+        {
+            player.SetMeleePowerupActive(false);
+
+            // Stop FX
+            if (meleeFX != null)
+            {
+                meleeFX.Stop();
+                meleeFX.gameObject.SetActive(false);
             }
         }
         

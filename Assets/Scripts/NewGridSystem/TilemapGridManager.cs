@@ -418,6 +418,86 @@ public class TilemapGridManager : MonoBehaviour
     }
     #endregion
     // ─────────────────────────────────────────────────────────────
+    #region Player Relocation
+    /// <summary>
+    /// Attempts to move the player to the nearest available cell when their current cell becomes blocked.
+    /// Falls back to a start reset if no valid cell is found.
+    /// </summary>
+    public void RelocatePlayerFromBlockedCell(PlayerController player)
+    {
+        if (player == null)
+            return;
+
+        Vector3Int currentCell = player.CellPosition;
+
+        Vector3Int[] dirs4 =
+        {
+            new(1,0,0), new(-1,0,0),
+            new(0,1,0), new(0,-1,0)
+        };
+
+        foreach (var d in dirs4)
+        {
+            var nc = currentCell + d;
+            if (CanEnterCell(nc))
+            {
+                player.TeleportToCell(nc);
+                return;
+            }
+        }
+
+        Vector3Int[] dirsDiag =
+        {
+            new(1,1,0), new(-1,1,0),
+            new(1,-1,0), new(-1,-1,0)
+        };
+
+        foreach (var d in dirsDiag)
+        {
+            var nc = currentCell + d;
+            if (CanEnterCell(nc))
+            {
+                player.TeleportToCell(nc);
+                return;
+            }
+        }
+
+        const int maxRadius = 4;
+        var visited = new HashSet<Vector3Int> { currentCell };
+        var queue = new Queue<(Vector3Int cell, int dist)>();
+        queue.Enqueue((currentCell, 0));
+
+        Vector3Int[] dirs8 =
+        {
+            new(1,0,0), new(-1,0,0), new(0,1,0), new(0,-1,0),
+            new(1,1,0), new(-1,1,0), new(1,-1,0), new(-1,-1,0)
+        };
+
+        while (queue.Count > 0)
+        {
+            var (c, dist) = queue.Dequeue();
+            if (dist >= maxRadius) continue;
+
+            foreach (var d in dirs8)
+            {
+                var nc = c + d;
+                if (!visited.Add(nc)) continue;
+
+                if (CanEnterCell(nc))
+                {
+                    player.TeleportToCell(nc);
+                    return;
+                }
+
+                queue.Enqueue((nc, dist + 1));
+            }
+        }
+
+        Vector3 fallStartWorld = CellToWorldCenter(currentCell);
+        player.StartVoidFallReset(GetStartCell(), fallStartWorld);
+    }
+    #endregion
+    // ─────────────────────────────────────────────────────────────
     #region Obstacle registration
     /// <summary>
     /// Registers an obstacle as occupying a specific grid cell.

@@ -5,6 +5,7 @@ TagManager:
   serializedVersion: 3
   tags:
   - TAZOFX
+  - Walls
   layers:
   - Default
   - TransparentFX
@@ -15,8 +16,8 @@ TagManager:
   - CameraEdge
   - Enemy
   - Boss
-  - 
-  - 
+  - Walls
+  - Projectile
   - 
   - 
   - 

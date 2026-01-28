@@ -30,6 +30,9 @@ public class MirrorObstacle : ObstacleBase
 
     [Tooltip("Safety cap: max tiles the beam can travel before stopping.")]
     [SerializeField] private int maxSteps = 100;
+    
+    [Tooltip("If true, enemies touching the beam are killed instead of pushed away.")]
+    [SerializeField] private bool killEnemiesOnBeam = false;
 
     [Header("Mirror Visuals")]
     [SerializeField] private Sprite upRightSprite;
@@ -62,15 +65,23 @@ public class MirrorObstacle : ObstacleBase
             ChangeSprite();
     }
 
-    /// <summary>
-    /// Waits one frame to ensure obstacles register before rebuilding beams.
-    /// </summary>
-    private IEnumerator Start()
+    // /// <summary>
+    // /// Waits one frame to ensure obstacles register before rebuilding beams.
+    // /// </summary>
+    // private IEnumerator Start()
+    // {
+    //     // Ensures all mirrors have Awake() called and have registered their cells
+    //     yield return null;
+    //     RebuildAllBeams();
+    // }
+    
+    protected override void OnEnable()
     {
-        // Ensures all mirrors have Awake() called and have registered their cells
-        yield return null;
+        base.OnEnable();
         RebuildAllBeams();
+        ResolvePlayerIfOnMirror(grid);
     }
+
 
     /// <summary>
     /// Clears this mirror's beam, unregisters it, and rebuilds beam chains.
@@ -139,6 +150,21 @@ public class MirrorObstacle : ObstacleBase
         if (sr.sprite == null)
             Debug.LogWarning($"[MirrorObstacle] Missing sprite for {direction} on {name}", this);
     }
+    
+    private void ResolvePlayerIfOnMirror(TilemapGridManager g)
+    {
+        if (g == null)
+            return;
+
+        var player = FindFirstObjectByType<PlayerController>();
+        if (player == null)
+            return;
+
+        if (!g.TryGetObstacle(player.CellPosition, out var obs) || obs is not MirrorObstacle)
+            return;
+
+        g.RelocatePlayerFromBlockedCell(player);
+    }
 
     /// <summary>
     /// Rebuilds beam chains for all mirrors, starting from emitters.
@@ -167,10 +193,20 @@ public class MirrorObstacle : ObstacleBase
             m.CastIfEnergized(visited);
         }
 
-        // After beams update, resolve occupants if trapped on a beam cell.
-        ResolveOccupantsIfOnBeam(g);
-    }
+        bool shouldKillEnemies = false;
+        foreach (var mirror in mirrors)
+        {
+            if (mirror != null && mirror.killEnemiesOnBeam)
+            {
+                shouldKillEnemies = true;
+                break;
+            }
+        }
 
+        // After beams update, resolve occupants if trapped on a beam cell.
+        ResolveOccupantsIfOnBeam(g, shouldKillEnemies);
+    }
+    
     /// <summary>
     /// Emits a beam from this mirror if energized, chaining to mirrors hit.
     /// </summary>
@@ -243,7 +279,7 @@ public class MirrorObstacle : ObstacleBase
     /// Moves the player or enemies off beam cells if possible, otherwise resolves failures.
     /// </summary>
     /// <param name="g">Grid manager used for movement checks.</param>
-    private static void ResolveOccupantsIfOnBeam(TilemapGridManager g)
+    private static void ResolveOccupantsIfOnBeam(TilemapGridManager g, bool killEnemies)
     {
         // 1) Resolve player
         var player = FindFirstObjectByType<PlayerController>();
@@ -267,6 +303,13 @@ public class MirrorObstacle : ObstacleBase
         foreach (var e in enemies)
         {
             if (e == null) continue;
+            
+            if (killEnemies && g.IsBeamBlocked(e.CellPosition))
+            {
+                Vector3 fallStartWorld = g.CellToWorldCenter(e.CellPosition);
+                e.KillByVoidFall(fallStartWorld);
+                continue;
+            }
 
             ResolveSingleOccupant(
                 g,

@@ -18,7 +18,7 @@ public class PowerupPickup : MonoBehaviour
     /// <summary>
     /// Supported powerup effect types.
     /// </summary>
-    public enum PowerupType { HalfTime, ShadowMode }
+    public enum PowerupType { HalfTime, ShadowMode, Melee }
 
     /// <summary>
     /// Snaps the pickup to the center of its grid cell.

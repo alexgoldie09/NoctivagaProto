@@ -26,6 +26,10 @@ public class GargoyleBossController : BossControllerBase
     [Header("Gargoyle References")]
     [Tooltip("Shape placer used to detect placed shapes during Rest phase. If null, will be auto-found in Awake().")]
     [SerializeField] private ShapePlacer shapePlacer;
+    
+    [Header("Intro")]
+    [Tooltip("Delay (seconds) before the main loop starts after the enter animation.")]
+    [SerializeField] private float enterDelay = 3f;
 
     [Header("Actions (Optional Overrides)")]
     [Tooltip("Explicit bombing action override (used if action lookup by name fails).")]
@@ -101,7 +105,7 @@ public class GargoyleBossController : BossControllerBase
         State = BossState.Enter;
 
         // If you want an intro delay, add a serialized float and wait here.
-        yield return new WaitForSeconds(3f);
+        yield return new WaitForSeconds(enterDelay);
 
         while (State != BossState.Dead)
         {
@@ -204,54 +208,6 @@ public class GargoyleBossController : BossControllerBase
 
     #endregion
     // ─────────────────────────────────────────────
-    #region Footprint Helpers
-
-    /// <summary>
-    /// Builds the set of cells covered by the boss footprint for a given top-left anchor cell.
-    /// Default footprint is 2x2: (0,0), (1,0), (0,-1), (1,-1).
-    /// </summary>
-    /// <param name="anchorTopLeft">Top-left anchor cell.</param>
-    /// <returns>Set of all cells covered by the footprint.</returns>
-    private HashSet<Vector3Int> GetFootprintCells(Vector3Int anchorTopLeft)
-    {
-        var set = new HashSet<Vector3Int>();
-
-        for (int x = 0; x < footprintSize.x; x++)
-        {
-            for (int y = 0; y < footprintSize.y; y++)
-            {
-                // y goes downward in grid space
-                set.Add(anchorTopLeft + new Vector3Int(x, -y, 0));
-            }
-        }
-
-        return set;
-    }
-
-    /// <summary>
-    /// Returns the world-space center of the footprint based on its cell centers.
-    /// </summary>
-    /// <param name="anchorTopLeft">Top-left footprint anchor cell.</param>
-    /// <returns>Average world-space center of footprint cell centers.</returns>
-    internal Vector3 GetFootprintCenterWorld(Vector3Int anchorTopLeft)
-    {
-        Vector3 sum = Vector3.zero;
-        int count = 0;
-
-        for (int x = 0; x < footprintSize.x; x++)
-        {
-            for (int y = 0; y < footprintSize.y; y++)
-            {
-                sum += grid.CellToWorldCenter(anchorTopLeft + new Vector3Int(x, -y, 0));
-                count++;
-            }
-        }
-
-        return count > 0 ? sum / count : grid.CellToWorldCenter(anchorTopLeft);
-    }
-
-    #endregion
-    // ─────────────────────────────────────────────
     #region Boss Finishes
 
     /// <summary>
@@ -303,23 +259,6 @@ public class GargoyleBossController : BossControllerBase
     public void SetRestAnchor(Vector3Int anchor)
     {
         restAnchorCell = anchor;
-    }
-
-    /// <summary>
-    /// Builds a <see cref="BossContext"/> for action modules.
-    /// </summary>
-    /// <returns>Context containing shared references needed by boss actions.</returns>
-    private BossContext BuildBossContext()
-    {
-        return new BossContext
-        {
-            controller = this,
-            health = bossHealth,
-            grid = grid,
-            player = player,
-            animator = animator,
-            spriteRenderer = spriteRenderer,
-        };
     }
     #endregion
     // ─────────────────────────────────────────────

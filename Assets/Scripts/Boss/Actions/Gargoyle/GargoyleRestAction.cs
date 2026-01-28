@@ -14,8 +14,6 @@ public class GargoyleRestAction : BossAction
     [Header("Rest Travel")]
     [Tooltip("Vertical hover offset above the chosen rest position before landing.")]
     [SerializeField] private float restHoverHeight = 2.0f;
-    [Tooltip("Landing movement speed in world units per second.")]
-    [SerializeField] private float landingSpeed = 10f;
     [Tooltip("Pause time after arriving at hover point before beginning landing.")]
     [SerializeField] private float preRestHoverTime = 0.10f;
 
@@ -28,10 +26,12 @@ public class GargoyleRestAction : BossAction
     [Header("Phase Tuning")]
     [Tooltip("Phase tuning asset used to configure fly speed and rest duration per boss phase.")]
     [SerializeField] private BossPhaseTuning phaseTuning;
-
-    [Header("Movement")]
-    [Tooltip("Distance threshold for arriving at the hover/landing points.")]
-    [SerializeField] private float arriveEpsilon = 0.05f;
+    
+    [Header("Animation")]
+    [Tooltip("Animator trigger to play when landing occurs.")]
+    [SerializeField] private string landAnimationTrigger = "Land";
+    [Tooltip("Animator trigger to play when resting..")]
+    [SerializeField] private string restAnimationTrigger = "Rest";
 
     // ─────────────────────────────────────────────
     #region Public Properties
@@ -148,19 +148,19 @@ public class GargoyleRestAction : BossAction
         Vector3 restWorld = gargoyle.GetFootprintCenterWorld(anchor);
 
         gargoyle.SetState(BossControllerBase.BossState.Flight);
-        gargoyle.PlayAnimation("Fly");
 
         Vector3 hoverWorld = restWorld + Vector3.up * restHoverHeight;
-        yield return FlyToWorldPoint(gargoyle, hoverWorld, GetFlySpeedForPhase(gargoyle));
+        yield return gargoyle.FlyToWorldPoint(hoverWorld, GetFlySpeedForPhase(gargoyle));
 
         if (preRestHoverTime > 0f)
             yield return new WaitForSeconds(preRestHoverTime);
 
-        yield return LandToWorldPoint(gargoyle, restWorld);
+        yield return gargoyle.FlyToWorldPoint(restWorld, GetFlySpeedForPhase(gargoyle), landAnimationTrigger);
 
         gargoyle.SetState(BossControllerBase.BossState.Rest);
         gargoyle.TookDamageThisRest = false;
-        gargoyle.PlayAnimation("Rest");
+        gargoyle.SetContactColliderActive(true);
+        gargoyle.PlayAnimation(restAnimationTrigger);
 
         float t = 0f;
         float duration = GetRestDuration(gargoyle);
@@ -176,63 +176,10 @@ public class GargoyleRestAction : BossAction
             t += Time.deltaTime;
             yield return null;
         }
-
+        
+        gargoyle.SetContactColliderActive(false);
         yield return null;
     }
-
-    /// <summary>
-    /// Flies the gargoyle toward a world point, updating facing along the way.
-    /// </summary>
-    /// <param name="gargoyle">Gargoyle boss controller.</param>
-    /// <param name="targetWorld">Target world position.</param>
-    /// <param name="speed">Movement speed in world units per second.</param>
-    private IEnumerator FlyToWorldPoint(GargoyleBossController gargoyle, Vector3 targetWorld, float speed)
-    {
-        gargoyle.PlayAnimation("Fly");
-
-        while (Vector3.Distance(gargoyle.transform.position, targetWorld) > arriveEpsilon)
-        {
-            if (gargoyle.State == BossControllerBase.BossState.Dead)
-                yield break;
-
-            gargoyle.UpdateFacingTowards(targetWorld);
-
-            gargoyle.transform.position = Vector3.MoveTowards(
-                gargoyle.transform.position,
-                targetWorld,
-                speed * Time.deltaTime
-            );
-
-            yield return null;
-        }
-    }
-
-    /// <summary>
-    /// Lands the gargoyle toward a world point, updating facing along the way.
-    /// </summary>
-    /// <param name="gargoyle">Gargoyle boss controller.</param>
-    /// <param name="targetWorld">Target world position.</param>
-    private IEnumerator LandToWorldPoint(GargoyleBossController gargoyle, Vector3 targetWorld)
-    {
-        gargoyle.PlayAnimation("Land");
-
-        while (Vector3.Distance(gargoyle.transform.position, targetWorld) > arriveEpsilon)
-        {
-            if (gargoyle.State == BossControllerBase.BossState.Dead)
-                yield break;
-
-            gargoyle.UpdateFacingTowards(targetWorld);
-
-            gargoyle.transform.position = Vector3.MoveTowards(
-                gargoyle.transform.position,
-                targetWorld,
-                landingSpeed * Time.deltaTime
-            );
-
-            yield return null;
-        }
-    }
-
     #endregion
     // ─────────────────────────────────────────────
     #region Phase Tuning Helpers

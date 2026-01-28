@@ -1,0 +1,35 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7ce7de6d5af594ef2bc62dc99a797a4d, type: 3}
+  m_Name: VQAttackPhase_P1
+  m_EditorClassIdentifier: Assembly-CSharp::VampireQueenAttackPhaseData
+  vulnerableDuration: 10
+  descentSpeed: 6
+  retreatDelay: 0.3
+  shotBursts: 10
+  shotInterval: 3
+  microPhases:
+  - vulnerableDuration: 10
+    descentSpeed: 6
+    retreatDelay: 0.3
+    shotBursts: 10
+    shotInterval: 3
+  - vulnerableDuration: 10
+    descentSpeed: 6
+    retreatDelay: 0.3
+    shotBursts: 12
+    shotInterval: 2
+  - vulnerableDuration: 15
+    descentSpeed: 10
+    retreatDelay: 0.3
+    shotBursts: 15
+    shotInterval: 1

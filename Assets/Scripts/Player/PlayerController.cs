@@ -22,6 +22,13 @@ public class PlayerController : MonoBehaviour
     [SerializeField] private InputActionReference rotateActionRef;      // float axis
     [SerializeField] private InputActionReference cycleShapeActionRef;  // float axis
     
+    [Header("Melee Powerup")]
+    [SerializeField] private GameObject meleeSwingPrefab;
+    [SerializeField] private GameObject meleeHitVfxPrefab;
+    [SerializeField] private float meleeHitVfxDelay = 0.05f;
+    [SerializeField] private Color meleeValidColor = new(0f, 1f, 1f, 0.5f);
+    [SerializeField] private Color meleeInvalidColor = new(1f, 0f, 0f, 0.5f);
+    
     [Header("Fog VFX")]
     [SerializeField] private VisualEffect fogVFX;
     [SerializeField] private Vector3 fogCenterOffset = new (4f, 1f, 0f);
@@ -42,6 +49,8 @@ public class PlayerController : MonoBehaviour
     private Rigidbody2D rb;
     private TilemapGridManager grid;
     private ObstacleBase currentPrompt;
+    private bool isMeleePowerupActive;
+    private int meleeTelegraphOwnerId;
     
     // Shadow mode state
     public bool IsShadowMode { get; private set; } = false;
@@ -92,6 +101,8 @@ public class PlayerController : MonoBehaviour
 
         // Snap player to center of that cell
         rb.position = grid.CellToWorldCenter(cellPos);
+        
+        meleeTelegraphOwnerId = GetInstanceID() * 31 + 7;
     }
 
     /// <summary>
@@ -110,6 +121,11 @@ public class PlayerController : MonoBehaviour
         
         // Check for prompts
         UpdateInteractPrompt();
+        
+        if (isMeleePowerupActive)
+            UpdateMeleePreview();
+        else
+            ClearMeleePreview();
     }
     
     /// <summary>
@@ -284,7 +300,7 @@ public class PlayerController : MonoBehaviour
     /// <param name="ctx">Input callback context.</param>
     private void OnPlacementModePerformed(InputAction.CallbackContext ctx)
     {
-        if (Utilities.IsGameFrozen || isResetting) 
+        if (Utilities.IsGameFrozen || isResetting || isMeleePowerupActive) 
             return;
         
         shapePlacer?.TogglePlacementMode();
@@ -298,6 +314,12 @@ public class PlayerController : MonoBehaviour
     {
         if (Utilities.IsGameFrozen || isResetting) 
             return;
+        
+        if (isMeleePowerupActive)
+        {
+            TryHit();
+            return;
+        }
         
         shapePlacer?.TryPlace();
     }
@@ -408,6 +430,104 @@ public class PlayerController : MonoBehaviour
 
         // Optional: debug if nothing to interact with
         // Debug.Log($"No obstacle to interact with at {targetCell}");
+    }
+    #endregion
+    // ─────────────────────────────────────────────
+    #region Melee Powerup
+    /// <summary>
+    /// Enables or disables melee powerup behavior and previews.
+    /// </summary>
+    /// <param name="active">Whether the melee powerup is active.</param>
+    public void SetMeleePowerupActive(bool active)
+    {
+        isMeleePowerupActive = active;
+
+        if (!active)
+            ClearMeleePreview();
+    }
+
+    private void UpdateMeleePreview()
+    {
+        if (grid == null)
+            return;
+
+        var targetCell = GetMeleeTargetCell();
+
+        if (!grid.IsInBounds(targetCell))
+        {
+            ClearMeleePreview();
+            return;
+        }
+
+        bool canHit = grid.CanEnterCell(targetCell);
+
+        var cells = new List<Vector3Int> { targetCell };
+        var color = canHit ? meleeValidColor : meleeInvalidColor;
+
+        grid.SetPreviewCellsForOwner(meleeTelegraphOwnerId, cells, new List<Color> { color });
+    }
+
+    public void ClearMeleePreview()
+    {
+        grid?.ClearPreviewForOwner(meleeTelegraphOwnerId);
+    }
+
+    private Vector3Int GetMeleeTargetCell()
+    {
+        Vector2Int direction = lastDirection;
+        if (direction == Vector2Int.zero)
+            direction = Vector2Int.right;
+
+        return cellPos + new Vector3Int(direction.x, direction.y, 0);
+    }
+
+    private void TryHit()
+    {
+        if (grid == null)
+            return;
+
+        var targetCell = GetMeleeTargetCell();
+
+        if (!grid.IsInBounds(targetCell))
+            return;
+
+        if (!grid.CanEnterCell(targetCell))
+            return;
+
+        Vector3 targetWorld = grid.CellToWorldCenter(targetCell);
+
+        if (meleeSwingPrefab != null)
+            Instantiate(meleeSwingPrefab, targetWorld, Quaternion.identity);
+
+        if (meleeHitVfxPrefab != null)
+            StartCoroutine(SpawnMeleeHitVfx(targetWorld));
+        
+        var enemies = FindObjectsByType<EnemyBase>(FindObjectsSortMode.None);
+        foreach (var enemy in enemies)
+        {
+            if (enemy == null)
+                continue;
+
+            if (enemy.CellPosition != targetCell)
+                continue;
+
+            enemy.KillByMeleeStrike();
+            RegisterActionScore("MeleeHit");
+        }
+
+        var queen = FindFirstObjectByType<VampireQueenBossController>();
+        if (queen != null && queen.IsCellInVulnerableFootprint(targetCell))
+        {
+            queen.TryRegisterVulnerabilityHit();
+        }
+    }
+
+    private IEnumerator SpawnMeleeHitVfx(Vector3 targetWorld)
+    {
+        if (meleeHitVfxDelay > 0f)
+            yield return new WaitForSeconds(meleeHitVfxDelay);
+
+        Instantiate(meleeHitVfxPrefab, targetWorld, Quaternion.identity);
     }
     #endregion
     // ─────────────────────────────────────────────

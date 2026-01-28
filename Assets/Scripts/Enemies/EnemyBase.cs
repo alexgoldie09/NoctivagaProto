@@ -18,10 +18,16 @@ public abstract class EnemyBase : MonoBehaviour
     [SerializeField] protected bool snapToGridOnStart = true;
 
     [Header("Rhythm")]
+    [Tooltip("If true, the enemy acts on rhythm beats. If false, it acts on a fixed time interval.")]
+    [SerializeField] protected bool useRhythm = true;
     [Tooltip("Act every N beats (1 = every beat, 2 = every second beat, etc).")]
     [SerializeField] protected int beatsPerAction = 1;
     [Tooltip("Offset in beats before first action (0 = act on first eligible beat).")]
     [SerializeField] protected int beatOffset = 0;
+    [Tooltip("Seconds between actions when Use Rhythm is disabled.")]
+    [SerializeField] protected float actionInterval = 0.5f;
+    [Tooltip("Optional delay (seconds) before the first action when Use Rhythm is disabled.")]
+    [SerializeField] protected float actionStartDelay = 0f;
 
     [Header("Contact")]
     [Tooltip("If true, contacting the player triggers a level reset.")]
@@ -47,6 +53,7 @@ public abstract class EnemyBase : MonoBehaviour
 
     private int localBeatCounter;
     private bool isDying;
+    private Coroutine actionRoutine;
 
     // ─────────────────────────────────────────────────────────────
     #region Unity lifecycle
@@ -55,7 +62,10 @@ public abstract class EnemyBase : MonoBehaviour
     /// </summary>
     protected virtual void OnEnable()
     {
-        RhythmManager.OnBeat += HandleBeat;
+        if (useRhythm)
+            RhythmManager.OnBeat += HandleBeat;
+        else
+            actionRoutine = StartCoroutine(ActionIntervalLoop());
     }
     
     /// <summary>
@@ -63,7 +73,14 @@ public abstract class EnemyBase : MonoBehaviour
     /// </summary>
     protected virtual void OnDisable()
     {
-        RhythmManager.OnBeat -= HandleBeat;
+        if (useRhythm)
+            RhythmManager.OnBeat -= HandleBeat;
+
+        if (actionRoutine != null)
+        {
+            StopCoroutine(actionRoutine);
+            actionRoutine = null;
+        }
         
         if (grid != null)
             grid.ClearTelegraphForOwner(GetInstanceID());
@@ -121,6 +138,30 @@ public abstract class EnemyBase : MonoBehaviour
     /// Override in subclasses to perform actions on active beats.
     /// </summary>
     protected abstract void OnBeatAction();
+
+    #endregion
+    // ─────────────────────────────────────────────────────────────
+    #region Interval Loop
+
+    private IEnumerator ActionIntervalLoop()
+    {
+        if (actionStartDelay > 0f)
+            yield return new WaitForSeconds(actionStartDelay);
+
+        float interval = Mathf.Max(0.05f, actionInterval);
+
+        while (true)
+        {
+            if (Utilities.IsGameFrozen || isDying)
+            {
+                yield return null;
+                continue;
+            }
+
+            OnBeatAction();
+            yield return new WaitForSeconds(interval);
+        }
+    }
 
     #endregion
     // ─────────────────────────────────────────────────────────────
@@ -184,6 +225,19 @@ public abstract class EnemyBase : MonoBehaviour
     {
         if (isDying) return;
         StartCoroutine(VoidDeathRoutine(fallStartWorld));
+    }
+    
+    /// <summary>
+    /// Instantly kills the enemy from a melee strike.
+    /// </summary>
+    public void KillByMeleeStrike()
+    {
+        if (isDying) 
+            return;
+
+        isDying = true;
+        lethalOnContact = false;
+        Destroy(gameObject);
     }
 
     /// <summary>

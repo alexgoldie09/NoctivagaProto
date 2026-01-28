@@ -31,6 +31,8 @@ public abstract class BossControllerBase : MonoBehaviour
     [SerializeField] protected TilemapGridManager grid;
     [Tooltip("Player reference used by action context. If null, will be auto-found in Awake().")]
     [SerializeField] protected PlayerController player;
+    [Tooltip("If true, the sprite faces left by default (flipX false). If false, sprite faces right by default.")]
+    [SerializeField] protected bool spriteFacesLeftByDefault = true;
 
     [Header("Actions")]
     [Tooltip("Action modules available to this boss. If Auto Collect Actions is enabled, this list is rebuilt from components at runtime.")]
@@ -47,6 +49,10 @@ public abstract class BossControllerBase : MonoBehaviour
     [SerializeField] protected bool allowDamageShake = true;
     [Tooltip("Shake force applied when damage occurs (if Allow Damage Shake is enabled).")]
     [SerializeField] protected float damageShakeForce = 0.8f;
+    
+    [Header("Contact Damage")]
+    [Tooltip("Optional collider used to damage the player on contact.")]
+    [SerializeField] private Collider2D contactCollider;
 
     // ─────────────────────────────────────────────
     #region Properties
@@ -64,6 +70,21 @@ public abstract class BossControllerBase : MonoBehaviour
     /// Action modules configured for this boss.
     /// </summary>
     public IReadOnlyList<BossAction> Actions => actions;
+    
+    /// <summary>
+    /// Grid manager reference for derived controllers and action modules.
+    /// </summary>
+    public TilemapGridManager Grid => grid;
+
+    /// <summary>
+    /// Player reference for derived controllers and action modules.
+    /// </summary>
+    public PlayerController Player => player;
+
+    /// <summary>
+    /// Boss footprint size in cells.
+    /// </summary>
+    public Vector2Int FootprintSize => footprintSize;
 
     /// <summary>
     /// Whether the boss is allowed to trigger camera shake on damage.
@@ -84,12 +105,6 @@ public abstract class BossControllerBase : MonoBehaviour
     /// </summary>
     protected virtual void Awake()
     {
-        if (grid == null)
-            grid = TilemapGridManager.Instance;
-
-        if (player == null)
-            player = FindAnyObjectByType<PlayerController>();
-        
         if (bossHealth == null)
             bossHealth = GetComponent<BossHealth>();
 
@@ -98,6 +113,21 @@ public abstract class BossControllerBase : MonoBehaviour
 
         if (spriteRenderer == null)
             spriteRenderer = GetComponent<SpriteRenderer>();
+        
+        if (grid == null)
+            grid = TilemapGridManager.Instance;
+
+        if (player == null)
+            player = FindAnyObjectByType<PlayerController>();
+        
+        if (contactCollider == null)
+            contactCollider = GetComponent<Collider2D>();
+
+        if (contactCollider != null)
+        {
+            contactCollider.isTrigger = true;
+            contactCollider.enabled = false;
+        }
 
         if (!autoCollectActions)
             return;
@@ -128,8 +158,20 @@ public abstract class BossControllerBase : MonoBehaviour
 
         bossHealth.OnDied -= HandleBossDied;
         bossHealth.OnPlayerDied -= HandlePlayerDied;
+        
+        if (contactCollider != null)
+            contactCollider.enabled = false;
     }
-
+    
+    /// <summary>
+    /// Enables or disables the optional contact damage collider.
+    /// </summary>
+    /// <param name="active">Whether contact damage should be active.</param>
+    public void SetContactColliderActive(bool active)
+    {
+        if (contactCollider != null)
+            contactCollider.enabled = active;
+    }
     #endregion
     // ─────────────────────────────────────────────
     #region Death Flow
@@ -231,6 +273,12 @@ public abstract class BossControllerBase : MonoBehaviour
         if (bossHealth != null)
             bossHealth.ApplyDamage(Mathf.Max(1, amount));
     }
+    
+    private void OnTriggerEnter2D(Collider2D other)
+    {
+        if (GameManager.Instance != null && other.CompareTag("Player"))
+            GameManager.Instance.PlayerKilled();
+    }
 
     #endregion
     // ─────────────────────────────────────────────
@@ -318,6 +366,147 @@ public abstract class BossControllerBase : MonoBehaviour
 
     #endregion
     // ─────────────────────────────────────────────
+    #region Movement Helpers
+
+    /// <summary>
+    /// Flies the boss toward a world point, updating facing along the way.
+    /// </summary>
+    /// <param name="targetWorld">Target world position.</param>
+    /// <param name="speed">Movement speed in world units per second.</param>
+    /// <param name="animationTrigger">Optional animation trigger to play when movement starts.</param>
+    /// <param name="arriveEpsilon">Distance threshold for arrival.</param>
+    public IEnumerator FlyToWorldPoint(
+        Vector3 targetWorld,
+        float speed,
+        string animationTrigger = "Fly",
+        float arriveEpsilon = 0.05f)
+    {
+        if (!string.IsNullOrEmpty(animationTrigger))
+            TriggerAnim(animationTrigger);
+
+        if (speed <= 0f)
+        {
+            transform.position = targetWorld;
+            yield break;
+        }
+
+        while (Vector3.Distance(transform.position, targetWorld) > arriveEpsilon)
+        {
+            if (State == BossState.Dead)
+                yield break;
+
+            UpdateFacingTowards(targetWorld);
+
+            transform.position = Vector3.MoveTowards(
+                transform.position,
+                targetWorld,
+                speed * Time.deltaTime
+            );
+
+            yield return null;
+        }
+    }
+
+    #endregion
+    // ─────────────────────────────────────────────
+    #region Footprint Helpers
+
+    /// <summary>
+    /// Builds the set of cells covered by the boss footprint for a given top-left anchor cell.
+    /// Default footprint is 2x2: (0,0), (1,0), (0,-1), (1,-1).
+    /// </summary>
+    /// <param name="anchorTopLeft">Top-left anchor cell.</param>
+    /// <returns>Set of all cells covered by the footprint.</returns>
+    public HashSet<Vector3Int> GetFootprintCells(Vector3Int anchorTopLeft)
+    {
+        var set = new HashSet<Vector3Int>();
+
+        for (int x = 0; x < footprintSize.x; x++)
+        {
+            for (int y = 0; y < footprintSize.y; y++)
+            {
+                // y goes downward in grid space
+                set.Add(anchorTopLeft + new Vector3Int(x, -y, 0));
+            }
+        }
+
+        return set;
+    }
+
+    /// <summary>
+    /// Returns the world-space center of the footprint based on its cell centers.
+    /// </summary>
+    /// <param name="anchorTopLeft">Top-left footprint anchor cell.</param>
+    /// <returns>Average world-space center of footprint cell centers.</returns>
+    public Vector3 GetFootprintCenterWorld(Vector3Int anchorTopLeft)
+    {
+        if (grid == null)
+            return transform.position;
+
+        Vector3 sum = Vector3.zero;
+        int count = 0;
+
+        for (int x = 0; x < footprintSize.x; x++)
+        {
+            for (int y = 0; y < footprintSize.y; y++)
+            {
+                sum += grid.CellToWorldCenter(anchorTopLeft + new Vector3Int(x, -y, 0));
+                count++;
+            }
+        }
+
+        return count > 0 ? sum / count : grid.CellToWorldCenter(anchorTopLeft);
+    }
+
+    /// <summary>
+    /// Attempts to pick a valid footprint anchor from painted ground cells.
+    /// </summary>
+    public bool TryPickFootprintAnchor(out Vector3Int anchorCell)
+    {
+        anchorCell = default;
+        if (grid == null)
+            return false;
+
+        var candidates = grid.GetAllPaintedGroundCells();
+        if (candidates == null || candidates.Count == 0)
+            return false;
+
+        for (int i = 0; i < candidates.Count; i++)
+        {
+            var cell = candidates[Random.Range(0, candidates.Count)];
+            if (!IsFootprintValid(cell))
+                continue;
+
+            anchorCell = cell;
+            return true;
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// Returns true if the footprint can occupy the grid starting at the provided anchor cell.
+    /// </summary>
+    public bool IsFootprintValid(Vector3Int anchorTopLeft)
+    {
+        if (grid == null)
+            return false;
+
+        for (int x = 0; x < footprintSize.x; x++)
+        {
+            for (int y = 0; y < footprintSize.y; y++)
+            {
+                var cell = anchorTopLeft + new Vector3Int(x, -y, 0);
+                if (!grid.CanEnemyEnterCell(cell))
+                    return false;
+            }
+        }
+
+        return true;
+    }
+
+    #endregion
+    // ─────────────────────────────────────────────
     #region Action-Facing API
 
     /// <summary>
@@ -353,9 +542,26 @@ public abstract class BossControllerBase : MonoBehaviour
         if (Mathf.Abs(dx) < 0.01f)
             return;
 
-        spriteRenderer.flipX = dx > 0f;
+        bool faceRight = dx > 0f;
+        spriteRenderer.flipX = spriteFacesLeftByDefault ? faceRight : !faceRight;
     }
-
+    
+    /// <summary>
+    /// Builds a <see cref="BossContext"/> for action modules.
+    /// </summary>
+    /// <returns>Context containing shared references needed by boss actions.</returns>
+    protected BossContext BuildBossContext()
+    {
+        return new BossContext
+        {
+            controller = this,
+            health = bossHealth,
+            grid = grid,
+            player = player,
+            animator = animator,
+            spriteRenderer = spriteRenderer,
+        };
+    }
     #endregion
     // ─────────────────────────────────────────────
 }

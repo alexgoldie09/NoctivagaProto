@@ -60,8 +60,6 @@ public class GargoyleBombingAction : BossAction
     [SerializeField] private float preThrowHoverTime = 0.10f;
     [Tooltip("Animation windup time before the projectile is spawned (clamped to telegraph duration).")]
     [SerializeField] private float throwWindupTime = 0.12f;
-    [Tooltip("Distance threshold for arriving at the hover point.")]
-    [SerializeField] private float arriveEpsilon = 0.05f;
 
     [Header("Bomb Cycle Feel")]
     [Tooltip("Pause after detonation / throw before moving to the next bomb cycle.")]
@@ -77,6 +75,12 @@ public class GargoyleBombingAction : BossAction
     [Header("Telegraph Color")]
     [Tooltip("Color used for the bomb telegraph preview overlay.")]
     [SerializeField] private Color bombTelegraphColor = new(1f, 0.2f, 0.2f, 0.9f);
+    
+    [Header("Animation")]
+    [Tooltip("Animator trigger to play throwing a bomb.")]
+    [SerializeField] private string throwBombAnimationTrigger = "ThrowBomb";
+    [Tooltip("Animator trigger to return to idle between bombs.")]
+    [SerializeField] private string idleAnimationTrigger = "Idle";
 
     // ─────────────────────────────────────────────
     #region BossAction Overrides
@@ -104,7 +108,6 @@ public class GargoyleBombingAction : BossAction
             yield break;
 
         gargoyle.SetState(BossControllerBase.BossState.Flight);
-        gargoyle.PlayAnimation("Fly");
 
         int bombsToDrop = GetBombQuotaForPhase(gargoyle);
 
@@ -139,8 +142,7 @@ public class GargoyleBombingAction : BossAction
         Vector3 hoverWorld = targetWorld + Vector3.up * hoverHeight;
 
         gargoyle.SetState(BossControllerBase.BossState.Flight);
-        gargoyle.PlayAnimation("Fly");
-        yield return FlyToWorldPoint(gargoyle, context, hoverWorld);
+        yield return gargoyle.FlyToWorldPoint(hoverWorld, GetFlySpeedForPhase(gargoyle));
 
         if (preThrowHoverTime > 0f)
             yield return new WaitForSeconds(preThrowHoverTime);
@@ -160,7 +162,7 @@ public class GargoyleBombingAction : BossAction
             telegraph
         );
 
-        gargoyle.PlayAnimation("ThrowBomb");
+        gargoyle.PlayAnimation(throwBombAnimationTrigger);
 
         float windup = Mathf.Clamp(throwWindupTime, 0f, telegraph);
         if (windup > 0f)
@@ -174,37 +176,13 @@ public class GargoyleBombingAction : BossAction
 
         DetonateBombCells(context, affected, targetCell);
 
-        gargoyle.PlayAnimation("Idle");
+        gargoyle.PlayAnimation(idleAnimationTrigger);
 
         if (postThrowRecoverTime > 0f)
             yield return new WaitForSeconds(postThrowRecoverTime);
 
         if (bombInterval > 0f)
             yield return new WaitForSeconds(bombInterval);
-    }
-
-    /// <summary>
-    /// Flies the gargoyle toward a world point, updating facing along the way.
-    /// </summary>
-    private IEnumerator FlyToWorldPoint(GargoyleBossController gargoyle, BossContext context, Vector3 targetWorld)
-    {
-        gargoyle.PlayAnimation("Fly");
-
-        while (Vector3.Distance(gargoyle.transform.position, targetWorld) > arriveEpsilon)
-        {
-            if (gargoyle.State == BossControllerBase.BossState.Dead)
-                yield break;
-
-            gargoyle.UpdateFacingTowards(targetWorld);
-
-            gargoyle.transform.position = Vector3.MoveTowards(
-                gargoyle.transform.position,
-                targetWorld,
-                GetFlySpeedForPhase(gargoyle) * Time.deltaTime
-            );
-
-            yield return null;
-        }
     }
 
     #endregion
