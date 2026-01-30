@@ -23,7 +23,6 @@ public class TilemapGridManager : MonoBehaviour
     [Header("Default Ground Tiles (GameTile assets)")]
     [SerializeField] private GameTile floorTile;
     [SerializeField] private GameTile floorGateTile;
-    [SerializeField] private GameTile voidTile;
 
     [Header("Preview")]
     [SerializeField] private TileBase previewFillTile; // a simple 1x1 tile used for preview tinting
@@ -200,7 +199,7 @@ public class TilemapGridManager : MonoBehaviour
     /// <summary>
     /// Retrieves the GameTile asset from the ground tilemap at a cell.
     /// </summary>
-    private GameTile GetGroundGameTile(Vector3Int cell)
+    public GameTile GetGroundGameTile(Vector3Int cell)
         => groundTilemap != null ? groundTilemap.GetTile<GameTile>(cell) : null;
 
     /// <summary>
@@ -366,6 +365,30 @@ public class TilemapGridManager : MonoBehaviour
                 break;
         }
     }
+    
+    /// <summary>
+    /// Called after movement succeeds so tiles can apply enter effects for enemy (e.g. kill).
+    /// </summary>
+    /// <param name="cell">Cell that was entered.</param>
+    /// <param name="enemy">Enemy entering the cell.</param>
+    public void HandleEnteredCellEnemy(Vector3Int cell, EnemyBase enemy)
+    {
+        if (enemy == null) return;
+
+        var ground = GetGroundGameTile(cell);
+        if (ground == null) return;
+
+        switch (ground.enterEffect)
+        {
+            case EnterEffect.ResetToStart:
+                enemy.KillByVoidFall(CellToWorldCenter(cell));
+                break;
+            case EnterEffect.FallToDeath:
+                enemy.KillByVoidFall(CellToWorldCenter(cell));
+                break;
+        }
+    }
+
     
     /// <summary>
     /// Checks whether a cell contains a gate tile and returns its metadata.
@@ -868,36 +891,40 @@ public class TilemapGridManager : MonoBehaviour
     // ─────────────────────────────────────────────────────────────
     #region Lever Obstacle
     /// <summary>
-    /// Toggles a floor tile to void (or vice versa) if safe to do so.
+    /// Sets the ground tile at a cell if safe to do so.
+    ///
+    /// This is a generalization of the previous floor/void toggle, allowing obstacles
+    /// (eg. levers) to swap any painted ground tile to another GameTile.
+    ///
+    /// Safety rules (minimal / backward compatible):
+    /// - Only operates on painted ground cells (null / unpainted cells are ignored)
+    /// - Will not modify the Start tile
+    /// - Will not modify cells currently occupied by obstacles
     /// </summary>
-    /// <param name="cell">Cell to toggle.</param>
-    public void ToggleFloorVoidAt(Vector3Int cell)
+    public bool TrySetGroundTile(Vector3Int cell, GameTile newTile)
     {
         if (groundTilemap == null)
-            return;
+            return false;
 
-        // Don’t toggle tiles that are occupied by obstacles
+        if (newTile == null)
+            return false;
+
+        // Don’t change tiles that are occupied by obstacles
         if (TryGetObstacle(cell, out var obs) && obs != null)
-            return;
+            return false;
 
         var current = GetGroundGameTile(cell);
         if (current == null)
-            return;
+            return false; // restrict to painted ground footprint
 
-        // Don't toggle Start (optional safety)
         if (current.kind == TileKind.Start)
-            return;
+            return false;
 
-        if (current.kind == TileKind.Floor)
-        {
-            if (voidTile != null)
-                groundTilemap.SetTile(cell, voidTile);
-        }
-        else if (current.kind == TileKind.Void)
-        {
-            if (floorTile != null)
-                groundTilemap.SetTile(cell, floorTile);
-        }
+        if (current == newTile)
+            return false; // no-op
+
+        groundTilemap.SetTile(cell, newTile);
+        return true;
     }
     #endregion
     // ─────────────────────────────────────────────────────────────
@@ -929,6 +956,36 @@ public class TilemapGridManager : MonoBehaviour
 
         foreach (var c in old) beamBlocked.Remove(c);
         beamByOwner.Remove(ownerId);
+    }
+    #endregion
+    // ─────────────────────────────────────────────────────────────
+    #region Gargoyle Bombing
+    /// <summary>
+    /// Toggles a floor tile to void if safe to do so.
+    /// </summary>
+    /// <param name="cell">Cell to toggle.</param>
+    public void ToggleFloorVoidAt(Vector3Int cell, GameTile voidTile)
+    {
+        if (groundTilemap == null)
+            return;
+    
+        // Don’t toggle tiles that are occupied by obstacles
+        if (TryGetObstacle(cell, out var obs) && obs != null)
+            return;
+    
+        var current = GetGroundGameTile(cell);
+        if (current == null)
+            return;
+    
+        // Don't toggle Start (optional safety)
+        if (current.kind == TileKind.Start)
+            return;
+    
+        if (current.kind == TileKind.Floor)
+        {
+            if (voidTile != null)
+                groundTilemap.SetTile(cell, voidTile);
+        }
     }
     #endregion
 }

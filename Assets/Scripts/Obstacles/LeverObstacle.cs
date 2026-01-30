@@ -6,30 +6,38 @@ using UnityEditor;
 #endif
 
 /// <summary>
-/// Obstacle that toggles target cells between floor and void when interacted with.
+/// Obstacle that swaps a set of target cells between their initial ("OFF") ground tiles
+/// and a configured ("ON") tile when interacted with.
+///
+/// OFF tiles are captured from the ground tilemap at runtime (game start), so the lever
+/// restores exactly what was painted on the map.
 /// </summary>
 public class LeverObstacle : ObstacleBase
 {
     [Header("Target Markers (recommended)")]
     [Tooltip("Place empty transforms snapped to grid cells. These will be converted to tilemap cells automatically.")]
     [SerializeField] private List<Transform> targetMarkers = new();
-    
+
     [Header("Lever Visuals")]
     [SerializeField] private Sprite leverOffSprite;
     [SerializeField] private Sprite leverOnSprite;
 
-    private bool isOn = false;
+    [Header("Tile Swap")]
+    [Tooltip("Tile to apply when the lever is ON. When OFF, each target cell is restored to the ground tile it had at game start.")]
+    [SerializeField] private GameTile onTile;
 
     [Header("Debug / Visuals")]
     [SerializeField] private bool drawGizmos = true;
     [SerializeField] private bool drawLabels = true;
 
-    [Header("Enemy Void Elimination")]
-    [Tooltip("If true, enemies standing on tiles that become Void will be eliminated.")]
-    [SerializeField] private bool eliminateEnemiesOnVoidedTiles = true;
+    private bool isOn = false;
 
     // Runtime cached cells (derived from markers)
     private readonly List<Vector3Int> targetCells = new();
+
+    // Runtime cached "off" tiles per target cell (captured from the ground tilemap at game start).
+    private readonly Dictionary<Vector3Int, GameTile> offTilesByCell = new();
+    private bool hasCachedOffTiles = false;
 
     /// <summary>
     /// Rebuilds cached target cells when inspector values change.
@@ -40,12 +48,13 @@ public class LeverObstacle : ObstacleBase
     }
 
     /// <summary>
-    /// Initializes cached target cells at runtime.
+    /// Initializes cached target cells and captures OFF tiles at runtime.
     /// </summary>
     private void Awake()
     {
         RebuildTargetCellsFromMarkers();
-        
+        CacheOffTilesFromGrid();
+
         sr = GetComponent<SpriteRenderer>();
         ApplyLeverVisual();
     }
@@ -56,9 +65,10 @@ public class LeverObstacle : ObstacleBase
     private void RebuildTargetCellsFromMarkers()
     {
         targetCells.Clear();
-        
+
         // In edit mode, Instance might not exist; try to find one in the scene.
-        if (grid == null) grid = FindFirstObjectByType<TilemapGridManager>();
+        if (grid == null) 
+            grid = FindFirstObjectByType<TilemapGridManager>();
 
         if (grid == null)
             return;
@@ -66,6 +76,7 @@ public class LeverObstacle : ObstacleBase
         foreach (var t in targetMarkers)
         {
             if (t == null) continue;
+
             var cell = grid.WorldToCell(t.position);
             if (!targetCells.Contains(cell))
                 targetCells.Add(cell);
@@ -73,61 +84,88 @@ public class LeverObstacle : ObstacleBase
     }
 
     /// <summary>
-    /// Toggles target tiles, triggers player fall reset, and optionally eliminates enemies on new void tiles.
+    /// Caches the "off" (initial) ground tiles for each target cell at runtime.
+    /// This allows the lever to restore the exact tiles that were painted on the map when the game started.
     /// </summary>
-    public override void Interact()
+    private void CacheOffTilesFromGrid()
     {
-        if (grid == null)
-        {
-            Debug.LogWarning("[LeverObstacle] No TilemapGridManager.Instance found.");
-            return;
-        }
+        offTilesByCell.Clear();
+        hasCachedOffTiles = false;
         
-        // Toggle
-        isOn = !isOn;
-
-        // Visual update
-        ApplyLeverVisual();
-
-        // Track which cells become void this interaction (event-driven enemy elimination)
-        var voidedSet = new HashSet<Vector3Int>();
+        if (grid == null)
+            return;
 
         foreach (var cell in targetCells)
         {
-            var before = grid.GetTileKind(cell);
+            var ground = grid.GetGroundGameTile(cell);
+            if (ground == null)
+                continue;
 
-            grid.ToggleFloorVoidAt(cell);
+            // Never allow the Start tile to be changed.
+            if (ground.kind == TileKind.Start)
+                continue;
 
-            var after = grid.GetTileKind(cell);
-            if (before != after && after == TileKind.Void)
-                voidedSet.Add(cell);
+            offTilesByCell[cell] = ground;
         }
 
-        // If player is now on Void, trigger the fall reset you already built
-        var player = FindFirstObjectByType<PlayerController>();
-        if (player != null)
+        hasCachedOffTiles = true;
+    }
+
+    /// <summary>
+    /// Toggles target tiles, triggers player enter effects, and optionally eliminates enemies
+    /// on tiles that became hazardous as a result of the interaction.
+    /// </summary>
+    public override void Interact()
+    {
+        if (!hasCachedOffTiles)
+            CacheOffTilesFromGrid();
+
+        // Toggle
+        bool nextIsOn = !isOn;
+
+        // If turning ON, we must have an ON tile.
+        if (nextIsOn && onTile == null)
+        { 
+            return;
+        }
+
+        isOn = nextIsOn;
+
+        // Visual update
+        ApplyLeverVisual();
+        
+        // Track which cells actually changed this interaction
+        var changedCells = new HashSet<Vector3Int>();
+
+        foreach (var cell in targetCells)
         {
-            var playerCell = player.CellPosition;
-            if (grid.GetTileKind(playerCell) == TileKind.Void)
-            {
-                Vector3 fallStartWorld = grid.CellToWorldCenter(playerCell);
-                player.StartVoidFallReset(grid.GetStartCell(), fallStartWorld);
-            }
+            if (!offTilesByCell.TryGetValue(cell, out var offTile) || offTile == null)
+                continue;
+
+            var desiredTile = isOn ? onTile : offTile;
+
+            if (grid.TrySetGroundTile(cell, desiredTile))
+                changedCells.Add(cell);
         }
 
-        // Eliminate enemies that were standing on tiles that just became Void
-        if (eliminateEnemiesOnVoidedTiles && voidedSet.Count > 0)
+        // Player: only apply if player is on a changed cell (optional, but nice)
+        var player = FindFirstObjectByType<PlayerController>();
+        if (player != null && changedCells.Contains(player.CellPosition))
+        {
+            Vector3 fallStartWorld = grid.CellToWorldCenter(player.CellPosition);
+            grid.HandleEnteredCell(player.CellPosition, player, fallStartWorld);
+        }
+
+        // Enemies: apply effects if enemy is on a changed cell
+        if (changedCells.Count > 0)
         {
             var enemies = FindObjectsByType<EnemyBase>(FindObjectsSortMode.None);
             foreach (var e in enemies)
             {
                 if (e == null) continue;
-
-                if (voidedSet.Contains(e.CellPosition))
-                {
-                    Vector3 fallStartWorld = grid.CellToWorldCenter(e.CellPosition);
-                    e.KillByVoidFall(fallStartWorld);
-                }
+                
+                if (changedCells.Contains(e.CellPosition))
+                    grid.HandleEnteredCellEnemy(e.CellPosition, e);
             }
         }
     }
@@ -141,9 +179,9 @@ public class LeverObstacle : ObstacleBase
     /// Levers remain blocking for shape placement.
     /// </summary>
     public override bool BlocksShapePlacement() => true;
-    
+
     /// <summary>
-    /// Changes sprites for the lever
+    /// Updates the lever sprite based on its state.
     /// </summary>
     private void ApplyLeverVisual()
     {
@@ -164,10 +202,10 @@ public class LeverObstacle : ObstacleBase
         if (!drawGizmos) return;
 
         grid = TilemapGridManager.Instance;
-        if (grid == null) 
+        if (grid == null)
             grid = FindFirstObjectByType<TilemapGridManager>();
-        
-        if (grid == null) 
+
+        if (grid == null)
             return;
 
         // Always rebuild in editor so gizmos match moved markers
@@ -183,9 +221,7 @@ public class LeverObstacle : ObstacleBase
             Gizmos.DrawWireCube(center, size);
 
             if (drawLabels)
-            {
                 Handles.Label(center + Vector3.up * 0.3f, $"{cell.x},{cell.y}");
-            }
         }
     }
 #endif

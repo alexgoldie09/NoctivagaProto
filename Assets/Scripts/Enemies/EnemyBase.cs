@@ -180,6 +180,8 @@ public abstract class EnemyBase : MonoBehaviour
 
         cellPos = next;
         transform.position = grid.CellToWorldCenter(cellPos);
+        
+        grid.HandleEnteredCellEnemy(cellPos, this);
         return true;
     }
 

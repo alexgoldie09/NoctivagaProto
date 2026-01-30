@@ -23,6 +23,8 @@ public class GargoyleBombingAction : BossAction
     [SerializeField] private GameObject bombExplosionVfxPrefab;
     [Tooltip("Optional pickup prefab spawned after detonation based on Shape Drop chance.")]
     [SerializeField] private GameObject shapePickupPrefab;
+    [Tooltip("Void game tile to swap in for floor during bomb.")]
+    [SerializeField] private GameTile voidTile;
 
     [Header("Bomb Area-of-Effect")]
     [Tooltip("Chance the bomb will use an AoE pattern (if AoE Radius > 0).")]
@@ -335,7 +337,7 @@ public class GargoyleBombingAction : BossAction
             var c = cells[i];
 
             if (context.grid.GetTileKind(c) == TileKind.Floor)
-                context.grid.ToggleFloorVoidAt(c);
+                context.grid.ToggleFloorVoidAt(c, voidTile);
 
             if (bombExplosionVfxPrefab != null)
             {

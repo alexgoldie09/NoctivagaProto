@@ -1342,6 +1342,10 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 2866602005061999137, guid: df53db57533844a0ebc20a29ec27d090, type: 3}
+      propertyPath: killEnemiesOnBeam
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 8184025694766334217, guid: df53db57533844a0ebc20a29ec27d090, type: 3}
       propertyPath: m_Name
       value: MirrorPrefab
@@ -1450,6 +1454,10 @@ PrefabInstance:
     - target: {fileID: 2866602005061999137, guid: df53db57533844a0ebc20a29ec27d090, type: 3}
       propertyPath: isEmitter
       value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2866602005061999137, guid: df53db57533844a0ebc20a29ec27d090, type: 3}
+      propertyPath: killEnemiesOnBeam
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 4214148750003342410, guid: df53db57533844a0ebc20a29ec27d090, type: 3}
       propertyPath: m_SortingLayer
@@ -1652,6 +1660,10 @@ PrefabInstance:
     - target: {fileID: 2866602005061999137, guid: df53db57533844a0ebc20a29ec27d090, type: 3}
       propertyPath: isEmitter
       value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2866602005061999137, guid: df53db57533844a0ebc20a29ec27d090, type: 3}
+      propertyPath: killEnemiesOnBeam
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 4214148750003342410, guid: df53db57533844a0ebc20a29ec27d090, type: 3}
       propertyPath: m_SortingLayer
@@ -7977,7 +7989,6 @@ MonoBehaviour:
   telegraphTilemap: {fileID: 1274136376}
   floorTile: {fileID: 11400000, guid: 123e397910bac480dbbe666918f44937, type: 2}
   floorGateTile: {fileID: 11400000, guid: 5796d1b142dcd4437a03f7aee63601f6, type: 2}
-  voidTile: {fileID: 11400000, guid: 78a8b8cf323b74921b1fce432a6bbd23, type: 2}
   previewFillTile: {fileID: 11400000, guid: a0f8669aa686e49089bb329b7adf6b60, type: 2}
   allowWalkingIntoVoid: 1
 --- !u!1 &1631888523

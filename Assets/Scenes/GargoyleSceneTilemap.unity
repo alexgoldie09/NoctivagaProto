@@ -7857,6 +7857,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::GargoyleRestAction
   actionName: Rest
+  phaseObjectsToToggle: []
   restHoverHeight: 1.5
   preRestHoverTime: 0.1
   damagePerRestHit: 2
@@ -7877,10 +7878,12 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::GargoyleBombingAction
   actionName: Bombing
+  phaseObjectsToToggle: []
   bombSpawnPoint: {fileID: 1185692715}
   bombProjectilePrefab: {fileID: 7620136039024307061, guid: c392f33f233454a0480dbf0ee7dc8a38, type: 3}
   bombExplosionVfxPrefab: {fileID: 2433282508537954060, guid: 3ef3ae421f71c5c4e97fe12dc2fc6312, type: 3}
   shapePickupPrefab: {fileID: 5242986340660831232, guid: 96957801749a74fffb0ae20f38ab7df4, type: 3}
+  voidTile: {fileID: 11400000, guid: dbff73b5f846a4ea3b16b4436d05c354, type: 2}
   aoeChance: 0.9
   aoeRadius: 1
   crossPatternChance: 0.5
@@ -8801,7 +8804,6 @@ MonoBehaviour:
   telegraphTilemap: {fileID: 1345068183}
   floorTile: {fileID: 11400000, guid: 123e397910bac480dbbe666918f44937, type: 2}
   floorGateTile: {fileID: 0}
-  voidTile: {fileID: 11400000, guid: dbff73b5f846a4ea3b16b4436d05c354, type: 2}
   previewFillTile: {fileID: 11400000, guid: a0f8669aa686e49089bb329b7adf6b60, type: 2}
   allowWalkingIntoVoid: 1
 --- !u!1 &1633616184
