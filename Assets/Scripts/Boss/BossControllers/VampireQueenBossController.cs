@@ -8,6 +8,11 @@ using UnityEngine;
 /// </summary>
 public class VampireQueenBossController : BossControllerBase
 {
+    /// <summary>
+    /// Owner id used when placing/clearing boss telegraph previews in the grid telegraph layer.
+    /// </summary>
+    public const int PREVIEW_OWNER_BOSS = 7101;
+    
     [Header("Intro")]
     [Tooltip("Delay (seconds) before the main loop starts after the enter animation.")]
     [SerializeField] private float enterDelay = 3f;
@@ -17,6 +22,8 @@ public class VampireQueenBossController : BossControllerBase
     [SerializeField] private BossAction summonAction;
     [Tooltip("Explicit attack action override (used if action lookup by name fails).")]
     [SerializeField] private BossAction attackAction;
+    [Tooltip("Explicit charge action override (used if action lookup by name fails).")]
+    [SerializeField] private BossAction chargeAction;
 
     private Coroutine mainRoutine;
     private bool isVulnerable;
@@ -24,6 +31,7 @@ public class VampireQueenBossController : BossControllerBase
     private Vector3Int vulnerableAnchorCell;
     private bool hasVulnerableAnchor;
     private int microPhaseIndex;
+    private BossPhase lastPhase = BossPhase.Phase1;
 
     // ─────────────────────────────────────────────
     #region Unity Events
@@ -40,6 +48,7 @@ public class VampireQueenBossController : BossControllerBase
             return;
         }
         microPhaseIndex = 0;
+        lastPhase = bossHealth != null ? bossHealth.CurrentPhase : BossPhase.Phase1;
         mainRoutine = StartCoroutine(MainLoop());
     }
 
@@ -58,8 +67,17 @@ public class VampireQueenBossController : BossControllerBase
 
         while (State != BossState.Dead)
         {
-            yield return SummonRoutine();
-            yield return AttackRoutine();
+            var phase = bossHealth != null ? bossHealth.CurrentPhase : BossPhase.Phase1;
+
+            if (phase == BossPhase.Phase1)
+            {
+                yield return SummonRoutine();
+                yield return AttackRoutine();
+            }
+            else
+            {
+                yield return ChargeRoutine();
+            }
         }
     }
 
@@ -91,8 +109,49 @@ public class VampireQueenBossController : BossControllerBase
         yield return bossAction.Execute(context);
     }
 
+    private IEnumerator ChargeRoutine()
+    {
+        var context = BuildBossContext();
+
+        var bossAction = GetActionByNameOrFirst("Charge", context);
+        if (bossAction == null)
+            bossAction = chargeAction;
+
+        if (bossAction == null || !bossAction.CanRun(context))
+            yield break;
+
+        yield return bossAction.Execute(context);
+    }
     #endregion
-    
+    // ─────────────────────────────────────────────
+    #region Phase Transitions
+
+    protected override void OnEnable()
+    {
+        base.OnEnable();
+
+        if (bossHealth != null)
+            bossHealth.OnPhaseChanged += HandlePhaseChanged;
+    }
+
+    protected override void OnDisable()
+    {
+        if (bossHealth != null)
+            bossHealth.OnPhaseChanged -= HandlePhaseChanged;
+
+        base.OnDisable();
+    }
+
+    private void HandlePhaseChanged(BossPhase newPhase)
+    {
+        if (newPhase == lastPhase)
+            return;
+
+        microPhaseIndex = 0;
+        lastPhase = newPhase;
+    }
+
+    #endregion
     // ─────────────────────────────────────────────
     #region Vulnerability
 
@@ -180,6 +239,15 @@ public class VampireQueenBossController : BossControllerBase
     {
         microPhaseIndex++;
     }
+
+    /// <summary>
+    /// Applies direct damage to the boss (used by Phase 2 traps).
+    /// </summary>
+    public void ApplyChargeDamage(int damage)
+    {
+        TakeDamage(damage);
+    }
+
     #endregion
     // ─────────────────────────────────────────────
     #region Boss Finishes
@@ -205,6 +273,9 @@ public class VampireQueenBossController : BossControllerBase
     /// </summary>
     private void StopMainLoop()
     {
+        if (grid != null)
+            grid.ClearTelegraphForOwner(PREVIEW_OWNER_BOSS);
+        
         if (mainRoutine != null)
             StopCoroutine(mainRoutine);
     }

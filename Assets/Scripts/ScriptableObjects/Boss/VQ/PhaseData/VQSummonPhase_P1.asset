@@ -25,7 +25,7 @@ MonoBehaviour:
     summonInterval: 4
     flyMoveSpeed: 6
     maxConcurrentEnemies: 0
-  - waveSize: 8
+  - waveSize: 4
     summonInterval: 4
     flyMoveSpeed: 10
     maxConcurrentEnemies: 0

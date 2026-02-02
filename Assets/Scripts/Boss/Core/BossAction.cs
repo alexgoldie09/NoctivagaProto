@@ -38,6 +38,24 @@ public abstract class BossAction : MonoBehaviour
     }
     
     /// <summary>
+    /// Toggles any phase objects configured for this action.
+    /// </summary>
+    protected void SetPhaseObjectsActive()
+    {
+        if (phaseObjectsToToggle == null)
+            return;
+
+        for (int i = 0; i < phaseObjectsToToggle.Count; i++)
+        {
+            var obj = phaseObjectsToToggle[i];
+            if (obj == null)
+                continue;
+
+            obj.SetActive(!obj.activeSelf);
+        }
+    }
+    
+    /// <summary>
     /// Returns whether this action can run given the current boss context.
     /// </summary>
     public abstract bool CanRun(BossContext context);
