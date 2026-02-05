@@ -11,10 +11,14 @@ public class BossHUD : MonoBehaviour
     [Header("References")]
     [Tooltip("BossHealth to bind to. If not assigned, the HUD will attempt to FindAnyObjectByType<BossHealth>() on enable.")]
     [SerializeField] private BossHealth bossHealth;
+    [Tooltip("Shield component to bind to. If not assigned, the HUD will attempt to FindAnyObjectByType<BossShieldHealth>().")]
+    [SerializeField] private BossShieldHealth shieldHealth;
 
     [Header("UI")]
     [Tooltip("Slider used to display boss HP.")]
     [SerializeField] private Slider hpSlider;
+    [Tooltip("Optional slider used to display boss shield HP.")]
+    [SerializeField] private Slider shieldSlider;
     [Tooltip("Text field used to display boss name.")]
     [SerializeField] private TMP_Text bossNameText;
     [Tooltip("Text field used to display current boss phase.")]
@@ -31,7 +35,11 @@ public class BossHUD : MonoBehaviour
         if (bossHealth == null)
             bossHealth = FindAnyObjectByType<BossHealth>();
 
+        if (shieldHealth == null)
+            shieldHealth = FindAnyObjectByType<BossShieldHealth>();
+
         Bind(bossHealth);
+        BindShield(shieldHealth);
     }
 
     /// <summary>
@@ -77,6 +85,29 @@ public class BossHUD : MonoBehaviour
     }
 
     /// <summary>
+    /// Binds the HUD to a boss shield component and initializes UI immediately.
+    /// </summary>
+    /// <param name="shield">Shield component to bind to.</param>
+    public void BindShield(BossShieldHealth shield)
+    {
+        UnbindShield();
+
+        shieldHealth = shield;
+        if (shieldHealth == null || shieldSlider == null)
+        {
+            if (shieldSlider != null)
+                shieldSlider.gameObject.SetActive(false);
+            return;
+        }
+
+        shieldHealth.OnShieldChanged += HandleShieldChanged;
+        shieldHealth.OnShieldBroken += HandleShieldBroken;
+
+        HandleShieldChanged(shieldHealth.CurrentHP, shieldHealth.MaxHP);
+        shieldSlider.gameObject.SetActive(!shieldHealth.IsBroken);
+    }
+
+    /// <summary>
     /// Unbinds from the current <see cref="BossHealth"/> instance (if any).
     /// </summary>
     private void Unbind()
@@ -88,6 +119,18 @@ public class BossHUD : MonoBehaviour
         bossHealth.OnPhaseChanged -= HandlePhaseChanged;
         bossHealth.OnDied -= HandleDied;
         bossHealth.OnPlayerDied -= HandleDied;
+    }
+
+    /// <summary>
+    /// Unbinds from the current <see cref="BossShieldHealth"/> instance (if any).
+    /// </summary>
+    private void UnbindShield()
+    {
+        if (shieldHealth == null)
+            return;
+
+        shieldHealth.OnShieldChanged -= HandleShieldChanged;
+        shieldHealth.OnShieldBroken -= HandleShieldBroken;
     }
 
     #endregion
@@ -125,6 +168,23 @@ public class BossHUD : MonoBehaviour
     private void HandleDied()
     {
         gameObject.SetActive(false);
+    }
+    
+    private void HandleShieldChanged(int current, int max)
+    {
+        if (shieldSlider == null)
+            return;
+
+        shieldSlider.minValue = 0;
+        shieldSlider.maxValue = max;
+        shieldSlider.value = current;
+        shieldSlider.gameObject.SetActive(current > 0);
+    }
+
+    private void HandleShieldBroken()
+    {
+        if (shieldSlider != null)
+            shieldSlider.gameObject.SetActive(false);
     }
 
     #endregion

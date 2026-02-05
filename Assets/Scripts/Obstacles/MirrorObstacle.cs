@@ -79,7 +79,6 @@ public class MirrorObstacle : ObstacleBase
     {
         base.OnEnable();
         RebuildAllBeams();
-        ResolvePlayerIfOnMirror(grid);
     }
 
 
@@ -149,21 +148,6 @@ public class MirrorObstacle : ObstacleBase
 
         if (sr.sprite == null)
             Debug.LogWarning($"[MirrorObstacle] Missing sprite for {direction} on {name}", this);
-    }
-    
-    private void ResolvePlayerIfOnMirror(TilemapGridManager g)
-    {
-        if (g == null)
-            return;
-
-        var player = FindFirstObjectByType<PlayerController>();
-        if (player == null)
-            return;
-
-        if (!g.TryGetObstacle(player.CellPosition, out var obs) || obs is not MirrorObstacle)
-            return;
-
-        g.RelocatePlayerFromBlockedCell(player);
     }
 
     /// <summary>

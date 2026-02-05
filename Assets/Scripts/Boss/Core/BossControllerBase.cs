@@ -43,16 +43,29 @@ public abstract class BossControllerBase : MonoBehaviour
     [Header("Boss Footprint")]
     [Tooltip("Size of the boss footprint in cells. Anchor is top-left; footprint covers (x+, y-).")]
     [SerializeField] protected Vector2Int footprintSize = new(2, 2);
+    [Tooltip("Draw footprint gizmos when selected.")]
+    [SerializeField] private bool drawFootprintGizmos = true;
+    [SerializeField] private bool drawFootprintLabels = true;
 
     [Header("Damage Force")]
     [Tooltip("If true, allow camera shake when the boss takes damage.")]
     [SerializeField] protected bool allowDamageShake = true;
     [Tooltip("Shake force applied when damage occurs (if Allow Damage Shake is enabled).")]
     [SerializeField] protected float damageShakeForce = 0.8f;
+
+    [Header("Damage Flash")]
+    [SerializeField] private Color damageFlashColor = Color.white;
+    [Min(0f)]
+    [SerializeField] private float damageFlashTotalDuration = 0.5f;
+    [Min(0.01f)]
+    [SerializeField] private float damageFlashInterval = 0.1f;
     
     [Header("Contact Damage")]
     [Tooltip("Optional collider used to damage the player on contact.")]
     [SerializeField] private Collider2D contactCollider;
+
+    private Coroutine damageFlashRoutine;
+    private Color initialSpriteColor = Color.white;
 
     // ─────────────────────────────────────────────
     #region Properties
@@ -113,6 +126,9 @@ public abstract class BossControllerBase : MonoBehaviour
 
         if (spriteRenderer == null)
             spriteRenderer = GetComponent<SpriteRenderer>();
+
+        if (spriteRenderer != null)
+            initialSpriteColor = spriteRenderer.color;
         
         if (grid == null)
             grid = TilemapGridManager.Instance;
@@ -171,6 +187,20 @@ public abstract class BossControllerBase : MonoBehaviour
     {
         if (contactCollider != null)
             contactCollider.enabled = active;
+    }
+
+    /// <summary>
+    /// Overrides the active contact collider (useful for body swaps).
+    /// </summary>
+    public void SetContactCollider(Collider2D newCollider)
+    {
+        if (contactCollider != null)
+            contactCollider.enabled = false;
+
+        contactCollider = newCollider;
+
+        if (contactCollider != null)
+            contactCollider.isTrigger = true;
     }
     #endregion
     // ─────────────────────────────────────────────
@@ -270,8 +300,43 @@ public abstract class BossControllerBase : MonoBehaviour
     /// <param name="amount">Requested damage amount (clamped to at least 1).</param>
     protected virtual void TakeDamage(int amount)
     {
-        if (bossHealth != null)
-            bossHealth.ApplyDamage(Mathf.Max(1, amount));
+        if (bossHealth == null)
+            return;
+
+        bossHealth.ApplyDamage(Mathf.Max(1, amount));
+        FlashDamage();
+    }
+
+    private void FlashDamage()
+    {
+        if (spriteRenderer == null || damageFlashTotalDuration <= 0f || damageFlashInterval <= 0f)
+            return;
+
+        if (damageFlashRoutine != null)
+            StopCoroutine(damageFlashRoutine);
+
+        damageFlashRoutine = StartCoroutine(FlashDamageRoutine());
+    }
+
+    private IEnumerator FlashDamageRoutine()
+    {
+        if (spriteRenderer == null)
+            yield break;
+
+        float elapsed = 0f;
+        bool useFlash = true;
+
+        while (elapsed < damageFlashTotalDuration)
+        {
+            spriteRenderer.color = useFlash ? damageFlashColor : initialSpriteColor;
+            useFlash = !useFlash;
+
+            float step = Mathf.Min(damageFlashInterval, damageFlashTotalDuration - elapsed);
+            elapsed += step;
+            yield return new WaitForSeconds(step);
+        }
+
+        spriteRenderer.color = initialSpriteColor;
     }
     
     private void OnTriggerEnter2D(Collider2D other)
@@ -505,6 +570,11 @@ public abstract class BossControllerBase : MonoBehaviour
         return true;
     }
 
+    protected virtual Vector3Int GetFootprintAnchorForGizmos()
+    {
+        return grid != null ? grid.WorldToCell(transform.position) : Vector3Int.zero;
+    }
+
     #endregion
     // ─────────────────────────────────────────────
     #region Action-Facing API
@@ -525,6 +595,21 @@ public abstract class BossControllerBase : MonoBehaviour
     public void PlayAnimation(string trigger)
     {
         TriggerAnim(trigger);
+    }
+
+    /// <summary>
+    /// Overrides the active animator and sprite renderer (useful for body swaps).
+    /// </summary>
+    public void SetVisuals(Animator newAnimator, SpriteRenderer newSpriteRenderer)
+    {
+        if (newAnimator != null)
+            animator = newAnimator;
+
+        if (newSpriteRenderer != null)
+        {
+            spriteRenderer = newSpriteRenderer;
+            initialSpriteColor = spriteRenderer.color;
+        }
     }
 
     /// <summary>
@@ -564,4 +649,35 @@ public abstract class BossControllerBase : MonoBehaviour
     }
     #endregion
     // ─────────────────────────────────────────────
+
+#if UNITY_EDITOR
+    private void OnDrawGizmosSelected()
+    {
+        if (!drawFootprintGizmos)
+            return;
+
+        var activeGrid = grid;
+        if (activeGrid == null)
+            activeGrid = TilemapGridManager.Instance;
+
+        if (activeGrid == null)
+            return;
+
+        Vector3Int anchor = GetFootprintAnchorForGizmos();
+        var cells = GetFootprintCells(anchor);
+
+        Gizmos.matrix = Matrix4x4.identity;
+        Gizmos.color = Color.blueViolet;
+
+        foreach (var cell in cells)
+        {
+            Vector3 center = activeGrid.CellToWorldCenter(cell);
+            Vector3 size = Vector3.one * 0.9f;
+            Gizmos.DrawWireCube(center, size);
+
+            if (drawFootprintLabels)
+                UnityEditor.Handles.Label(center + Vector3.up * 0.3f, $"{cell.x},{cell.y}");
+        }
+    }
+#endif
 }

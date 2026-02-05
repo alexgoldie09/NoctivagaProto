@@ -28,6 +28,8 @@ public abstract class ObstacleBase : MonoBehaviour
 
         Vector3Int cell = grid.WorldToCell(transform.position);
         grid.RegisterObstacle(cell, this);
+        
+        ResolvePlayerIfOnObstacle(grid);
 
         // Debug.Log($"[ObstacleBase] Registered {name} at cell {cell} (world {transform.position})");
     }
@@ -55,6 +57,21 @@ public abstract class ObstacleBase : MonoBehaviour
     /// Whether this obstacle blocks shape placement.
     /// </summary>
     public virtual bool BlocksShapePlacement() => true;
+    
+    private void ResolvePlayerIfOnObstacle(TilemapGridManager g)
+    {
+        if (g == null)
+            return;
+
+        var player = FindFirstObjectByType<PlayerController>();
+        if (player == null)
+            return;
+
+        if (!g.TryGetObstacle(player.CellPosition, out var obs))
+            return;
+
+        g.RelocatePlayerFromBlockedCell(player);
+    }
     
     public bool CanInteract(PlayerController player) => true;
     public string GetInteractPrompt(PlayerController player) => interactPrompt;

@@ -186,7 +186,7 @@ public class GargoyleBossController : BossControllerBase
 
             tookDamageThisRest = true;
 
-            TriggerAnim("Hurt");
+            PlayAnimation("Hurt");
             return;
         }
     }

@@ -24,6 +24,12 @@ public class VampireQueenBossController : BossControllerBase
     [SerializeField] private BossAction attackAction;
     [Tooltip("Explicit charge action override (used if action lookup by name fails).")]
     [SerializeField] private BossAction chargeAction;
+    [Tooltip("Explicit meteor action override (used if action lookup by name fails).")]
+    [SerializeField] private BossAction meteorAction;
+
+    [Header("Phase 3 Damage Area")]
+    [Tooltip("Transform whose position/scale defines the direct damage area.")]
+    [SerializeField] private Transform damageableAreaTransform;
 
     private Coroutine mainRoutine;
     private bool isVulnerable;
@@ -32,6 +38,9 @@ public class VampireQueenBossController : BossControllerBase
     private bool hasVulnerableAnchor;
     private int microPhaseIndex;
     private BossPhase lastPhase = BossPhase.Phase1;
+    private Vector3Int damageableAnchorCell;
+    private bool hasDamageableAnchor;
+    private bool directDamageEnabled;
 
     // ─────────────────────────────────────────────
     #region Unity Events
@@ -74,9 +83,13 @@ public class VampireQueenBossController : BossControllerBase
                 yield return SummonRoutine();
                 yield return AttackRoutine();
             }
-            else
+            else if (phase == BossPhase.Phase2)
             {
                 yield return ChargeRoutine();
+            }
+            else
+            {
+                yield return MeteorRoutine();
             }
         }
     }
@@ -122,6 +135,20 @@ public class VampireQueenBossController : BossControllerBase
 
         yield return bossAction.Execute(context);
     }
+
+    private IEnumerator MeteorRoutine()
+    {
+        var context = BuildBossContext();
+
+        var bossAction = GetActionByNameOrFirst("Meteor", context);
+        if (bossAction == null)
+            bossAction = meteorAction;
+
+        if (bossAction == null || !bossAction.CanRun(context))
+            yield break;
+
+        yield return bossAction.Execute(context);
+    }
     #endregion
     // ─────────────────────────────────────────────
     #region Phase Transitions
@@ -149,6 +176,12 @@ public class VampireQueenBossController : BossControllerBase
 
         microPhaseIndex = 0;
         lastPhase = newPhase;
+
+        if (newPhase != BossPhase.Phase3)
+        {
+            directDamageEnabled = false;
+            hasDamageableAnchor = false;
+        }
     }
 
     #endregion
@@ -213,18 +246,97 @@ public class VampireQueenBossController : BossControllerBase
     {
         if (!isVulnerable || !hasVulnerableAnchor)
             return false;
+        return IsCellInFootprint(vulnerableAnchorCell, cell);
+    }
 
+    /// <summary>
+    /// Sets the anchor cell for a direct damage footprint (phase 3 body).
+    /// </summary>
+    public void SetDamageableAnchor(Vector3Int anchorCell)
+    {
+        damageableAnchorCell = anchorCell;
+        hasDamageableAnchor = true;
+    }
+
+    /// <summary>
+    /// Clears the direct damage footprint anchor.
+    /// </summary>
+    public void ClearDamageableAnchor()
+    {
+        hasDamageableAnchor = false;
+    }
+
+    /// <summary>
+    /// Enables or disables direct damage (used after shield break).
+    /// </summary>
+    public void SetDirectDamageEnabled(bool enabled)
+    {
+        directDamageEnabled = enabled;
+    }
+
+    /// <summary>
+    /// Returns true if the provided cell overlaps the direct damage footprint.
+    /// </summary>
+    public bool IsCellInDamageableFootprint(Vector3Int cell)
+    {
+        if (!directDamageEnabled)
+            return false;
+
+        if (damageableAreaTransform != null)
+            return IsCellInBounds(damageableAreaTransform, cell);
+
+        if (!hasDamageableAnchor)
+            return false;
+
+        return IsCellInFootprint(damageableAnchorCell, cell);
+    }
+
+    private bool IsCellInFootprint(Vector3Int anchorCell, Vector3Int cell)
+    {
         for (int x = 0; x < footprintSize.x; x++)
         {
             for (int y = 0; y < footprintSize.y; y++)
             {
-                var footprintCell = vulnerableAnchorCell + new Vector3Int(x, -y, 0);
+                var footprintCell = anchorCell + new Vector3Int(x, -y, 0);
                 if (cell == footprintCell)
                     return true;
             }
         }
 
         return false;
+    }
+
+    private bool IsCellInBounds(Transform source, Vector3Int cell)
+    {
+        if (grid == null || source == null)
+            return false;
+
+        Vector3 size = source.lossyScale;
+        size.x = Mathf.Abs(size.x);
+        size.y = Mathf.Abs(size.y);
+        size.z = 0.01f;
+        var bounds = new Bounds(source.position, size);
+
+        const float epsilon = 0.001f;
+        Vector3Int minCell = grid.WorldToCell(bounds.min);
+        Vector3Int maxCell = grid.WorldToCell(bounds.max - new Vector3(epsilon, epsilon, 0f));
+
+        return cell.x >= minCell.x &&
+               cell.x <= maxCell.x &&
+               cell.y >= minCell.y &&
+               cell.y <= maxCell.y;
+    }
+
+    /// <summary>
+    /// Applies direct damage for Phase 3 hits.
+    /// </summary>
+    public bool TryRegisterDirectHit(int damage = 1)
+    {
+        if (!directDamageEnabled)
+            return false;
+
+        TakeDamage(damage);
+        return true;
     }
     
     /// <summary>

@@ -20,23 +20,23 @@ MonoBehaviour:
   hurtRecoveryDuration: 5
   trapDamage: 1
   microPhases:
-  - telegraphDuration: 1.25
+  - telegraphDuration: 2
     preChargeDelay: 0.2
-    approachSpeed: 4
-    chargeSpeed: 6
+    approachSpeed: 6
+    chargeSpeed: 10
     postChargeDelay: 0.3
     hurtRecoveryDuration: 5
     trapDamage: 1
   - telegraphDuration: 1.5
     preChargeDelay: 0.3
-    approachSpeed: 10
+    approachSpeed: 6
     chargeSpeed: 12
     postChargeDelay: 0.3
     hurtRecoveryDuration: 4
     trapDamage: 1
-  - telegraphDuration: 1.5
+  - telegraphDuration: 1
     preChargeDelay: 0.3
-    approachSpeed: 12
+    approachSpeed: 6
     chargeSpeed: 15
     postChargeDelay: 0.3
     hurtRecoveryDuration: 3

@@ -515,11 +515,34 @@ public class PlayerController : MonoBehaviour
             RegisterActionScore("MeleeHit");
         }
 
+        var shield = FindFirstObjectByType<BossShieldHealth>();
         var queen = FindFirstObjectByType<VampireQueenBossController>();
-        if (queen != null && queen.IsCellInVulnerableFootprint(targetCell))
+        if (shield != null && shield.IsCellShielded(targetCell))
         {
-            queen.TryRegisterVulnerabilityHit();
+            if (shield.IsBroken)
+            {
+                if (queen != null)
+                    queen.TryRegisterDirectHit();
+            }
+            else
+            {
+                shield.ApplyDamage(1);
+            }
+
+            return;
         }
+
+        if (queen == null)
+            return;
+
+        if (queen.IsCellInDamageableFootprint(targetCell))
+        {
+            queen.TryRegisterDirectHit();
+            return;
+        }
+
+        if (queen.IsCellInVulnerableFootprint(targetCell))
+            queen.TryRegisterVulnerabilityHit();
     }
 
     private IEnumerator SpawnMeleeHitVfx(Vector3 targetWorld)
