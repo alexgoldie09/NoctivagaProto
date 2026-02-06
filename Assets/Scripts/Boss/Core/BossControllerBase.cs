@@ -31,6 +31,8 @@ public abstract class BossControllerBase : MonoBehaviour
     [SerializeField] protected TilemapGridManager grid;
     [Tooltip("Player reference used by action context. If null, will be auto-found in Awake().")]
     [SerializeField] protected PlayerController player;
+    [Tooltip("Post FX Processing reference used by action context. If null, will be auto-found in Awake().")]
+    [SerializeField] protected BossPostFxController postFx;
     [Tooltip("If true, the sprite faces left by default (flipX false). If false, sprite faces right by default.")]
     [SerializeField] protected bool spriteFacesLeftByDefault = true;
 
@@ -46,6 +48,11 @@ public abstract class BossControllerBase : MonoBehaviour
     [Tooltip("Draw footprint gizmos when selected.")]
     [SerializeField] private bool drawFootprintGizmos = true;
     [SerializeField] private bool drawFootprintLabels = true;
+    
+    [Header("Shield (Optional)")]
+    [SerializeField] protected BossShieldHealth shieldHealth;
+    [Tooltip("Optional object to disable when the shield breaks (e.g. bubble sprite root).")]
+    [SerializeField] protected GameObject shieldRoot;
 
     [Header("Damage Force")]
     [Tooltip("If true, allow camera shake when the boss takes damage.")]
@@ -66,6 +73,7 @@ public abstract class BossControllerBase : MonoBehaviour
 
     private Coroutine damageFlashRoutine;
     private Color initialSpriteColor = Color.white;
+    private bool shieldBound;
 
     // ─────────────────────────────────────────────
     #region Properties
@@ -93,6 +101,11 @@ public abstract class BossControllerBase : MonoBehaviour
     /// Player reference for derived controllers and action modules.
     /// </summary>
     public PlayerController Player => player;
+    
+    /// <summary>
+    /// Post Fx Controller reference for action modules.
+    /// </summary>
+    public BossPostFxController PostFx => postFx;
 
     /// <summary>
     /// Boss footprint size in cells.
@@ -120,6 +133,9 @@ public abstract class BossControllerBase : MonoBehaviour
     {
         if (bossHealth == null)
             bossHealth = GetComponent<BossHealth>();
+        
+        if (postFx == null)
+            postFx = GetComponent<BossPostFxController>();
 
         if (animator == null)
             animator = GetComponent<Animator>();
@@ -177,6 +193,8 @@ public abstract class BossControllerBase : MonoBehaviour
         
         if (contactCollider != null)
             contactCollider.enabled = false;
+        
+        UnbindShield();
     }
     
     /// <summary>
@@ -217,6 +235,7 @@ public abstract class BossControllerBase : MonoBehaviour
         State = BossState.Dead;
 
         TriggerAnim("Death");
+        UnbindShield();
         OnBossDeathStarted();
 
         StartCoroutine(EndAfterDeathDelay(GetBossDeathDelay()));
@@ -233,6 +252,7 @@ public abstract class BossControllerBase : MonoBehaviour
         State = BossState.Dead;
 
         TriggerAnim("Death");
+        UnbindShield();
         OnPlayerDeathStarted();
 
         StartCoroutine(EndAfterPlayerDelay(GetPlayerDeathDelay()));
@@ -474,6 +494,77 @@ public abstract class BossControllerBase : MonoBehaviour
 
     #endregion
     // ─────────────────────────────────────────────
+    #region Contact Damage
+    /// <summary>
+    /// True if this boss has a shield component assigned or found.
+    /// </summary>
+    public bool HasShield => shieldHealth != null;
+
+    /// <summary>
+    /// Current shield component if present (may be null).
+    /// </summary>
+    public BossShieldHealth ShieldHealth => shieldHealth;
+
+    /// <summary>
+    /// Override in bosses that support direct damage gating (e.g. shield must break first).
+    /// Default is no-op so bosses without this feature are safe.
+    /// </summary>
+    public virtual void SetDirectDamageEnabled(bool allowed) { }
+
+    /// <summary>
+    /// Binds optional shield logic (subscribes to break event and updates direct damage gating).
+    /// Safe if no shield exists.
+    /// </summary>
+    public void BindShield()
+    {
+        if (shieldHealth == null)
+            shieldHealth = GetComponentInChildren<BossShieldHealth>();
+
+        // No shield: allow direct damage (safe default).
+        if (shieldHealth == null)
+        {
+            SetDirectDamageEnabled(true);
+            return;
+        }
+
+        // With shield: allow damage only if shield already broken.
+        SetDirectDamageEnabled(shieldHealth.IsBroken);
+        
+        if (shieldHealth.IsBroken)
+            HandleShieldBroken();
+
+        if (!shieldBound)
+        {
+            shieldHealth.OnShieldBroken += HandleShieldBroken;
+            shieldBound = true;
+        }
+    }
+
+    /// <summary>
+    /// Unbinds shield event subscription (safe).
+    /// </summary>
+    public void UnbindShield()
+    {
+        if (shieldHealth == null || !shieldBound)
+            return;
+
+        shieldHealth.OnShieldBroken -= HandleShieldBroken;
+        shieldBound = false;
+    }
+
+    /// <summary>
+    /// Called when shield breaks: hides root and enables direct damage.
+    /// </summary>
+    protected virtual void HandleShieldBroken()
+    {
+        if (shieldRoot != null)
+            shieldRoot.SetActive(false);
+
+        SetDirectDamageEnabled(true);
+    }
+    
+    #endregion
+    // ─────────────────────────────────────────────
     #region Footprint Helpers
 
     /// <summary>
@@ -645,6 +736,8 @@ public abstract class BossControllerBase : MonoBehaviour
             player = player,
             animator = animator,
             spriteRenderer = spriteRenderer,
+            postFx = postFx,
+            shieldHealth = shieldHealth
         };
     }
     #endregion

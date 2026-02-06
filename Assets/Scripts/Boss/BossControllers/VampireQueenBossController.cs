@@ -27,9 +27,11 @@ public class VampireQueenBossController : BossControllerBase
     [Tooltip("Explicit meteor action override (used if action lookup by name fails).")]
     [SerializeField] private BossAction meteorAction;
 
-    [Header("Phase 3 Damage Area")]
+    [Header("Phase 3 References")]
     [Tooltip("Transform whose position/scale defines the direct damage area.")]
     [SerializeField] private Transform damageableAreaTransform;
+    [Tooltip("Optional object to enable in phase 3.")]
+    [SerializeField] private GameObject fogFx;
 
     private Coroutine mainRoutine;
     private bool isVulnerable;
@@ -269,9 +271,9 @@ public class VampireQueenBossController : BossControllerBase
     /// <summary>
     /// Enables or disables direct damage (used after shield break).
     /// </summary>
-    public void SetDirectDamageEnabled(bool enabled)
+    public override void SetDirectDamageEnabled(bool allowed)
     {
-        directDamageEnabled = enabled;
+        directDamageEnabled = allowed;
     }
 
     /// <summary>
@@ -369,6 +371,14 @@ public class VampireQueenBossController : BossControllerBase
     /// </summary>
     protected override void OnBossDeathStarted()
     {
+        postFx?.DisableAllOverrides(keepBloom: true);
+        
+        fogFx?.SetActive(false);
+
+        SetContactColliderActive(false);
+        ClearDamageableAnchor();
+        SetDirectDamageEnabled(false);
+
         StopMainLoop();
     }
 
@@ -377,6 +387,14 @@ public class VampireQueenBossController : BossControllerBase
     /// </summary>
     protected override void OnPlayerDeathStarted()
     {
+        postFx?.DisableAllOverrides(keepBloom: true);
+        
+        fogFx?.SetActive(false);
+
+        SetContactColliderActive(false);
+        ClearDamageableAnchor();
+        SetDirectDamageEnabled(false);
+        
         StopMainLoop();
     }
 
@@ -391,6 +409,12 @@ public class VampireQueenBossController : BossControllerBase
         if (mainRoutine != null)
             StopCoroutine(mainRoutine);
     }
+
+    #endregion
+
+    #region Accessors
+    // ─────────────────────────────────────────────
+    public GameObject FogFx => fogFx;
 
     #endregion
 }

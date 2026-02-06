@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Rendering.Universal;
 
 #if UNITY_EDITOR
 using UnityEditor;
@@ -31,12 +32,7 @@ public class VampireQueenMeteorFieldAction : BossAction
     [SerializeField] private Transform landingAnchorMarker;
     [Tooltip("Contact collider used for the phase 3 body.")]
     [SerializeField] private Collider2D meteorContactCollider;
-
-    [Header("Shield")]
-    [SerializeField] private BossShieldHealth shieldHealth;
-    [Tooltip("Optional object to disable when the shield breaks.")]
-    [SerializeField] private GameObject shieldRoot;
-
+    
     [Header("Melee Powerup")]
     [Tooltip("Powerup prefab spawned when the meteor phase begins.")]
     [SerializeField] private GameObject meleePowerupPrefab;
@@ -72,6 +68,12 @@ public class VampireQueenMeteorFieldAction : BossAction
     [SerializeField] private Transform occupiedAreaTransform;
     [SerializeField] private bool drawGizmos = true;
     [SerializeField] private bool drawLabels = true;
+    
+    [Header("Post FX Hue Shift (Optional)")]
+    [SerializeField] private bool animateHueShift = true;
+    [SerializeField, Range(-180f, 180f)] private float hueMin = -25f;
+    [SerializeField, Range(-180f, 180f)] private float hueMax = 25f;
+    [SerializeField, Min(0.01f)] private float hueCycleSeconds = 2.0f;
 
     private readonly List<Vector3Int> untargetableCells = new();
     private Vector3Int damageableAnchorCell;
@@ -107,7 +109,32 @@ public class VampireQueenMeteorFieldAction : BossAction
 
         if (meteorContactCollider != null)
             queen.SetContactCollider(meteorContactCollider);
+        
+        if (queen.FogFx != null)
+            queen.FogFx.SetActive(true);
+        
+        queen.PostFx?.SetPhase3LookActive(true);
+        
+        Coroutine hueRoutine = null;
 
+        if (animateHueShift && queen.PostFx != null &&
+            queen.PostFx.TryGetColorAdjustments(out var color, addIfMissing: false))
+        {
+            // Run until the action is no longer active (phase change or death)
+            hueRoutine = StartCoroutine(HueShiftLoop(
+                color,
+                hueMin,
+                hueMax,
+                hueCycleSeconds,
+                keepRunning: () =>
+                    queen != null &&
+                    queen.State != BossControllerBase.BossState.Dead &&
+                    context != null &&
+                    context.health != null &&
+                    context.health.CurrentPhase == BossPhase.Phase3
+            ));
+        }
+        
         ResolveLandingAnchor(context, queen);
 
         Vector3 landingWorld = queen.GetFootprintCenterWorld(damageableAnchorCell);
@@ -116,22 +143,18 @@ public class VampireQueenMeteorFieldAction : BossAction
         queen.SetState(BossControllerBase.BossState.Flight);
         queen.transform.position = entryWorld;
         yield return queen.FlyToWorldPoint(landingWorld, entrySpeed, "");
-
-        if (shieldHealth == null)
-            shieldHealth = GetComponentInChildren<BossShieldHealth>();
-
-        if (shieldHealth == null)
-            queen.SetDamageableAnchor(damageableAnchorCell);
         
+        queen.SetDamageableAnchor(damageableAnchorCell);
+
         queen.SetContactColliderActive(true);
-        
+
         // Cinemachine Impulse shake
         if (queen.DamageShakeForce > 0f && queen.AllowDamageShake)
             CameraShake.Instance?.Shake(queen.DamageShakeForce);
 
         activeMeleePowerup = TrySpawnPowerup(context);
 
-        BindShield(queen);
+        queen.BindShield();
 
         while (queen.State != BossControllerBase.BossState.Dead &&
                context.health != null &&
@@ -158,13 +181,8 @@ public class VampireQueenMeteorFieldAction : BossAction
 
             EnsureMeleePowerup(context);
         }
-
-        queen.SetContactColliderActive(false);
-        if (shieldHealth == null)
-            queen.ClearDamageableAnchor();
-        queen.SetDirectDamageEnabled(false);
-        UnbindShield();
     }
+
 
     private void ResolveLandingAnchor(BossContext context, VampireQueenBossController queen)
     {
@@ -186,40 +204,6 @@ public class VampireQueenMeteorFieldAction : BossAction
         }
 
         damageableAnchorCell = context.grid.WorldToCell(queen.transform.position);
-    }
-
-    private void BindShield(VampireQueenBossController queen)
-    {
-        if (shieldHealth == null)
-            shieldHealth = GetComponentInChildren<BossShieldHealth>();
-
-        if (shieldHealth == null)
-        {
-            queen.SetDirectDamageEnabled(true);
-            return;
-        }
-
-        queen.SetDirectDamageEnabled(shieldHealth.IsBroken);
-
-        shieldHealth.OnShieldBroken += HandleShieldBroken;
-    }
-
-    private void UnbindShield()
-    {
-        if (shieldHealth == null)
-            return;
-
-        shieldHealth.OnShieldBroken -= HandleShieldBroken;
-    }
-
-    private void HandleShieldBroken()
-    {
-        if (shieldRoot != null)
-            shieldRoot.SetActive(false);
-
-        var queen = GetComponent<VampireQueenBossController>();
-        if (queen != null)
-            queen.SetDirectDamageEnabled(true);
     }
 
     private bool TryPickMeteorTarget(BossContext context, out Vector3Int targetCell)
@@ -338,6 +322,30 @@ public class VampireQueenMeteorFieldAction : BossAction
 
         return null;
     }
+    
+    private IEnumerator HueShiftLoop(ColorAdjustments color, float min, float max, float cycleSeconds,
+        System.Func<bool> keepRunning)
+    {
+        // Ensure override participates in blending
+        color.active = true;
+
+        // Make sure Hue Shift is overridden (so our values apply even if the profile has it unchecked)
+        color.hueShift.overrideState = true;
+
+        float t = 0f;
+        float dur = Mathf.Max(0.01f, cycleSeconds);
+
+        while (keepRunning())
+        {
+            t += Time.deltaTime;
+            // 0..1..0 over time
+            float a = Mathf.PingPong(t / dur, 1f);
+            float value = Mathf.Lerp(min, max, a);
+            color.hueShift.Override(value);
+            yield return null;
+        }
+    }
+
 
     private void RebuildUntargetableCells(BossContext context)
     {

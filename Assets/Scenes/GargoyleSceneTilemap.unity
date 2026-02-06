@@ -1468,6 +1468,55 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 443266060}
   m_CullTransparentMesh: 1
+--- !u!1 &494459004
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 494459006}
+  - component: {fileID: 494459005}
+  m_Layer: 0
+  m_Name: Global Volume
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &494459005
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 494459004}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 172515602e62fb746b5d573b38a5fe58, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.RenderPipelines.Core.Runtime::UnityEngine.Rendering.Volume
+  m_IsGlobal: 1
+  priority: 0
+  blendDistance: 0
+  weight: 1
+  sharedProfile: {fileID: 11400000, guid: 8c5c81fe3e6cf4392879ae668aa30091, type: 2}
+--- !u!4 &494459006
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 494459004}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 14.9813, y: 2.5203173, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &519420028
 GameObject:
   m_ObjectHideFlags: 0
@@ -1520,7 +1569,7 @@ MonoBehaviour:
     m_Bits: 1
   m_VolumeTrigger: {fileID: 0}
   m_VolumeFrameworkUpdateModeOption: 2
-  m_RenderPostProcessing: 0
+  m_RenderPostProcessing: 1
   m_Antialiasing: 0
   m_AntialiasingQuality: 2
   m_StopNaN: 0
@@ -7931,6 +7980,7 @@ GameObject:
   - component: {fileID: 1255325479}
   - component: {fileID: 1255325485}
   - component: {fileID: 1255325482}
+  - component: {fileID: 1255325486}
   - component: {fileID: 1255325480}
   - component: {fileID: 1255325484}
   - component: {fileID: 1255325483}
@@ -7974,7 +8024,7 @@ MonoBehaviour:
   maxHP: 9
   startingHP: 9
   damagePerHit: 1
-  phase2Threshold: 0.66
+  phase2Threshold: 0.72
   phase3Threshold: 0.33
 --- !u!114 &1255325482
 MonoBehaviour:
@@ -7993,12 +8043,15 @@ MonoBehaviour:
   spriteRenderer: {fileID: 631129086}
   grid: {fileID: 1618167678}
   player: {fileID: 1220055606}
+  postFx: {fileID: 1255325486}
   spriteFacesLeftByDefault: 1
   actions: []
   autoCollectActions: 1
   footprintSize: {x: 2, y: 2}
   drawFootprintGizmos: 1
   drawFootprintLabels: 1
+  shieldHealth: {fileID: 0}
+  shieldRoot: {fileID: 0}
   allowDamageShake: 1
   damageShakeForce: 0.8
   damageFlashColor: {r: 1, g: 1, b: 1, a: 0.11764706}
@@ -8065,7 +8118,7 @@ MonoBehaviour:
   postThrowRecoverTime: 0.25
   betweenBombMoveDelay: 0.15
   shapeDropChance: 0.9
-  bombTelegraphColor: {r: 1, g: 0.2, b: 0.2, a: 0.9}
+  bombTelegraphColor: {r: 1, g: 0, b: 0, a: 0.9}
   throwBombAnimationTrigger: ThrowBomb
   idleAnimationTrigger: Idle
 --- !u!61 &1255325485
@@ -8114,6 +8167,20 @@ BoxCollider2D:
   m_AutoTiling: 0
   m_Size: {x: 1, y: 1.5}
   m_EdgeRadius: 0
+--- !u!114 &1255325486
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1255325477}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 718c648db0b184367a7dd407df66cd8b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::BossPostFxController
+  volume: {fileID: 494459005}
+  baseProfile: {fileID: 11400000, guid: 8c5c81fe3e6cf4392879ae668aa30091, type: 2}
 --- !u!1 &1345068180
 GameObject:
   m_ObjectHideFlags: 0
@@ -10253,6 +10320,7 @@ SceneRoots:
   m_ObjectHideFlags: 0
   m_Roots:
   - {fileID: 619394802}
+  - {fileID: 494459006}
   - {fileID: 1220055603}
   - {fileID: 1255325479}
   - {fileID: 415145364}

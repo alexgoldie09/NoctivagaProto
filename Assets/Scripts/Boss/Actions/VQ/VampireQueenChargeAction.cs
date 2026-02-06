@@ -131,7 +131,9 @@ public class VampireQueenChargeAction : BossAction
 
         if (tookTrapDamage)
         {
-            queen.AdvanceMicroPhase();
+            if(queen.BossHealth.CurrentPhase == BossPhase.Phase2)
+                queen.AdvanceMicroPhase();
+            
             queen.SetState(BossControllerBase.BossState.Hurt);
             if (!string.IsNullOrEmpty(hurtAnimationTrigger))
                 queen.PlayAnimation(hurtAnimationTrigger);

@@ -215,6 +215,8 @@ public class GargoyleBossController : BossControllerBase
     /// </summary>
     protected override void OnBossDeathStarted()
     {
+        postFx?.DisableAllOverrides(keepBloom: true);
+
         ClearBossTelegraphsAndStop();
     }
 
@@ -223,6 +225,8 @@ public class GargoyleBossController : BossControllerBase
     /// </summary>
     protected override void OnPlayerDeathStarted()
     {
+        postFx?.DisableAllOverrides(keepBloom: true);
+
         ClearBossTelegraphsAndStop();
     }
 

@@ -11,4 +11,6 @@ public class BossContext
     public PlayerController player;
     public Animator animator;
     public SpriteRenderer spriteRenderer;
+    public BossPostFxController postFx;
+    public BossShieldHealth shieldHealth;
 }

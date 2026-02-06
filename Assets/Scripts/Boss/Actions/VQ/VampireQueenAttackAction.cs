@@ -111,8 +111,10 @@ public class VampireQueenAttackAction : BossAction
         }
 
         queen.EndVulnerability();
-        if (queen.VulnerabilityHit)
+        
+        if (queen.VulnerabilityHit && queen.BossHealth.CurrentPhase == BossPhase.Phase1)
             queen.AdvanceMicroPhase();
+        
         queen.SetContactColliderActive(false);
 
         if (queen.VulnerabilityHit && retreatDelay > 0f)
