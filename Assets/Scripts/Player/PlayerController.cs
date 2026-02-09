@@ -21,6 +21,7 @@ public class PlayerController : MonoBehaviour
     [SerializeField] private InputActionReference placeActionRef;
     [SerializeField] private InputActionReference rotateActionRef;      // float axis
     [SerializeField] private InputActionReference cycleShapeActionRef;  // float axis
+    [SerializeField] private InputActionReference pauseActionRef;
     
     [Header("Melee Powerup")]
     [SerializeField] private GameObject meleeSwingPrefab;
@@ -32,6 +33,23 @@ public class PlayerController : MonoBehaviour
     [Header("Fog VFX")]
     [SerializeField] private VisualEffect fogVFX;
     [SerializeField] private Vector3 fogCenterOffset = new (4f, 1f, 0f);
+    
+    [Header("Death Explosion")]
+    [Tooltip("Body part prefabs to spawn when the player dies. Each prefab should have a Rigidbody2D.")]
+    [SerializeField] private GameObject[] deathPartPrefabs;
+    [Tooltip("The particle effect for the death explosion.")]
+    [SerializeField] private GameObject deathVfxPrefab;
+    [Tooltip("How many seconds the spawned parts should exist before being destroyed.")]
+    [SerializeField] private float deathPartLifetime = 3.5f;
+    [Tooltip("Impulse force range applied to each spawned part.")]
+    [SerializeField] private Vector2 deathPartForceRange = new(3.5f, 6.5f);
+    [Tooltip("Random torque range applied to each spawned part.")]
+    [SerializeField] private Vector2 deathPartTorqueRange = new(40f, 140f);
+    [Tooltip("Small random spawn offset from the player's center.")]
+    [SerializeField] private float deathPartSpawnRadius = 0.05f;
+    [Tooltip("If true, will also hide the player sprite/anim immediately when spawning parts.")]
+    [SerializeField] private bool hideBodyOnDeath = true;
+
 
     private InputAction moveAction;
     private InputAction interactAction;
@@ -40,6 +58,7 @@ public class PlayerController : MonoBehaviour
     private InputAction placeAction;
     private InputAction rotateAction;
     private InputAction cycleShapeAction;
+    private InputAction pauseAction;
 
     private Vector3Int cellPos;
     private Vector2Int lastDirection = Vector2Int.right;
@@ -57,6 +76,9 @@ public class PlayerController : MonoBehaviour
 
     // Facing state
     public bool FacingRight { get; private set; } = true;
+    
+    // Death state
+    public bool IsDead { get; private set; } = false;
 
     // Void reset VFX fields
     [Header("Void Fall Reset")]
@@ -110,9 +132,12 @@ public class PlayerController : MonoBehaviour
     /// </summary>
     private void Update()
     {
+        if (pauseAction == null && Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame)
+            TogglePause();
+        
         // Stop player input if game is frozen
         // Temporary fallback if you haven't wired interact yet
-        if (Utilities.IsGameFrozen || isResetting) 
+        if (Utilities.IsGameFrozen || isResetting || IsDead) 
             return;
         
         // Move fog vfx with player
@@ -180,6 +205,14 @@ public class PlayerController : MonoBehaviour
             cycleShapeAction.performed += OnCycleShapePerformed;
             cycleShapeAction.Enable();
         }
+        
+        // PAUSE TOGGLE
+        if (pauseActionRef != null)
+        {
+            pauseAction = pauseActionRef.action;
+            pauseAction.performed += OnPausePerformed;
+            pauseAction.Enable();
+        }
     }
 
     /// <summary>
@@ -234,6 +267,14 @@ public class PlayerController : MonoBehaviour
             cycleShapeAction.Disable();
             cycleShapeAction = null;
         }
+        
+        // PAUSE TOGGLE
+        if (pauseAction != null)
+        {
+            pauseAction.performed -= OnPausePerformed;
+            pauseAction.Disable();
+            pauseAction = null;
+        }
     }
     #endregion
     // ─────────────────────────────────────────────
@@ -244,7 +285,7 @@ public class PlayerController : MonoBehaviour
     /// <param name="ctx">Input callback context.</param>
     private void OnMovePerformed(InputAction.CallbackContext ctx)
     {
-        if (Utilities.IsGameFrozen || isResetting) 
+        if (Utilities.IsGameFrozen || isResetting || IsDead) 
             return;
 
         Vector2 v = ctx.ReadValue<Vector2>();
@@ -268,10 +309,24 @@ public class PlayerController : MonoBehaviour
     /// <param name="ctx">Input callback context.</param>
     private void OnInteractPerformed(InputAction.CallbackContext ctx)
     {
-        if (Utilities.IsGameFrozen || isResetting) 
+        if (Utilities.IsGameFrozen || isResetting || IsDead) 
             return;
         
         TryInteract();
+    }
+    
+    /// <summary>
+    /// Handles pause input and toggles the pause menu.
+    /// </summary>
+    private void OnPausePerformed(InputAction.CallbackContext ctx)
+    {
+        TogglePause();
+    }
+
+    private void TogglePause()
+    {
+        if (GameManager.Instance != null)
+            GameManager.Instance.TogglePause();
     }
 
     /// <summary>
@@ -300,7 +355,7 @@ public class PlayerController : MonoBehaviour
     /// <param name="ctx">Input callback context.</param>
     private void OnPlacementModePerformed(InputAction.CallbackContext ctx)
     {
-        if (Utilities.IsGameFrozen || isResetting || isMeleePowerupActive) 
+        if (Utilities.IsGameFrozen || isResetting || isMeleePowerupActive || IsDead) 
             return;
         
         shapePlacer?.TogglePlacementMode();
@@ -312,7 +367,7 @@ public class PlayerController : MonoBehaviour
     /// <param name="ctx">Input callback context.</param>
     private void OnPlacePerformed(InputAction.CallbackContext ctx)
     {
-        if (Utilities.IsGameFrozen || isResetting) 
+        if (Utilities.IsGameFrozen || isResetting || IsDead) 
             return;
         
         if (isMeleePowerupActive)
@@ -330,7 +385,7 @@ public class PlayerController : MonoBehaviour
     /// <param name="ctx">Input callback context.</param>
     private void OnRotatePerformed(InputAction.CallbackContext ctx)
     {
-        if (Utilities.IsGameFrozen || isResetting) 
+        if (Utilities.IsGameFrozen || isResetting || IsDead) 
             return;
         
         if (shapePlacer == null) 
@@ -353,7 +408,7 @@ public class PlayerController : MonoBehaviour
     /// <param name="ctx">Input callback context.</param>
     private void OnCycleShapePerformed(InputAction.CallbackContext ctx)
     {
-        if (Utilities.IsGameFrozen || isResetting) 
+        if (Utilities.IsGameFrozen || isResetting || IsDead) 
             return;
         
         if (shapePlacer == null) 
@@ -637,6 +692,74 @@ public class PlayerController : MonoBehaviour
         yield return new WaitForSeconds(delay);
         transform.localScale = initialScale;
         isResetting = false;
+    }
+    #endregion
+    // ─────────────────────────────────────────────
+    #region Death
+    /// <summary>
+    /// Hides the player body (sprite + animator). Useful for death flows where you want to show
+    /// other effects (e.g. exploding parts) without keeping the player visible.
+    /// </summary>
+    public void HideBody()
+    {
+        if (sr != null)
+            sr.enabled = false;
+
+        if (anim != null)
+            anim.enabled = false;
+    }
+
+    /// <summary>
+    /// Spawns the configured body part prefabs at the player's position and applies a random
+    /// physics impulse + torque to each.
+    /// </summary>
+    public void SpawnDeathParts()
+    {
+        if (hideBodyOnDeath)
+            HideBody();
+        
+        IsDead = true;
+
+        if (deathPartPrefabs == null || deathPartPrefabs.Length == 0)
+            return;
+
+        Vector3 origin = transform.position;
+
+        for (int i = 0; i < deathPartPrefabs.Length; i++)
+        {
+            var prefab = deathPartPrefabs[i];
+            if (prefab == null)
+                continue;
+
+            Vector2 randomOffset = Random.insideUnitCircle * deathPartSpawnRadius;
+            Vector3 spawnPos = origin + new Vector3(randomOffset.x, randomOffset.y, 0f);
+
+            GameObject part = Instantiate(prefab, spawnPos, Quaternion.identity);
+
+            Rigidbody2D partRb = part.GetComponent<Rigidbody2D>();
+            if (partRb != null)
+            {
+                // Random direction (slightly biased upward so it reads as an "explosion")
+                Vector2 dir = Random.insideUnitCircle;
+                dir.y = Mathf.Abs(dir.y) + 0.15f;
+                if (dir.sqrMagnitude < 0.0001f)
+                    dir = Vector2.up;
+                dir.Normalize();
+
+                float force = Random.Range(deathPartForceRange.x, deathPartForceRange.y);
+                partRb.AddForce(dir * force, ForceMode2D.Impulse);
+
+                float torque = Random.Range(deathPartTorqueRange.x, deathPartTorqueRange.y);
+                if (Random.value < 0.5f) torque *= -1f;
+                partRb.AddTorque(torque, ForceMode2D.Impulse);
+            }
+
+            if (deathPartLifetime > 0f)
+                Destroy(part, deathPartLifetime);
+        }
+        
+        if (deathVfxPrefab != null)
+            Instantiate(deathVfxPrefab, origin, Quaternion.identity);
     }
     #endregion
     // ─────────────────────────────────────────────

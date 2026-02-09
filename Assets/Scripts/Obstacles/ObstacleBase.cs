@@ -10,6 +10,7 @@ public abstract class ObstacleBase : MonoBehaviour
     [Header("Interact Prompt")]
     [SerializeField, TextArea] private string interactPrompt = "Press Interact";
     [SerializeField] private WorldPromptBubble promptBubble;
+    [SerializeField] private bool allowPrompt = true;
     
     protected TilemapGridManager grid;
     protected SpriteRenderer sr;
@@ -80,7 +81,7 @@ public abstract class ObstacleBase : MonoBehaviour
 
     public virtual void ShowPrompt(PlayerController player)
     {
-        if (promptBubble != null)
+        if (promptBubble != null && allowPrompt)
             promptBubble.Show(GetInteractPrompt(player));
     }
 

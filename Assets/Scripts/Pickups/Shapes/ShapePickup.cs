@@ -13,6 +13,22 @@ public class ShapePickup : MonoBehaviour
     [Header("Shape Pickup")]
     [SerializeField] private TetrisShapeData shapeData;
     [SerializeField] private int amount = 1;
+    
+    [Header("Bobbing")]
+    [Tooltip("If enabled, the pickup will bob up and down.")]
+    [SerializeField] private bool enableBobbing = true;
+
+    [Tooltip("How high the bob moves (world units).")]
+    [SerializeField] private float bobAmplitude = 0.1f;
+
+    [Tooltip("How fast the bob cycles (cycles per second).")]
+    [SerializeField] private float bobFrequency = 0.4f;
+
+    [Tooltip("Randomizes the bob start so multiple pickups don't move in sync.")]
+    [SerializeField] private bool randomizePhase = true;
+
+    private Vector3 baseWorldPos;
+    private float phaseOffset;
 
     private void Start()
     {
@@ -30,6 +46,24 @@ public class ShapePickup : MonoBehaviour
 
         Vector3Int cell = grid.WorldToCell(transform.position);
         transform.position = grid.CellToWorldCenter(cell);
+        
+        // Cache snapped base position for bobbing.
+        baseWorldPos = transform.position;
+
+        if (randomizePhase)
+            phaseOffset = Random.Range(0f, Mathf.PI * 2f);
+    }
+    
+    private void Update()
+    {
+        if (!enableBobbing)
+            return;
+
+        // Sin wave in world-space (keeps it simple).
+        float t = Time.time * bobFrequency * Mathf.PI * 2f + phaseOffset;
+        float yOffset = Mathf.Sin(t) * bobAmplitude;
+
+        transform.position = baseWorldPos + (Vector3.up * yOffset);
     }
 
     private void OnTriggerEnter2D(Collider2D other)

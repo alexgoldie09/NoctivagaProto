@@ -298,7 +298,7 @@ public abstract class EnemyBase : MonoBehaviour
     /// </summary>
     protected void OnPlayerContact()
     {
-        if (player != null && player.IsShadowMode)
+        if (player.IsShadowMode || player.IsDead)
             return;
         
         if (GameManager.Instance != null)

@@ -183,5 +183,15 @@ public class ScoreManager : MonoBehaviour
         feedbackText.color = color;
         feedbackTimer = feedbackDuration; // reset timer
     }
+    
+    /// <summary>
+    /// Provides access to the live score label for UI composition.
+    /// </summary>
+    public TextMeshProUGUI ScoreTextUI => scoreText;
+
+    /// <summary>
+    /// Provides access to the live move counter label for UI composition.
+    /// </summary>
+    public TextMeshProUGUI MoveTextUI => moveText;
     #endregion
 }

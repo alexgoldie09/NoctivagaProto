@@ -13,6 +13,7 @@ public class BeatBarUI : MonoBehaviour
 
     [Header("Heart Visuals")]
     [SerializeField] private Image heartImage;         // Central heart that pulses
+    [SerializeField] private Animator heartPulseAnim;
     [SerializeField] private Image glowImage;          // Optional glow behind heart
 
     [Header("Pulse Settings")]
@@ -70,6 +71,9 @@ public class BeatBarUI : MonoBehaviour
                 heartImage.rectTransform.localScale = Vector3.Lerp(pulseScale, originalScale, t);
                 heartImage.color = Color.Lerp(pulseColor, originalHeartColor, t);
             }
+            
+            if (heartPulseAnim != null)
+                heartPulseAnim.SetBool("OnBeat", true);
 
             if (glowImage != null)
                 glowImage.color = Color.Lerp(glowColor, originalGlowColor, t);
@@ -81,6 +85,9 @@ public class BeatBarUI : MonoBehaviour
                 heartImage.rectTransform.localScale = originalScale;
                 heartImage.color = originalHeartColor;
             }
+            
+            if (heartPulseAnim != null)
+                heartPulseAnim.SetBool("OnBeat", false);
 
             if (glowImage != null)
                 glowImage.color = originalGlowColor;

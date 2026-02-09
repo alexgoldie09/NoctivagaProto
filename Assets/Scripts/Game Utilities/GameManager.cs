@@ -1,5 +1,7 @@
 using UnityEngine;
 using System.Collections;
+using TMPro;
+using UnityEngine.UI;
 
 /// <summary>
 /// Central game flow manager.
@@ -27,10 +29,18 @@ public class GameManager : MonoBehaviour
     [SerializeField] private GameObject winScreenUI;
     [Tooltip("Reference to the Death Screen UI canvas (pre-placed, disabled by default).")]
     [SerializeField] private GameObject deathScreenUI;
+    [Tooltip("Optional existing pause menu root. If left empty, GameManager creates one at runtime.")]
+    [SerializeField] private GameObject pauseMenuUI;
+    [Tooltip("Optional explicit quit button to place in the pause menu.")]
+    [SerializeField] private Button pauseQuitButton;
+    [Tooltip("Boss HUD root that should be hidden while paused (boss levels only).")]
+    [SerializeField] private GameObject bossHUD;
     
     // Track currently active powerup
     private PowerupPickup.PowerupType? activePowerup = null;
     private Coroutine activePowerupRoutine = null;
+    private bool isPauseMenuOpen;
+    private bool isGameEnded;
     
     /// <summary>
     /// Establishes the singleton instance and resolves the player reference.
@@ -43,6 +53,7 @@ public class GameManager : MonoBehaviour
             Destroy(gameObject);
         
         player = FindFirstObjectByType<PlayerController>();
+        SetPauseMenuVisible(false);
     }
     // ─────────────────────────────────────────────
     #region Lose handling
@@ -55,12 +66,18 @@ public class GameManager : MonoBehaviour
         if (player == null) 
             return;
         
+        if (player.IsDead)
+            return;
+        
         // Get shape placer and clear previews
         ShapePlacer shapePlacer = player.GetShapePlacer;
         shapePlacer?.ClearPreview();
 
         // Hide player object
         player.ClearMeleePreview();
+        player.SpawnDeathParts();
+
+        // Deactivate after spawning parts
         player.gameObject.SetActive(false);
         
         // Hide Boss HUD (if it exists)
@@ -68,7 +85,7 @@ public class GameManager : MonoBehaviour
         boss?.NotifyPlayerDied();
 
         // Start delayed death screen
-        StartCoroutine(ShowDeathScreenAfterDelay(3f)); // 3 second delay before UI fade
+        StartCoroutine(ShowDeathScreenAfterDelay(5f)); // 5 second delay before UI fade
     }
 
     /// <summary>
@@ -81,6 +98,8 @@ public class GameManager : MonoBehaviour
 
         // Freeze game
         Utilities.FreezeGame();
+        isGameEnded = true;
+        SetPauseMenuVisible(false);
         
         // Pause rhythm/music
         if (RhythmManager.Instance != null)
@@ -112,6 +131,8 @@ public class GameManager : MonoBehaviour
 
         // Freeze gameplay
         Utilities.FreezeGame();
+        isGameEnded = true;
+        SetPauseMenuVisible(false);
 
         // Pause rhythm/music
         if (RhythmManager.Instance != null)
@@ -134,6 +155,8 @@ public class GameManager : MonoBehaviour
 
         // Freeze gameplay
         Utilities.FreezeGame();
+        isGameEnded = true;
+        SetPauseMenuVisible(false);
 
         // Pause rhythm/music (optional for bosses, but consistent)
         if (RhythmManager.Instance != null)
@@ -142,6 +165,49 @@ public class GameManager : MonoBehaviour
         // Show Win Screen
         if (winScreenUI != null)
             winScreenUI.SetActive(true);
+    }
+    #endregion
+    // ─────────────────────────────────────────────
+    #region Pause handling
+    /// <summary>
+    /// Toggles pause state using freeze/unfreeze utilities and pause menu visibility.
+    /// </summary>
+    public void TogglePause()
+    {
+        if (isGameEnded)
+            return;
+
+        if (isPauseMenuOpen)
+            ResumeGame();
+        else
+            PauseGame();
+    }
+
+    private void PauseGame()
+    {
+        SetBossHudVisible(false);
+        Utilities.FreezeGame();
+        SetPauseMenuVisible(true);
+    }
+
+    private void ResumeGame()
+    {
+        SetBossHudVisible(true);
+        Utilities.UnfreezeGame();
+        SetPauseMenuVisible(false);
+    }
+    
+    private void SetBossHudVisible(bool isVisible)
+    {
+        if (bossHUD != null)
+            bossHUD.SetActive(isVisible);
+    }
+
+    private void SetPauseMenuVisible(bool isVisible)
+    {
+        isPauseMenuOpen = isVisible;
+        if (pauseMenuUI != null)
+            pauseMenuUI.SetActive(isVisible);
     }
     #endregion
     // ─────────────────────────────────────────────

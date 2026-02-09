@@ -90,7 +90,7 @@ SpriteRenderer:
   m_SortingLayerID: 1715175555
   m_SortingLayer: 1
   m_SortingOrder: 0
-  m_Sprite: {fileID: 1843850012483549754, guid: 97d5ce53f3ac76e4888319c6a53c7ff3, type: 3}
+  m_Sprite: {fileID: 1271583087773419049, guid: b7fefb40810444048943dc6bd03219a1, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
   m_FlipY: 0
@@ -120,6 +120,7 @@ MonoBehaviour:
   placeActionRef: {fileID: 58969268389620060, guid: 2bcd2660ca9b64942af0de543d8d7100, type: 3}
   rotateActionRef: {fileID: 1620235837802644079, guid: 2bcd2660ca9b64942af0de543d8d7100, type: 3}
   cycleShapeActionRef: {fileID: 5261442723973694009, guid: 2bcd2660ca9b64942af0de543d8d7100, type: 3}
+  pauseActionRef: {fileID: 8394591892177660538, guid: 2bcd2660ca9b64942af0de543d8d7100, type: 3}
   meleeSwingPrefab: {fileID: 2360655870356088562, guid: 57a776ff377f3c44e8403e2067a4d41f, type: 3}
   meleeHitVfxPrefab: {fileID: 3432958286849152088, guid: 87ee7299dd44ed747af24dbb91bcd33b, type: 3}
   meleeHitVfxDelay: 0.05
@@ -127,6 +128,18 @@ MonoBehaviour:
   meleeInvalidColor: {r: 1, g: 0, b: 0, a: 0.5}
   fogVFX: {fileID: 0}
   fogCenterOffset: {x: -4, y: 1, z: 0}
+  deathPartPrefabs:
+  - {fileID: 4462349405385404682, guid: 8a208a33aeb984e2db4e6a5f609667af, type: 3}
+  - {fileID: 3474926463072737255, guid: 8e68019b55508411c9eb37886d8b64e9, type: 3}
+  - {fileID: 2164755431330012710, guid: 197bb3596df2b46c9a92d757c00ee86d, type: 3}
+  - {fileID: 530955605951533096, guid: 1c0ab26bd57d943bd977ba835155a583, type: 3}
+  - {fileID: 3421296715931727913, guid: 5943495a5f8a8466aa50f64f26dd5685, type: 3}
+  deathVfxPrefab: {fileID: 4553287630450876385, guid: 15483e51212e3d74886ea57291f4639a, type: 3}
+  deathPartLifetime: 3.5
+  deathPartForceRange: {x: 1.5, y: 3.5}
+  deathPartTorqueRange: {x: 15, y: 10}
+  deathPartSpawnRadius: 0.05
+  hideBodyOnDeath: 1
   voidFallDuration: 0.3
   voidFallDropDistance: 0.1
   voidShakeForce: 0.7
@@ -220,7 +233,7 @@ BoxCollider2D:
   m_SpriteTilingProperty:
     border: {x: 0, y: 0, z: 0, w: 0}
     pivot: {x: 0.5, y: 0.5}
-    oldSize: {x: 1, y: 1}
+    oldSize: {x: 0.61333334, y: 1.04}
     newSize: {x: 1, y: 1}
     adaptiveTilingThreshold: 0.5
     drawMode: 0
