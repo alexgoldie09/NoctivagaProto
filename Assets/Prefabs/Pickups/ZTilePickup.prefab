@@ -12,7 +12,6 @@ GameObject:
   - component: {fileID: 3951813022402383923}
   - component: {fileID: 3795420658356242067}
   - component: {fileID: 6455033083827875434}
-  - component: {fileID: -5858670530053038944}
   m_Layer: 0
   m_Name: ZTilePickup
   m_TagString: Untagged
@@ -153,16 +152,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ShapePickup
   shapeData: {fileID: 11400000, guid: 383598a9e916547f8b9c6abecf410918, type: 2}
   amount: 1
---- !u!114 &-5858670530053038944
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6316603084653548451}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: fba7b7649f5234f9f98ce7a5ece4dd86, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::SelfDestroy
+  enableBobbing: 1
+  bobAmplitude: 0.1
+  bobFrequency: 0.4
+  randomizePhase: 1
+  enableSelfDestruct: 1
   destroyDelay: 6

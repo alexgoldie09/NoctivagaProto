@@ -32,6 +32,12 @@ public class PowerupPickup : MonoBehaviour
 
     [Tooltip("Randomizes the bob start so multiple pickups don't move in sync.")]
     [SerializeField] private bool randomizePhase = true;
+    
+    [Header("Self Destruct Settings")]
+    [Tooltip("Is this pickup able to destroy itself.")]
+    [SerializeField] private bool enableSelfDestruct = true;
+    [Tooltip("Time for the effect or object to destroy itself.")]
+    [SerializeField] float destroyDelay = 1.5f; 
 
     private Vector3 baseWorldPos;
     private float phaseOffset;
@@ -56,6 +62,9 @@ public class PowerupPickup : MonoBehaviour
 
         if (randomizePhase)
             phaseOffset = Random.Range(0f, Mathf.PI * 2f);
+        
+        if(enableSelfDestruct)
+            Destroy(gameObject, destroyDelay);
     }
 
     private void Update()

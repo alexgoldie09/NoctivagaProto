@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Rendering.Universal;
 
 /// <summary>
 /// Obstacle that toggles displays info tips.
@@ -9,6 +10,9 @@ public class InfoObstacle : ObstacleBase
     [Header("Info Visuals")]
     [SerializeField] private Sprite infoOffSprite;
     [SerializeField] private Sprite infoOnSprite;
+    
+    [Header("Info Lighting")]
+    [SerializeField] private Light2D infoLight;
 
     private bool isOn = false;
 
@@ -19,6 +23,12 @@ public class InfoObstacle : ObstacleBase
     {
         sr = GetComponent<SpriteRenderer>();
         ApplyInfoVisual();
+
+        if (infoLight != null)
+        {
+            infoLight.intensity = isOn ? 1.5f : 0f;
+        }
+
     }
 
     /// <summary>
@@ -69,6 +79,11 @@ public class InfoObstacle : ObstacleBase
         if (sr == null) return;
 
         sr.sprite = isOn ? infoOnSprite : infoOffSprite;
+        
+        if (infoLight != null)
+        {
+            infoLight.intensity = isOn ? 1.5f : 0f;
+        }
 
         if (sr.sprite == null)
             Debug.LogWarning($"[InfoObstacle] Missing info sprite (isOn={isOn}) on {name}", this);

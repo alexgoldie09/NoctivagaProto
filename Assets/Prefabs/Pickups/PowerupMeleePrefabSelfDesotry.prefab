@@ -13,7 +13,6 @@ GameObject:
   - component: {fileID: 7999143423556917147}
   - component: {fileID: 2823716518909951557}
   - component: {fileID: 7073792822887892233}
-  - component: {fileID: 6454254835456384208}
   m_Layer: 0
   m_Name: PowerupMeleePrefabSelfDesotry
   m_TagString: Untagged
@@ -180,16 +179,5 @@ MonoBehaviour:
   bobAmplitude: 0.1
   bobFrequency: 0.4
   randomizePhase: 1
---- !u!114 &6454254835456384208
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6900944766368959750}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: fba7b7649f5234f9f98ce7a5ece4dd86, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::SelfDestroy
+  enableSelfDestruct: 1
   destroyDelay: 6

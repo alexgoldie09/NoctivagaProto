@@ -156,3 +156,5 @@ MonoBehaviour:
   bobAmplitude: 0.1
   bobFrequency: 0.4
   randomizePhase: 1
+  enableSelfDestruct: 1
+  destroyDelay: 6

@@ -12,7 +12,6 @@ GameObject:
   - component: {fileID: 7626240292445464630}
   - component: {fileID: 7434192363551421059}
   - component: {fileID: 5349342654606411172}
-  - component: {fileID: 2241602451818130433}
   m_Layer: 0
   m_Name: TTilePickup
   m_TagString: Untagged
@@ -153,16 +152,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ShapePickup
   shapeData: {fileID: 11400000, guid: f9d6e68d8c595455990cc217ca530ad6, type: 2}
   amount: 1
---- !u!114 &2241602451818130433
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 7138155428520585590}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: fba7b7649f5234f9f98ce7a5ece4dd86, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::SelfDestroy
+  enableBobbing: 1
+  bobAmplitude: 0.1
+  bobFrequency: 0.4
+  randomizePhase: 1
+  enableSelfDestruct: 1
   destroyDelay: 6

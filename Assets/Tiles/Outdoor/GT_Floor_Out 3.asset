@@ -10,9 +10,9 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 2f12577fff4b348a694a337437911686, type: 3}
-  m_Name: GT_Start
+  m_Name: GT_Floor_Out 3
   m_EditorClassIdentifier: Assembly-CSharp::GameTile
-  m_Sprite: {fileID: -2129843546, guid: d4172e516e49547de883b61d100a68cc, type: 3}
+  m_Sprite: {fileID: 1492885784, guid: 64a906fbc02964f46bf3c0760afdfebd, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_Transform:
     e00: 1
@@ -34,7 +34,7 @@ MonoBehaviour:
   m_InstancedGameObject: {fileID: 0}
   m_Flags: 0
   m_ColliderType: 0
-  kind: 2
+  kind: 0
   walkableByDefault: 1
   enterEffect: 0
   gateKeyID: 

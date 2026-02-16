@@ -12,7 +12,7 @@ EditorBuildSettings:
     path: Assets/Scenes/BaseScenes/LevelSceneTilemap.unity
     guid: 74c36a985e8654cf0ab1c5df9ed49290
   - enabled: 1
-    path: Assets/Scenes/GargoyleSceneTilemap.unity
+    path: Assets/Scenes/BossLevels/GargoyleSceneTilemap.unity
     guid: 71d1b336e911e4db9b139e798d4eef65
   m_configObjects:
     com.unity.input.settings.actions: {fileID: -944628639613478452, guid: 2bcd2660ca9b64942af0de543d8d7100, type: 3}
