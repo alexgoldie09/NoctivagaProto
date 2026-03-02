@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
@@ -44,6 +45,14 @@ public abstract class EnemyBase : MonoBehaviour
     [SerializeField] protected float voidDeathDuration = 0.25f;
     [Tooltip("How far the enemy sinks down while falling.")]
     [SerializeField] protected float voidDeathDropDistance = 0.25f;
+    
+    [Header("Death Reward")]
+    [Tooltip("If true, this enemy spawns a reward object when it dies.")]
+    [SerializeField] protected bool spawnsReward = false;
+    [Tooltip("Prefab spawned as a reward on death when Spawns Reward is enabled.")]
+    [SerializeField] protected GameObject rewardPrefab;
+    [Tooltip("Maximum search distance in cells for a safe reward spawn location.")]
+    [SerializeField] protected int rewardSpawnSearchRadius = 4;
 
     protected TilemapGridManager grid;
     protected PlayerController player;
@@ -53,6 +62,7 @@ public abstract class EnemyBase : MonoBehaviour
 
     private int localBeatCounter;
     private bool isDying;
+    private bool hasSpawnedReward;
     private Coroutine actionRoutine;
 
     // ─────────────────────────────────────────────────────────────
@@ -239,6 +249,7 @@ public abstract class EnemyBase : MonoBehaviour
 
         isDying = true;
         lethalOnContact = false;
+        TrySpawnDeathReward();
         Destroy(gameObject);
     }
 
@@ -273,7 +284,91 @@ public abstract class EnemyBase : MonoBehaviour
             yield return null;
         }
 
+        TrySpawnDeathReward();
         Destroy(gameObject);
+    }
+    
+    /// <summary>
+    /// Spawns a reward prefab at the nearest safe, player-reachable cell if configured.
+    /// </summary>
+    protected void TrySpawnDeathReward()
+    {
+        if (hasSpawnedReward || !spawnsReward || rewardPrefab == null || grid == null)
+            return;
+
+        Vector3Int spawnCell = FindNearestSafeRewardCell();
+        Vector3 spawnWorld = grid.CellToWorldCenter(spawnCell);
+        Instantiate(rewardPrefab, spawnWorld, Quaternion.identity);
+        hasSpawnedReward = true;
+    }
+
+    /// <summary>
+    /// Finds a safe spawn cell close to the enemy's current position.
+    /// Prioritizes direct neighbors first, then expands outward.
+    /// </summary>
+    private Vector3Int FindNearestSafeRewardCell()
+    {
+        Vector3Int origin = grid.WorldToCell(transform.position);
+        if (grid.CanEnterCell(origin))
+            return origin;
+
+        Vector3Int[] cardinalDirections =
+        {
+            new(1, 0, 0), new(-1, 0, 0),
+            new(0, 1, 0), new(0, -1, 0)
+        };
+
+        foreach (var dir in cardinalDirections)
+        {
+            Vector3Int neighbor = origin + dir;
+            if (grid.CanEnterCell(neighbor))
+                return neighbor;
+        }
+
+        Vector3Int[] diagonalDirections =
+        {
+            new(1, 1, 0), new(-1, 1, 0),
+            new(1, -1, 0), new(-1, -1, 0)
+        };
+
+        foreach (var dir in diagonalDirections)
+        {
+            Vector3Int neighbor = origin + dir;
+            if (grid.CanEnterCell(neighbor))
+                return neighbor;
+        }
+
+        int maxRadius = Mathf.Max(1, rewardSpawnSearchRadius);
+        var visited = new HashSet<Vector3Int> { origin };
+        var queue = new Queue<(Vector3Int cell, int dist)>();
+        queue.Enqueue((origin, 0));
+
+        Vector3Int[] allDirections =
+        {
+            new(1, 0, 0), new(-1, 0, 0), new(0, 1, 0), new(0, -1, 0),
+            new(1, 1, 0), new(-1, 1, 0), new(1, -1, 0), new(-1, -1, 0)
+        };
+
+        while (queue.Count > 0)
+        {
+            var (cell, dist) = queue.Dequeue();
+            if (dist >= maxRadius)
+                continue;
+
+            foreach (var dir in allDirections)
+            {
+                Vector3Int next = cell + dir;
+                if (!visited.Add(next))
+                    continue;
+
+                if (grid.CanEnterCell(next))
+                    return next;
+
+                queue.Enqueue((next, dist + 1));
+            }
+        }
+
+        return origin;
     }
     #endregion
     // ─────────────────────────────────────────────────────────────

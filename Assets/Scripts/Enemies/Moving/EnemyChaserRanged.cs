@@ -1,11 +1,11 @@
 using UnityEngine;
-using System.Linq;
+using System.Collections;
 
 /// <summary>
 /// A chasing enemy that moves toward the player and periodically fires a straight-line projectile.
 /// Uses the same grid movement rules as EnemyChaser but is not rhythm-bound when useRhythm is disabled.
 /// </summary>
-public class EnemyChaserRanged : EnemyBase
+public class EnemyChaserRanged : EnemyChaser
 {
     [Header("Ranged Attack")]
     [Tooltip("Projectile prefab to fire toward the player.")]
@@ -14,126 +14,116 @@ public class EnemyChaserRanged : EnemyBase
     [SerializeField] private int movesBeforeShot = 2;
     [Tooltip("Spawn transform for projectile.")]
     [SerializeField] private Transform projectileSpawn;
-
-    private SpriteRenderer spriteRenderer;
+    
+    [Header("Sprite Visuals")]
+    [SerializeField] private Sprite defaultShootSprite;
+    [SerializeField] private Sprite downShootSprite;
+    [SerializeField] private Sprite upShootSprite;
+    [SerializeField, Min(0f)] private float shootPoseDuration = 0.2f;
+    
     private int moveCounter;
-
-    /// <summary>
-    /// Initializes the ranged chaser sprite renderer reference.
-    /// </summary>
-    protected override void Start()
-    {
-        base.Start();
-        spriteRenderer = GetComponent<SpriteRenderer>();
-    }
-
+    private Coroutine shootPoseRoutine;
+    
     /// <summary>
     /// Moves toward the player or fires after enough moves.
     /// </summary>
     protected override void OnBeatAction()
     {
-        if (player == null || grid == null)
-            return;
-
         if (movesBeforeShot < 1)
             movesBeforeShot = 1;
 
         if (moveCounter >= movesBeforeShot)
         {
-            TryShootAtPlayer();
-            moveCounter = 0;
+            if (CanAttackPlayer())
+            {
+                TryShootAtPlayer();
+                moveCounter = 0;
+                return;
+            }
+
+            // If we are not allowed to shoot (shadow mode / out of range),
+            // keep moving with base behavior until the player is valid again.
+            base.OnBeatAction();
             return;
         }
 
-        TryChaseMove();
+        base.OnBeatAction();
         moveCounter++;
-
-        if (animator != null)
-            animator.SetTrigger("OnBeat");
-    }
-
-    private bool TryChaseMove()
-    {
-        // Shadow mode: wander
-        if (player.IsShadowMode)
-        {
-            Vector3Int[] dirs = { Vector3Int.up, Vector3Int.down, Vector3Int.left, Vector3Int.right };
-            dirs = dirs.OrderBy(_ => Random.value).ToArray();
-
-            foreach (var d in dirs)
-            {
-                if (TryMove(d))
-                {
-                    UpdateSpriteFacing(d);
-                    return true;
-                }
-            }
-
-            return false;
-        }
-
-        Vector3Int playerCell = player.CellPosition;
-        Vector3Int dir = GetChaseDirection(playerCell);
-        UpdateSpriteFacing(dir);
-
-        if (TryMove(dir))
-            return true;
-
-        Vector3Int altDir = GetAlternateDirection(playerCell, dir);
-        UpdateSpriteFacing(altDir);
-        return TryMove(altDir);
     }
 
     private void TryShootAtPlayer()
     {
-        if (projectilePrefab == null)
+        if (projectilePrefab == null || projectileSpawn == null)
             return;
-
-        Vector3Int playerCell = player.CellPosition;
-        Vector3Int dir = GetChaseDirection(playerCell);
-        UpdateSpriteFacing(dir);
+        
+        if (player == null || grid == null)
+            return;
+        
+        Vector3Int dir = GetChaseDirection(player.CellPosition);
+        
+        // Disable animator FIRST so it can't overwrite SpriteRenderer.sprite
+        HoldAnimatorOnShootPose();
+        
+        UpdateShootVisualDirection(dir);
 
         Vector2 direction = new Vector2(dir.x, dir.y);
 
         var projectile = Instantiate(projectilePrefab, projectileSpawn.position, Quaternion.identity);
         projectile.GetComponent<EnemyStraightProjectile>().Initialize(direction);
+    }
+
+    private void UpdateShootVisualDirection(Vector3Int dir)
+    {
+        if (spriteRenderer == null)
+            return;
+        
+        if (dir.y > 0 && upShootSprite != null)
+        {
+            spriteRenderer.sprite = upShootSprite;
+            spriteRenderer.flipX = false;
+            return;
+        }
+        
+        if (dir.y < 0 && downShootSprite != null)
+        {
+            spriteRenderer.sprite = downShootSprite;
+            spriteRenderer.flipX = false;
+            return;
+        }
+        
+        if (defaultShootSprite != null)
+            spriteRenderer.sprite = defaultShootSprite;
+        
+        UpdateSpriteFacing(dir);
+    }
+    
+    private void HoldAnimatorOnShootPose()
+    {
+        if (animator == null)
+            return;
+
+        if (shootPoseRoutine != null)
+            StopCoroutine(shootPoseRoutine);
+        
+        animator.enabled = false; 
+        
+        // While the shoot pose is active, don't let realtime facing fight our pose.
+        SetAutoFacingLocked(true);
+        
+        shootPoseRoutine = StartCoroutine(RestoreAnimatorSpeedAfterDelay());
+    }
+    
+    private IEnumerator RestoreAnimatorSpeedAfterDelay()
+    {
+        yield return new WaitForSeconds(shootPoseDuration);
 
         if (animator != null)
-            animator.SetTrigger("OnBeat");
-    }
-
-    private void UpdateSpriteFacing(Vector3Int dir)
-    {
-        if (spriteRenderer != null && dir.x != 0)
-            spriteRenderer.flipX = dir.x < 0;
-    }
-
-    /// <summary>
-    /// Chooses the primary direction to step toward the player
-    /// (the axis with the greater absolute distance).
-    /// </summary>
-    private Vector3Int GetChaseDirection(Vector3Int targetCell)
-    {
-        int dx = targetCell.x - cellPos.x;
-        int dy = targetCell.y - cellPos.y;
-
-        if (Mathf.Abs(dx) > Mathf.Abs(dy))
-            return dx > 0 ? Vector3Int.right : Vector3Int.left;
-
-        return dy > 0 ? Vector3Int.up : Vector3Int.down;
-    }
-
-    /// <summary>
-    /// Chooses the alternate direction (orthogonal axis) if the first choice is blocked.
-    /// </summary>
-    private Vector3Int GetAlternateDirection(Vector3Int targetCell, Vector3Int triedDir)
-    {
-        int dx = targetCell.x - cellPos.x;
-        int dy = targetCell.y - cellPos.y;
-
-        if (triedDir.x != 0)
-            return dy > 0 ? Vector3Int.up : Vector3Int.down;
-
-        return dx > 0 ? Vector3Int.right : Vector3Int.left;
+            animator.enabled = true;
+        
+        // Restore realtime facing after the pose ends
+        SetAutoFacingLocked(false);
+        RefreshFacingNow();
+        
+        shootPoseRoutine = null;
     }
 }

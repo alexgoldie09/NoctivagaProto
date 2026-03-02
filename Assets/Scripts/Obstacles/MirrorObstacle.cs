@@ -9,6 +9,15 @@ using UnityEngine;
 public class MirrorObstacle : ObstacleBase
 {
     /// <summary>
+    /// The type of mirror this gameobject is.
+    /// </summary>
+    public enum MirrorType
+    {
+        Reflector,
+        Emitter,
+        PuzzleRewarder
+    }
+    /// <summary>
     /// Cardinal diagonal directions for beam emission.
     /// </summary>
     public enum MirrorDirection
@@ -18,13 +27,22 @@ public class MirrorObstacle : ObstacleBase
         DownRight, // ↘
         DownLeft   // ↙
     }
+    
+    /// <summary>
+    /// Action to perform for puzzle rewarders
+    /// </summary>
+    public enum PuzzleRewardAction
+    {
+        SpawnPrefab,
+        ActivateObject
+    }
 
     [Header("Mirror Settings")]
     [SerializeField] private MirrorDirection direction = MirrorDirection.UpRight;
-
-    [Tooltip("If true, this mirror starts the beam chain on rebuild.")]
-    [SerializeField] private bool isEmitter = false;
-
+    
+    [Tooltip("Emitter starts beam chains, Reflector bounces beams, PuzzleRewarder ends the chain and can spawn a reward.")]
+    [SerializeField] private MirrorType mirrorType = MirrorType.Reflector;
+    
     [Tooltip("If false, this mirror will not emit even if it is hit.")]
     [SerializeField] private bool beamActive = true;
 
@@ -34,6 +52,18 @@ public class MirrorObstacle : ObstacleBase
     [Tooltip("If true, enemies touching the beam are killed instead of pushed away.")]
     [SerializeField] private bool killEnemiesOnBeam = false;
 
+    [Header("Puzzle Reward")]
+    [Tooltip("Choose whether this PuzzleRewarder spawns a prefab or activates an existing object.")]
+    [SerializeField] private PuzzleRewardAction puzzleRewardAction = PuzzleRewardAction.SpawnPrefab;
+    [Tooltip("Prefab to spawn when action is SpawnPrefab and this mirror receives the correct beam direction.")]
+    [SerializeField] private GameObject puzzleRewardPrefab;
+    [Tooltip("Optional spawn marker. If null, this mirror's position is used.")]
+    [SerializeField] private Transform puzzleRewardSpawnPoint;
+    [Tooltip("Existing object to enable when action is ActivateObject.")]
+    [SerializeField] private GameObject puzzleRewardTargetObject;
+    [Tooltip("If true, this puzzle reward can only trigger once.")]
+    [SerializeField] private bool spawnRewardOnlyOnce = true;
+    
     [Header("Mirror Visuals")]
     [SerializeField] private Sprite upRightSprite;
     [SerializeField] private Sprite downRightSprite;
@@ -44,6 +74,7 @@ public class MirrorObstacle : ObstacleBase
     [SerializeField] private float beamWidth = 0.1f;
 
     private LineRenderer line;
+    private bool rewardSpawned;
 
     private int OwnerId => GetInstanceID();
 
@@ -173,7 +204,7 @@ public class MirrorObstacle : ObstacleBase
 
         foreach (var m in mirrors)
         {
-            if (!m.isEmitter) continue;
+            if (m.mirrorType != MirrorType.Emitter) continue;
             m.CastIfEnergized(visited);
         }
 
@@ -242,8 +273,16 @@ public class MirrorObstacle : ObstacleBase
             {
                 endWorld = grid.CellToWorldCenter(current);
 
-                // Energize the hit mirror: it emits its own beam in its own direction.
-                hitMirror.CastIfEnergized(visited);
+                if (hitMirror.mirrorType == MirrorType.PuzzleRewarder)
+                {
+                    hitMirror.TryResolvePuzzleReward(direction);
+                }
+                else
+                {
+                    // Energize the hit mirror: it emits its own beam in its own direction.
+                    hitMirror.CastIfEnergized(visited);
+                }
+                
                 break;
             }
 
@@ -411,6 +450,67 @@ public class MirrorObstacle : ObstacleBase
             MirrorDirection.DownRight => new Vector3Int(1, -1, 0),
             MirrorDirection.DownLeft => new Vector3Int(-1, -1, 0),
             _ => new Vector3Int(1, 1, 0)
+        };
+    }
+    
+    /// <summary>
+    /// Handles puzzle-reward logic when this mirror is configured as a PuzzleRewarder.
+    /// </summary>
+    private void TryResolvePuzzleReward(MirrorDirection incomingDirection)
+    {
+        if (mirrorType != MirrorType.PuzzleRewarder || !beamActive)
+            return;
+
+        if (direction != GetOppositeDirection(incomingDirection))
+            return;
+
+        if (spawnRewardOnlyOnce && rewardSpawned)
+            return;
+
+        bool rewardTriggered = false;
+
+        switch (puzzleRewardAction)
+        {
+            case PuzzleRewardAction.SpawnPrefab:
+                if (puzzleRewardPrefab == null)
+                {
+                    Debug.Log($"[MirrorObstacle] PuzzleRewarder on {name} is missing reward prefab.", this);
+                    return;
+                }
+
+                Vector3 spawnWorld = puzzleRewardSpawnPoint != null ? puzzleRewardSpawnPoint.position : transform.position;
+                Instantiate(puzzleRewardPrefab, spawnWorld, Quaternion.identity);
+                rewardTriggered = true;
+                break;
+
+            case PuzzleRewardAction.ActivateObject:
+                if (puzzleRewardTargetObject == null)
+                {
+                    Debug.Log($"[MirrorObstacle] PuzzleRewarder on {name} is missing target object to activate.", this);
+                    return;
+                }
+
+                puzzleRewardTargetObject.SetActive(true);
+                rewardTriggered = true;
+                break;
+        }
+
+        if (rewardTriggered)
+            rewardSpawned = true;
+    }
+
+    /// <summary>
+    /// Returns the opposite diagonal direction.
+    /// </summary>
+    private MirrorDirection GetOppositeDirection(MirrorDirection dir)
+    {
+        return dir switch
+        {
+            MirrorDirection.UpRight => MirrorDirection.DownLeft,
+            MirrorDirection.UpLeft => MirrorDirection.DownRight,
+            MirrorDirection.DownRight => MirrorDirection.UpLeft,
+            MirrorDirection.DownLeft => MirrorDirection.UpRight,
+            _ => MirrorDirection.DownLeft
         };
     }
 

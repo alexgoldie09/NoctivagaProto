@@ -10,7 +10,8 @@ public enum TileKind
     Void,
     Start,
     Wall,
-    Gate
+    Gate,
+    TeleportDestination
 }
 
 /// <summary>
@@ -20,7 +21,8 @@ public enum EnterEffect
 {
     None,
     ResetToStart,
-    FallToDeath
+    FallToDeath,
+    ResetToTeleportDestination
 }
 
 /// <summary>

@@ -18,7 +18,7 @@ TagManager:
   - Boss
   - Walls
   - Projectile
-  - 
+  - Minimap
   - 
   - 
   - 
@@ -49,11 +49,14 @@ TagManager:
   - name: Default
     uniqueID: 0
     locked: 0
-  - name: Lights
-    uniqueID: 2077658901
+  - name: Enemy
+    uniqueID: 1732928709
     locked: 0
   - name: Player
     uniqueID: 1715175555
+    locked: 0
+  - name: Lights
+    uniqueID: 2077658901
     locked: 0
   - name: Fog
     uniqueID: 2788913689

@@ -167,7 +167,7 @@ TextureImporter:
       name: Tiles-Indoor_1
       rect:
         serializedVersion: 2
-        x: 640
+        x: 320
         y: 0
         width: 320
         height: 320
@@ -181,6 +181,72 @@ TextureImporter:
       bones: []
       spriteID: cf03486ded2589280800000000000000
       internalID: -9036381535283695364
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Tiles-Indoor_2
+      rect:
+        serializedVersion: 2
+        x: 640
+        y: 0
+        width: 320
+        height: 320
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: a868ff37e4a064130b76463b2f549945
+      internalID: -1024809330
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Tiles-Indoor_3
+      rect:
+        serializedVersion: 2
+        x: 960
+        y: 0
+        width: 320
+        height: 320
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 73934bc2d86fb439ebffd18260b03a53
+      internalID: -1041544202
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Tiles-Indoor_4
+      rect:
+        serializedVersion: 2
+        x: 1280
+        y: 0
+        width: 320
+        height: 320
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 0dc637273876545f7ac5fc64b50581cd
+      internalID: 2041346251
       vertices: []
       indices: 
       edges: []
@@ -203,6 +269,9 @@ TextureImporter:
     nameFileIdTable:
       Tiles-Indoor_0: -2001063301430385998
       Tiles-Indoor_1: -9036381535283695364
+      Tiles-Indoor_2: -1024809330
+      Tiles-Indoor_3: -1041544202
+      Tiles-Indoor_4: 2041346251
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

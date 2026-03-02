@@ -1,22 +1,41 @@
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Rendering.Universal;
 
 #if UNITY_EDITOR
 using UnityEditor;
 #endif
 
 /// <summary>
-/// Obstacle that swaps a set of target cells between their initial ("OFF") ground tiles
-/// and a configured ("ON") tile when interacted with.
+/// Obstacle that can either swap target ground tiles or toggle target objects
+/// active/inactive when interacted with.
 ///
-/// OFF tiles are captured from the ground tilemap at runtime (game start), so the lever
-/// restores exactly what was painted on the map.
+/// For tile swap mode, OFF tiles are captured from the ground tilemap at runtime (game start),
+/// so the lever restores exactly what was painted on the map.
 /// </summary>
 public class LeverObstacle : ObstacleBase
 {
+    [System.Serializable]
+    private class LeverTarget
+    {
+        public Transform marker;
+        [Tooltip("Optional per-marker ON tile. If empty, the default ON tile is used.")]
+        public GameTile onTileOverride;
+    }
+    
+    private enum LeverType
+    {
+        TileSwap,
+        ObjectToggle
+    }
+    
+    [Header("Lever Settings")]
+    [Tooltip("TileSwap swaps ground tiles. ObjectToggle toggles target objects active/inactive.")]
+    [SerializeField] private LeverType leverType = LeverType.TileSwap;
+    
     [Header("Target Markers (recommended)")]
-    [Tooltip("Place empty transforms snapped to grid cells. These will be converted to tilemap cells automatically.")]
-    [SerializeField] private List<Transform> targetMarkers = new();
+    [Tooltip("Place marker transforms snapped to grid cells. Each marker can optionally define its own ON tile.")]
+    [SerializeField] private List<LeverTarget> targetMarkers = new();
 
     [Header("Lever Visuals")]
     [SerializeField] private Sprite leverOffSprite;
@@ -25,6 +44,15 @@ public class LeverObstacle : ObstacleBase
     [Header("Tile Swap")]
     [Tooltip("Tile to apply when the lever is ON. When OFF, each target cell is restored to the ground tile it had at game start.")]
     [SerializeField] private GameTile onTile;
+    
+    [Header("Object Toggle")]
+    [Tooltip("Objects toggled on each interaction when Lever Type is ObjectToggle.")]
+    [SerializeField] private List<GameObject> toggleTargets = new();
+    
+    [Header("Info Lighting")]
+    [SerializeField] private Light2D infoLight;
+    [SerializeField] private Color offLightColor = Color.red;
+    [SerializeField] private Color onLightColor = Color.green;
 
     [Header("Debug / Visuals")]
     [SerializeField] private bool drawGizmos = true;
@@ -34,6 +62,9 @@ public class LeverObstacle : ObstacleBase
 
     // Runtime cached cells (derived from markers)
     private readonly List<Vector3Int> targetCells = new();
+    
+    // Runtime cached ON tiles per target cell (from marker override or fallback default).
+    private readonly Dictionary<Vector3Int, GameTile> onTilesByCell = new();
 
     // Runtime cached "off" tiles per target cell (captured from the ground tilemap at game start).
     private readonly Dictionary<Vector3Int, GameTile> offTilesByCell = new();
@@ -57,6 +88,11 @@ public class LeverObstacle : ObstacleBase
 
         sr = GetComponent<SpriteRenderer>();
         ApplyLeverVisual();
+        
+        if (infoLight != null)
+        {
+            infoLight.color = isOn ? onLightColor : offLightColor;
+        }
     }
 
     /// <summary>
@@ -65,6 +101,7 @@ public class LeverObstacle : ObstacleBase
     private void RebuildTargetCellsFromMarkers()
     {
         targetCells.Clear();
+        onTilesByCell.Clear();
 
         // In edit mode, Instance might not exist; try to find one in the scene.
         if (grid == null) 
@@ -75,11 +112,14 @@ public class LeverObstacle : ObstacleBase
 
         foreach (var t in targetMarkers)
         {
-            if (t == null) continue;
+            if (t == null || t.marker == null) continue;
 
-            var cell = grid.WorldToCell(t.position);
+            var cell = grid.WorldToCell(t.marker.position);
             if (!targetCells.Contains(cell))
                 targetCells.Add(cell);
+            
+            if(!onTilesByCell.ContainsKey(cell))
+                onTilesByCell[cell] = t.onTileOverride != null ? t.onTileOverride : onTile;
         }
     }
 
@@ -117,22 +157,33 @@ public class LeverObstacle : ObstacleBase
     /// </summary>
     public override void Interact()
     {
-        if (!hasCachedOffTiles)
-            CacheOffTilesFromGrid();
-
-        // Toggle
-        bool nextIsOn = !isOn;
-
-        // If turning ON, we must have an ON tile.
-        if (nextIsOn && onTile == null)
-        { 
-            return;
-        }
-
-        isOn = nextIsOn;
+        isOn = !isOn;
 
         // Visual update
         ApplyLeverVisual();
+        
+        if (infoLight != null)
+        {
+            infoLight.color = isOn ? onLightColor : offLightColor;
+        }
+
+        // If turning ON, we must have an ON tile.
+        if (leverType == LeverType.ObjectToggle)
+        {
+            ToggleTargetObjects();
+            return;
+        }
+
+        ToggleTargetTiles();
+    }
+    
+    /// <summary>
+    /// Applies tile swap behavior for all configured target cells.
+    /// </summary>
+    private void ToggleTargetTiles()
+    {
+        if (!hasCachedOffTiles)
+            CacheOffTilesFromGrid();
         
         // Track which cells actually changed this interaction
         var changedCells = new HashSet<Vector3Int>();
@@ -142,7 +193,14 @@ public class LeverObstacle : ObstacleBase
             if (!offTilesByCell.TryGetValue(cell, out var offTile) || offTile == null)
                 continue;
 
-            var desiredTile = isOn ? onTile : offTile;
+            if (!onTilesByCell.TryGetValue(cell, out var onTileForCell))
+                onTileForCell = onTile;
+
+            // If turning ON and this cell has no ON tile configured, skip it.
+            if (isOn && onTileForCell == null)
+                continue;
+
+            var desiredTile = isOn ? onTileForCell : offTile;
 
             if (grid.TrySetGroundTile(cell, desiredTile))
                 changedCells.Add(cell);
@@ -167,6 +225,20 @@ public class LeverObstacle : ObstacleBase
                 if (changedCells.Contains(e.CellPosition))
                     grid.HandleEnteredCellEnemy(e.CellPosition, e);
             }
+        }
+    }
+    
+    /// <summary>
+    /// Toggles configured target objects active/inactive each interaction.
+    /// </summary>
+    private void ToggleTargetObjects()
+    {
+        foreach (var target in toggleTargets)
+        {
+            if (target == null)
+                continue;
+
+            target.SetActive(!target.activeSelf);
         }
     }
 

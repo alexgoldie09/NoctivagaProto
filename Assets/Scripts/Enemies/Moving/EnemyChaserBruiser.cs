@@ -28,7 +28,17 @@ public class EnemyChaserBruiser : EnemyChaser
     /// </summary>
     protected override void OnBeatAction()
     {
-        if (punishCycleBeats < 2) punishCycleBeats = 2;
+        if (punishCycleBeats < 2) 
+            punishCycleBeats = 2;
+
+        if (!CanAttackPlayer())
+        {
+            pendingPunishCells.Clear();
+            phaseCounter = 0;
+            base.OnBeatAction();
+            return;
+        }
+        
         phaseCounter++;
 
         // Slam beat

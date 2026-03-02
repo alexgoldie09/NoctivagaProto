@@ -19,6 +19,7 @@ public class TilemapGridManager : MonoBehaviour
     [SerializeField] private Tilemap previewTilemap;  // TM_Preview
     [SerializeField] private Tilemap overlayTilemap; // TM_Overlay
     [SerializeField] private Tilemap telegraphTilemap; // TM_Telegraph (enemy/boss telegraphs)
+    [SerializeField] private Tilemap minimapTilemap; // TM_Minimap (enemy/boss telegraphs)
 
     [Header("Default Ground Tiles (GameTile assets)")]
     [SerializeField] private GameTile floorTile;
@@ -52,6 +53,8 @@ public class TilemapGridManager : MonoBehaviour
     private BoundsInt groundBounds;
     private Vector3Int cachedStartCell;
     private bool hasCachedStart;
+    private Vector3Int cachedTeleportDestinationCell;
+    private bool hasCachedTeleportDestination;
 
     // ─────────────────────────────────────────────────────────────
     #region Unity Events
@@ -73,12 +76,18 @@ public class TilemapGridManager : MonoBehaviour
             Debug.LogError("[TilemapGridManager] Missing Grid or Ground Tilemap reference.");
             return;
         }
+        
+        if(minimapTilemap != null)
+            minimapTilemap.GetComponent<TilemapRenderer>().enabled = true;
 
         groundTilemap.CompressBounds();
         groundBounds = groundTilemap.cellBounds;
 
-        cachedStartCell = FindStartCellFallbackToBoundsCenter();
+        cachedStartCell = FindTileCellFallbackToBoundsCenter(TileKind.Start);
+        cachedTeleportDestinationCell = FindTileCellFallbackToCell(TileKind.TeleportDestination, cachedStartCell);
+        
         hasCachedStart = true;
+        hasCachedTeleportDestination = true;
     }
     #endregion
     // ─────────────────────────────────────────────────────────────
@@ -166,23 +175,38 @@ public class TilemapGridManager : MonoBehaviour
     {
         if (!hasCachedStart)
         {
-            cachedStartCell = FindStartCellFallbackToBoundsCenter();
+            cachedStartCell = FindTileCellFallbackToBoundsCenter(TileKind.Start);
             hasCachedStart = true;
         }
         return cachedStartCell;
     }
+    
+    /// <summary>
+    /// Returns the cached teleport destination cell or falls back to the start cell.
+    /// </summary>
+    public Vector3Int GetTeleportDestinationCell()
+    {
+        if (!hasCachedTeleportDestination)
+        {
+            cachedTeleportDestinationCell = FindTileCellFallbackToCell(TileKind.TeleportDestination, GetStartCell());
+            hasCachedTeleportDestination = true;
+        }
+
+        return cachedTeleportDestinationCell;
+    }
+
 
     /// <summary>
     /// Searches for a Start tile or falls back to the bounds center.
     /// </summary>
     /// <returns>Cell coordinate for the start position.</returns>
-    private Vector3Int FindStartCellFallbackToBoundsCenter()
+    private Vector3Int FindTileCellFallbackToBoundsCenter(TileKind tileKind)
     {
-        // Try find a Start tile within ground bounds.
+        // Try find the requested tile kind within ground bounds.
         foreach (var pos in groundBounds.allPositionsWithin)
         {
             var t = GetGroundGameTile(pos);
-            if (t != null && t.kind == TileKind.Start)
+            if (t != null && t.kind == tileKind)
                 return pos;
         }
 
@@ -192,6 +216,21 @@ public class TilemapGridManager : MonoBehaviour
             groundBounds.yMin + groundBounds.size.y / 2,
             0
         );
+    }
+    
+    /// <summary>
+    /// Searches for a tile kind and falls back to a provided cell when none exists.
+    /// </summary>
+    private Vector3Int FindTileCellFallbackToCell(TileKind tileKind, Vector3Int fallbackCell)
+    {
+        foreach (var pos in groundBounds.allPositionsWithin)
+        {
+            var t = GetGroundGameTile(pos);
+            if (t != null && t.kind == tileKind)
+                return pos;
+        }
+
+        return fallbackCell;
     }
     #endregion
     // ─────────────────────────────────────────────────────────────
@@ -363,6 +402,10 @@ public class TilemapGridManager : MonoBehaviour
             case EnterEffect.FallToDeath:
                 player.StartVoidFallDeath(fallStartWorld);
                 break;
+            
+            case EnterEffect.ResetToTeleportDestination:
+                player.StartVoidFallReset(GetTeleportDestinationCell(), fallStartWorld);
+                break;
         }
     }
     
@@ -384,6 +427,9 @@ public class TilemapGridManager : MonoBehaviour
                 enemy.KillByVoidFall(CellToWorldCenter(cell));
                 break;
             case EnterEffect.FallToDeath:
+                enemy.KillByVoidFall(CellToWorldCenter(cell));
+                break;
+            case EnterEffect.ResetToTeleportDestination:
                 enemy.KillByVoidFall(CellToWorldCenter(cell));
                 break;
         }
@@ -917,7 +963,7 @@ public class TilemapGridManager : MonoBehaviour
         if (current == null)
             return false; // restrict to painted ground footprint
 
-        if (current.kind == TileKind.Start)
+        if (current.kind == TileKind.Start || current.kind == TileKind.TeleportDestination)
             return false;
 
         if (current == newTile)
@@ -978,7 +1024,7 @@ public class TilemapGridManager : MonoBehaviour
             return;
     
         // Don't toggle Start (optional safety)
-        if (current.kind == TileKind.Start)
+        if (current.kind == TileKind.Start || current.kind == TileKind.TeleportDestination)
             return;
     
         if (current.kind == TileKind.Floor)

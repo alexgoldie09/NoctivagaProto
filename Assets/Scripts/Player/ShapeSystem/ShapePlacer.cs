@@ -10,6 +10,10 @@ using System.Collections.Generic;
 /// </summary>
 public class ShapePlacer : MonoBehaviour
 {
+    [Header("Placement FX")]
+    [Tooltip("Dust prefab spawned on adjacent edge cells after a successful shape placement.")]
+    [SerializeField] private GameObject edgeDustPrefab;
+    
     [Header("Preview Colors")]
     public Color validColor = new (0f, 1f, 0f, 0.5f);
     public Color invalidColor = new (1f, 0f, 0f, 0.5f);
@@ -193,6 +197,7 @@ public class ShapePlacer : MonoBehaviour
         {
             placedCells.Add(originCell + new Vector3Int(off.x, off.y, 0));
         }
+        SpawnEdgeDust(placedCells);
         OnShapePlaced?.Invoke(placedCells);
 
         // Consume inventory
@@ -379,6 +384,49 @@ public class ShapePlacer : MonoBehaviour
         }
 
         return result;
+    }
+    
+    /// <summary>
+    /// Spawns one dust object on each exposed cardinal edge around the placed shape.
+    /// Dust appears nudged inward at the midpoint between the placed cell and its adjacent edge cell.
+    /// </summary>
+    /// <param name="placedCells">Cells converted from void to floor by the placement.</param>
+    private void SpawnEdgeDust(IReadOnlyList<Vector3Int> placedCells)
+    {
+        if (edgeDustPrefab == null || grid == null || placedCells == null || placedCells.Count == 0)
+            return;
+
+        var shapeCells = new HashSet<Vector3Int>(placedCells);
+
+        Vector3Int[] directions =
+        {
+            Vector3Int.up,
+            Vector3Int.down,
+            Vector3Int.left,
+            Vector3Int.right
+        };
+
+        for (int i = 0; i < placedCells.Count; i++)
+        {
+            Vector3Int placedCell = placedCells[i];
+            Vector3 placedWorld = grid.CellToWorldCenter(placedCell);
+
+            for (int d = 0; d < directions.Length; d++)
+            {
+                Vector3Int adjacentCell = placedCell + directions[d];
+
+                // Skip interior edges; only exposed perimeter edges should spawn dust.
+                if (shapeCells.Contains(adjacentCell))
+                    continue;
+
+                if (!grid.IsInBounds(adjacentCell))
+                    continue;
+
+                Vector3 adjacentWorld = grid.CellToWorldCenter(adjacentCell);
+                Vector3 spawnPos = Vector3.Lerp(placedWorld, adjacentWorld, 0.5f);
+                Instantiate(edgeDustPrefab, spawnPos, Quaternion.identity);
+            }
+        }
     }
     #endregion
 }

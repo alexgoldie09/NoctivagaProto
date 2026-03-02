@@ -14,7 +14,7 @@ GameObject:
   - component: {fileID: 5403234942418133495}
   - component: {fileID: -5823224977011769142}
   m_Layer: 7
-  m_Name: EnemyChaseRangedNoRhythm
+  m_Name: EnemyChaseRangedNoRhy
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -29,9 +29,9 @@ Transform:
   m_GameObject: {fileID: 2512947228203777163}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 3.5, y: -3.5, z: 0}
-  m_LocalScale: {x: -1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 1
   m_Children:
   - {fileID: 8351922486574661234}
   m_Father: {fileID: 0}
@@ -80,10 +80,10 @@ SpriteRenderer:
   m_AutoUVMaxAngle: 89
   m_LightmapParameters: {fileID: 0}
   m_GlobalIlluminationMeshLod: 0
-  m_SortingLayerID: 0
-  m_SortingLayer: 0
+  m_SortingLayerID: 1732928709
+  m_SortingLayer: 1
   m_SortingOrder: 1
-  m_Sprite: {fileID: 6772775923325811741, guid: 88e428670ee7f4e01ae971c1d7ccf496, type: 3}
+  m_Sprite: {fileID: -4742480515330341808, guid: 687d4ccf5064d4878bf6bacb31d37c8d, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
   m_FlipY: 0
@@ -154,7 +154,7 @@ BoxCollider2D:
   m_SpriteTilingProperty:
     border: {x: 0, y: 0, z: 0, w: 0}
     pivot: {x: 0.5, y: 0.5}
-    oldSize: {x: 1.25, y: 0.953125}
+    oldSize: {x: 1.2307693, y: 1.2307693}
     newSize: {x: 1, y: 1}
     adaptiveTilingThreshold: 0.5
     drawMode: 0
@@ -185,9 +185,14 @@ MonoBehaviour:
   damageShakeForce: 0.8
   voidDeathDuration: 0.25
   voidDeathDropDistance: 0.25
+  lookRadius: 6
   projectilePrefab: {fileID: 7620136039024307061, guid: 98cfe0f7c45e3425f9f36dda24a08572, type: 3}
   movesBeforeShot: 3
   projectileSpawn: {fileID: 8351922486574661234}
+  defaultShootSprite: {fileID: 6849265459605168784, guid: 687d4ccf5064d4878bf6bacb31d37c8d, type: 3}
+  downShootSprite: {fileID: 2279800508984115020, guid: 687d4ccf5064d4878bf6bacb31d37c8d, type: 3}
+  upShootSprite: {fileID: 5939567926417965202, guid: 687d4ccf5064d4878bf6bacb31d37c8d, type: 3}
+  shootPoseDuration: 0.3
 --- !u!1 &3882487030104366254
 GameObject:
   m_ObjectHideFlags: 0
@@ -213,7 +218,7 @@ Transform:
   m_GameObject: {fileID: 3882487030104366254}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -0.195, y: -0.169, z: 0}
+  m_LocalPosition: {x: 0, y: 0.214, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []

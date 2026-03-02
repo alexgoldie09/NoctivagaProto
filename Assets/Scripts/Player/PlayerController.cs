@@ -49,7 +49,18 @@ public class PlayerController : MonoBehaviour
     [SerializeField] private float deathPartSpawnRadius = 0.05f;
     [Tooltip("If true, will also hide the player sprite/anim immediately when spawning parts.")]
     [SerializeField] private bool hideBodyOnDeath = true;
+    
+    [Header("MinimapIcon")] 
+    [Tooltip("The minimap icon for the player icon.")]
+    [SerializeField] private GameObject minimapIcon;
 
+    private static readonly Vector3[] DIRECTIONS = new []
+    {
+        new Vector3(0,0,0), // Up
+        new Vector3(0,0,-90), // Right
+        new Vector3(0,0,90), // Left
+        new Vector3(0,0,180), // Down
+    };
 
     private InputAction moveAction;
     private InputAction interactAction;
@@ -123,6 +134,10 @@ public class PlayerController : MonoBehaviour
 
         // Snap player to center of that cell
         rb.position = grid.CellToWorldCenter(cellPos);
+        
+        // Rotate minimap icon to face right
+        if(minimapIcon != null)
+            minimapIcon.transform.localRotation = Quaternion.Euler(DIRECTIONS[1]);
         
         meleeTelegraphOwnerId = GetInstanceID() * 31 + 7;
     }
@@ -295,10 +310,28 @@ public class PlayerController : MonoBehaviour
         lastDirection = dir;
 
         // Only update facing on horizontal input
-        if (dir.x < 0) 
+        if (dir.x < 0 && dir.y == 0)
+        {
+            if(minimapIcon != null)
+                minimapIcon.transform.localRotation = Quaternion.Euler(DIRECTIONS[2]);
             Flip(false);
-        else if (dir.x > 0) 
+        }
+        else if (dir.x > 0 && dir.y == 0)
+        {
+            if (minimapIcon != null)
+                minimapIcon.transform.localRotation = Quaternion.Euler(DIRECTIONS[1]);
             Flip(true);
+        }
+        else if (dir.y < 0 && dir.x == 0)
+        {
+            if (minimapIcon != null)
+                minimapIcon.transform.localRotation = Quaternion.Euler(DIRECTIONS[3]);
+        }
+        else if (dir.y > 0 && dir.x == 0)
+        {
+            if (minimapIcon != null)
+                minimapIcon.transform.localRotation = Quaternion.Euler(DIRECTIONS[0]);
+        }
 
         TryMove(dir);
     }
@@ -344,8 +377,10 @@ public class PlayerController : MonoBehaviour
         if (ax < 0.01f && ay < 0.01f) return Vector2Int.zero;
 
         if (ax >= ay)
+        {
             return new Vector2Int(v.x > 0 ? 1 : -1, 0);
-        
+        }
+
         return new Vector2Int(0, v.y > 0 ? 1 : -1);
     }
     
