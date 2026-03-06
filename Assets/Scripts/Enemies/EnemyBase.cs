@@ -49,8 +49,8 @@ public abstract class EnemyBase : MonoBehaviour
     [Header("Death Reward")]
     [Tooltip("If true, this enemy spawns a reward object when it dies.")]
     [SerializeField] protected bool spawnsReward = false;
-    [Tooltip("Prefab spawned as a reward on death when Spawns Reward is enabled.")]
-    [SerializeField] protected GameObject rewardPrefab;
+    [Tooltip("Prefabs spawned as a reward on death when Spawns Reward is enabled.")]
+    [SerializeField] protected GameObject[] rewardPrefabs;
     [Tooltip("Maximum search distance in cells for a safe reward spawn location.")]
     [SerializeField] protected int rewardSpawnSearchRadius = 4;
 
@@ -293,12 +293,13 @@ public abstract class EnemyBase : MonoBehaviour
     /// </summary>
     protected void TrySpawnDeathReward()
     {
-        if (hasSpawnedReward || !spawnsReward || rewardPrefab == null || grid == null)
+        if (hasSpawnedReward || !spawnsReward || rewardPrefabs.Length <= 0 || grid == null)
             return;
-
+        
+        var randomRewardPrefab = rewardPrefabs[Random.Range(0, rewardPrefabs.Length)];
         Vector3Int spawnCell = FindNearestSafeRewardCell();
         Vector3 spawnWorld = grid.CellToWorldCenter(spawnCell);
-        Instantiate(rewardPrefab, spawnWorld, Quaternion.identity);
+        Instantiate(randomRewardPrefab, spawnWorld, Quaternion.identity);
         hasSpawnedReward = true;
     }
 

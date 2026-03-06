@@ -272,10 +272,6 @@ public class GameManager : MonoBehaviour
     {
         RhythmManager.Instance.SetTempoMultiplier(0.5f);
 
-        var grid = TilemapGridManager.Instance;
-        if (grid != null)
-            grid.SetHalfTimeOverlay(true, Color.black, 0.5f);
-
         if (halfTimeFog != null && halfTimeFX != null)
         {
             halfTimeFog.gameObject.SetActive(true);
@@ -287,9 +283,6 @@ public class GameManager : MonoBehaviour
         yield return new WaitForSeconds(duration);
 
         RhythmManager.Instance.ResetTempo();
-
-        if (grid != null)
-            grid.SetHalfTimeOverlay(false, Color.black);
 
         if (halfTimeFog != null && halfTimeFX != null)
         {
@@ -311,6 +304,10 @@ public class GameManager : MonoBehaviour
     /// <param name="duration">Duration of the shadow mode effect in seconds.</param>
     private IEnumerator ShadowModeRoutine(float duration)
     {
+        var grid = TilemapGridManager.Instance;
+        if (grid != null)
+            grid.SetShadowModeOverlay(true, Color.black, 0.5f);
+        
         if (player != null)
         {
             player.ChangeShadowMode(true);
@@ -331,6 +328,9 @@ public class GameManager : MonoBehaviour
         }
 
         yield return new WaitForSeconds(duration);
+        
+        if (grid != null)
+            grid.SetShadowModeOverlay(false, Color.black);
 
         if (player != null)
         {

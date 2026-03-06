@@ -8,8 +8,9 @@ using UnityEngine.UI;
 public class MainMenuUI : MonoBehaviour
 {
     [Header("Buttons")]
-    [SerializeField] private Button playButton;
+    [SerializeField] private Button[] playButtons;
     [SerializeField] private Button quitButton;
+    [SerializeField] private string levelName = "Level";
 
     [Header("Background Pulse")]
     [SerializeField] private Image backgroundImage;
@@ -19,8 +20,12 @@ public class MainMenuUI : MonoBehaviour
 
     private void Start()
     {
-        if (playButton != null)
-            playButton.onClick.AddListener(PlayGame);
+        if (playButtons.Length > 0)
+            for (int i = 0; i < playButtons.Length; i++)
+            {
+                var num = i + 1;
+                playButtons[i].onClick.AddListener(() => LoadGame(levelName + $"_{num}"));
+            }
 
         if (quitButton != null)
             quitButton.onClick.AddListener(QuitGame);
@@ -36,10 +41,10 @@ public class MainMenuUI : MonoBehaviour
         }
     }
 
-    private void PlayGame()
+    private void LoadGame(string sceneName)
     {
         // Replace with your actual game scene name
-        SceneManager.LoadScene("LevelSceneTilemap");
+        SceneManager.LoadScene(sceneName);
     }
 
     private void QuitGame()

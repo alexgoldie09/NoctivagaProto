@@ -48,7 +48,7 @@ public class TilemapGridManager : MonoBehaviour
     // Overlay halftime
     private const int OVERLAY_OWNER_HALFTIME = 9001;
     private readonly Dictionary<int, List<Vector3Int>> overlayByOwner = new();
-    private Coroutine halfTimeRoutine;
+    private Coroutine shadowModeRoutine;
 
     private BoundsInt groundBounds;
     private Vector3Int cachedStartCell;
@@ -741,12 +741,12 @@ public class TilemapGridManager : MonoBehaviour
     /// <param name="enabled">Whether the overlay should be active.</param>
     /// <param name="overlayColor">Base overlay color.</param>
     /// <param name="flashInterval">Seconds between opacity pulses.</param>
-    public void SetHalfTimeOverlay(bool enabled, Color overlayColor, float flashInterval = 0.2f)
+    public void SetShadowModeOverlay(bool enabled, Color overlayColor, float flashInterval = 0.2f)
     {
         if (overlayTilemap == null || previewFillTile == null) 
             return;
 
-        StopHalfTimeOverlayRoutine();
+        StopShadowModeOverlayRoutine();
 
         if (!enabled)
         {
@@ -762,18 +762,18 @@ public class TilemapGridManager : MonoBehaviour
                 cells.Add(pos);
         }
 
-        halfTimeRoutine = StartCoroutine(HalfTimeOverlayRoutine(cells, overlayColor, flashInterval));
+        shadowModeRoutine = StartCoroutine(ShadowModeOverlayRoutine(cells, overlayColor, flashInterval));
     }
 
     /// <summary>
     /// Stops any active halftime overlay coroutine.
     /// </summary>
-    private void StopHalfTimeOverlayRoutine()
+    private void StopShadowModeOverlayRoutine()
     {
-        if (halfTimeRoutine != null)
+        if (shadowModeRoutine != null)
         {
-            StopCoroutine(halfTimeRoutine);
-            halfTimeRoutine = null;
+            StopCoroutine(shadowModeRoutine);
+            shadowModeRoutine = null;
         }
     }
 
@@ -783,7 +783,7 @@ public class TilemapGridManager : MonoBehaviour
     /// <param name="cells">Cells to overlay.</param>
     /// <param name="baseColor">Base color to pulse.</param>
     /// <param name="interval">Seconds between pulses.</param>
-    private IEnumerator HalfTimeOverlayRoutine(List<Vector3Int> cells, Color baseColor, float interval)
+    private IEnumerator ShadowModeOverlayRoutine(List<Vector3Int> cells, Color baseColor, float interval)
     {
         // Place tiles once
         SetOverlayCells(OVERLAY_OWNER_HALFTIME, cells, baseColor);

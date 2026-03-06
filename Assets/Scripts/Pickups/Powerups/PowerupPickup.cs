@@ -12,8 +12,11 @@ public class PowerupPickup : PickupBase
     [Tooltip("Type of powerup this pickup will activate.")]
     public PowerupType type = PowerupType.HalfTime;
 
-    [Tooltip("Duration of the powerup effect in seconds.")]
-    public float duration = 5f;
+    [Tooltip("Minimum duration of the powerup effect in seconds.")]
+    public float minDuration = 5f;
+    
+    [Tooltip("Maximum duration of the powerup effect in seconds.")]
+    public float maxDuration = 20f;
 
     /// <summary>
     /// Supported powerup effect types.
@@ -28,6 +31,8 @@ public class PowerupPickup : PickupBase
     {
         if (!other.CompareTag("Player"))
             return;
+        
+        var duration = Mathf.Round(Random.Range(minDuration, maxDuration));
 
         var activated = GameManager.Instance.TryActivatePowerup(type, duration);
 

@@ -160,7 +160,7 @@ BoxCollider2D:
     drawMode: 0
     adaptiveTiling: 0
   m_AutoTiling: 0
-  m_Size: {x: 0.9, y: 0.9}
+  m_Size: {x: 0.8, y: 0.8}
   m_EdgeRadius: 0
 --- !u!114 &-5823224977011769142
 MonoBehaviour:
@@ -185,7 +185,14 @@ MonoBehaviour:
   damageShakeForce: 0.8
   voidDeathDuration: 0.25
   voidDeathDropDistance: 0.25
+  spawnsReward: 0
+  rewardPrefabs: []
+  rewardSpawnSearchRadius: 4
   lookRadius: 6
+  wallLayer:
+    serializedVersion: 2
+    m_Bits: 512
+  gizmoRayCount: 32
   projectilePrefab: {fileID: 7620136039024307061, guid: 98cfe0f7c45e3425f9f36dda24a08572, type: 3}
   movesBeforeShot: 3
   projectileSpawn: {fileID: 8351922486574661234}

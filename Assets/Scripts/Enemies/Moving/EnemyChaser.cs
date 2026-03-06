@@ -9,8 +9,12 @@ using System.Linq;
 /// </summary>
 public class EnemyChaser : EnemyBase
 {
-    [Header("Chase Settings")]
+    [Header("Line of Sight")]
     [SerializeField, Min(0f)] private float lookRadius = 6f;
+    [Tooltip("Layer mask for walls that block the enemy's line of sight.")]
+    [SerializeField] private LayerMask wallLayer;
+    [Tooltip("Number of radial rays drawn in the Scene view gizmo.")]
+    [SerializeField, Range(8, 72)] private int gizmoRayCount = 32;
 
     protected SpriteRenderer spriteRenderer;
     
@@ -58,7 +62,7 @@ public class EnemyChaser : EnemyBase
         if (player == null || grid == null) return;
 
         // Cache once per beat (authoritative)
-        bool inRange = IsPlayerWithinLookRadius();
+        bool inRange = HasLineOfSightToPlayer();
         isWanderingMode = player.IsShadowMode || !inRange;
         isAggroed = !isWanderingMode;
 
@@ -105,12 +109,27 @@ public class EnemyChaser : EnemyBase
         }
     }
     
-    protected bool CanAttackPlayer() => !player.IsShadowMode && IsPlayerWithinLookRadius();
+    protected bool CanAttackPlayer() => !player.IsShadowMode && HasLineOfSightToPlayer();
     
     /// <summary>
-    /// Returns true when the player is inside this enemy's look radius.
+    /// Returns true when the player is within lookRadius AND no wall blocks the line of sight.
+    /// The radius acts as the outer bound; a raycast then confirms clear visibility.
     /// </summary>
-    private bool IsPlayerWithinLookRadius() => Vector3Int.Distance(cellPos, player.CellPosition) <= lookRadius;
+    private bool HasLineOfSightToPlayer()
+    {
+        Vector2 origin = transform.position;
+        Vector2 target = player.transform.position;
+        Vector2 toPlayer = target - origin;
+        float distance = toPlayer.magnitude;
+
+        // Quick radius cull — avoids the raycast entirely when out of range.
+        if (distance > lookRadius)
+            return false;
+
+        // Cast toward the player and stop if a wall is in the way.
+        RaycastHit2D hit = Physics2D.Raycast(origin, toPlayer.normalized, distance, wallLayer);
+        return hit.collider == null;
+    }
 
     protected void UpdateSpriteFacing(Vector3Int dir)
     {
@@ -155,10 +174,44 @@ public class EnemyChaser : EnemyBase
 
     private void OnDrawGizmos()
     {
-        Gizmos.color = Color.yellow;
-        Gizmos.DrawWireSphere(transform.position, lookRadius);
-    }
+        Vector3 origin = transform.position;
 
+        // --- Yellow outer radius boundary ---
+        Gizmos.color = Color.yellow;
+        Gizmos.DrawWireSphere(origin, lookRadius);
+
+        // --- Red radial rays, each terminating at the first wall hit ---
+        Gizmos.color = Color.red;
+        float angleStep = 360f / gizmoRayCount;
+
+        for (int i = 0; i < gizmoRayCount; i++)
+        {
+            float angleRad = i * angleStep * Mathf.Deg2Rad;
+            Vector2 dir2D = new Vector2(Mathf.Cos(angleRad), Mathf.Sin(angleRad));
+            Vector3 dir3D = new Vector3(dir2D.x, dir2D.y, 0f);
+
+            // In Play mode use the actual Physics2D result; in Edit mode draw to full radius.
+            float rayLength = lookRadius;
+#if UNITY_EDITOR
+            if (Application.isPlaying)
+            {
+                RaycastHit2D hit = Physics2D.Raycast(origin, dir2D, lookRadius, wallLayer);
+                if (hit.collider != null)
+                    rayLength = hit.distance;
+            }
+#endif
+            Gizmos.DrawLine(origin, origin + dir3D * rayLength);
+        }
+
+        // --- Green line to player when visible (Play mode only) ---
+#if UNITY_EDITOR
+        if (Application.isPlaying && player != null && HasLineOfSightToPlayer())
+        {
+            Gizmos.color = Color.green;
+            Gizmos.DrawLine(origin, player.transform.position);
+        }
+#endif
+    }
     /// <summary>
     /// Chooses the primary direction to step toward the player
     /// (the axis with the greater absolute distance).
