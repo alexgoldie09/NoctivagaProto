@@ -74,6 +74,18 @@ public class PlayerInventory : MonoBehaviour
         }
         return false;
     }
+    
+    /// <summary>
+    /// Returns true if the player has at least one shape with a positive count.
+    /// </summary>
+    public bool HasAnyShape() =>
+        shapeInventory.Exists(entry => entry.count > 0);
+    
+    /// <summary>
+    /// Returns the number of distinct shape types with a positive count.
+    /// </summary>
+    public int AvailableShapeCount() =>
+        shapeInventory.FindAll(entry => entry.count > 0).Count;
     #endregion
     // ─────────────────────────────────────────────────────────────────────────────
     #region KEY INVENTORY METHODS

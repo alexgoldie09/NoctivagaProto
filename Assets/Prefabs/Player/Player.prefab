@@ -213,8 +213,8 @@ MonoBehaviour:
   meleeSwingPrefab: {fileID: 2360655870356088562, guid: 57a776ff377f3c44e8403e2067a4d41f, type: 3}
   meleeHitVfxPrefab: {fileID: 3432958286849152088, guid: 87ee7299dd44ed747af24dbb91bcd33b, type: 3}
   meleeHitVfxDelay: 0.05
-  meleeValidColor: {r: 0, g: 1, b: 1, a: 0.5}
-  meleeInvalidColor: {r: 1, g: 0, b: 0, a: 0.5}
+  meleeValidColor: {r: 0, g: 1, b: 1, a: 0.23529412}
+  meleeInvalidColor: {r: 1, g: 0, b: 0, a: 0.23529412}
   fogVFX: {fileID: 0}
   fogCenterOffset: {x: -4, y: 1, z: 0}
   deathPartPrefabs:
@@ -398,9 +398,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   edgeDustPrefab: {fileID: 8686169408521263809, guid: d8ba81993ec7f4cbdba14841b788fa49, type: 3}
-  validColor: {r: 0, g: 1, b: 0, a: 0.7058824}
-  invalidColor: {r: 1, g: 0.48692912, b: 0, a: 0.7058824}
-  overPlayerColor: {r: 0, g: 1, b: 1, a: 0.627451}
+  validColor: {r: 0, g: 1, b: 0, a: 0.23529412}
+  invalidColor: {r: 1, g: 0.48692912, b: 0, a: 0.23529412}
+  overPlayerColor: {r: 0, g: 1, b: 1, a: 0.23529412}
 --- !u!1 &7569941329743461886
 GameObject:
   m_ObjectHideFlags: 0

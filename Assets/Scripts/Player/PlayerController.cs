@@ -102,6 +102,7 @@ public class PlayerController : MonoBehaviour
     private bool isResetting;
     private Vector3 initialScale;
     private Coroutine resetRoutine;
+    private AudioManager audioManager;
     
     // ─────────────────────────────────────────────
     #region Unity Events
@@ -140,6 +141,8 @@ public class PlayerController : MonoBehaviour
             minimapIcon.transform.localRotation = Quaternion.Euler(DIRECTIONS[1]);
         
         meleeTelegraphOwnerId = GetInstanceID() * 31 + 7;
+        
+        audioManager = AudioManager.Instance;
     }
 
     /// <summary>
@@ -495,6 +498,10 @@ public class PlayerController : MonoBehaviour
         if (anim != null)
             anim.SetTrigger("Moving");
         
+        // Play SFX
+        if (audioManager != null)
+            audioManager.PlaySFX("move_step", 0.3f);
+        
         // Apply scoring
         RegisterActionScore("Move");
 
@@ -514,7 +521,7 @@ public class PlayerController : MonoBehaviour
         {
             // Debug.Log($"Obstacle {obstacle.name} to interact with at {targetCell}");
             // Apply scoring
-            RegisterActionScore("Obstacle");
+            // RegisterActionScore("Obstacle");
             obstacle.Interact();
         }
 
@@ -655,6 +662,9 @@ public class PlayerController : MonoBehaviour
 
         if (resetRoutine != null)
             StopCoroutine(resetRoutine);
+        
+        if (audioManager != null)
+            audioManager.PlaySFX("fall_down", 0.4f);
 
         resetRoutine = StartCoroutine(VoidFallRoutine(
             fallStartWorld,
@@ -675,6 +685,9 @@ public class PlayerController : MonoBehaviour
 
         if (resetRoutine != null)
             StopCoroutine(resetRoutine);
+        
+        if (audioManager != null)
+            audioManager.PlaySFX("fall_down", 0.4f);
 
         resetRoutine = StartCoroutine(VoidFallRoutine(
             fallStartWorld,

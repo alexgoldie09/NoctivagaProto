@@ -94,6 +94,10 @@ public class ShapePlacer : MonoBehaviour
     /// </summary>
     public void TogglePlacementMode()
     {
+        // Prevent entering placement mode with an empty inventory
+        if (!Utilities.IsPlacementModeActive && (inventory == null || !inventory.HasAnyShape()))
+            return;
+        
         Utilities.IsPlacementModeActive = !Utilities.IsPlacementModeActive;
 
         if (!Utilities.IsPlacementModeActive)
@@ -104,6 +108,10 @@ public class ShapePlacer : MonoBehaviour
 
         // When entering placement mode, ensure we land on a shape that exists
         CycleShape(1);
+        
+        if (AudioManager.Instance != null)
+            AudioManager.Instance.PlaySFX("shape_place_next", 0.2f);
+        
         UpdatePreview();
     }
 
@@ -116,6 +124,10 @@ public class ShapePlacer : MonoBehaviour
             return;
         
         currentRotation = (currentRotation + 1) % 4;
+        
+        if (AudioManager.Instance != null && inventory.HasAnyShape())
+            AudioManager.Instance.PlaySFX("shape_place_rotate", 0.2f);
+        
         UpdatePreview();
     }
 
@@ -128,6 +140,10 @@ public class ShapePlacer : MonoBehaviour
             return;
         
         currentRotation = (currentRotation + 3) % 4; // -1 mod 4
+        
+        if (AudioManager.Instance != null && inventory.HasAnyShape())
+            AudioManager.Instance.PlaySFX("shape_place_rotate", 0.2f);
+        
         UpdatePreview();
     }
 
@@ -140,6 +156,10 @@ public class ShapePlacer : MonoBehaviour
             return;
         
         CycleShape(1);
+        
+        if (AudioManager.Instance != null && inventory.AvailableShapeCount() > 1)
+            AudioManager.Instance.PlaySFX("shape_place_next", 0.2f);
+
         UpdatePreview();
     }
 
@@ -152,6 +172,10 @@ public class ShapePlacer : MonoBehaviour
             return;
         
         CycleShape(-1);
+        
+        if (AudioManager.Instance != null && inventory.AvailableShapeCount() > 1)
+            AudioManager.Instance.PlaySFX("shape_place_next", 0.2f);
+
         UpdatePreview();
     }
 
@@ -202,6 +226,10 @@ public class ShapePlacer : MonoBehaviour
 
         // Consume inventory
         inventory.ConsumeShape(entry.shapeData);
+        
+        // Play audio clip
+        if (AudioManager.Instance != null)
+            AudioManager.Instance.PlaySFX("shape_place_drop", 0.25f);
 
         // Score only on successful placement
         BeatHitQuality quality = RhythmManager.Instance.GetHitQuality();
@@ -216,6 +244,15 @@ public class ShapePlacer : MonoBehaviour
         // If we ran out, move to next available shape
         if (!inventory.HasShape(entry.shapeData))
             CycleShape(1);
+
+        // Auto-exit if inventory is now completely empty
+        if (!inventory.HasAnyShape())
+        {
+            Utilities.IsPlacementModeActive = false;
+            grid?.ClearPreviewForOwner(GetInstanceID());
+    
+            return; // Skip UpdatePreview — nothing left to show
+        }
 
         UpdatePreview();
     }
@@ -298,10 +335,11 @@ public class ShapePlacer : MonoBehaviour
         if (inventory == null || inventory.shapeInventory == null) return;
 
         int count = inventory.shapeInventory.Count;
-        if (count == 0) return;
+        if (count == 0) 
+            return;
 
         int tries = 0;
-
+        
         do
         {
             currentShapeIndex = (currentShapeIndex + direction + count) % count;

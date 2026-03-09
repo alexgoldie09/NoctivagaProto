@@ -80,6 +80,10 @@ public class GameManager : MonoBehaviour
         // Deactivate after spawning parts
         player.gameObject.SetActive(false);
         
+        // Play death SFX
+        if (AudioManager.Instance != null)
+            AudioManager.Instance.PlaySFX("death_moan", 0.7f);
+        
         // Hide Boss HUD (if it exists)
         var boss = FindAnyObjectByType<BossHealth>();
         boss?.NotifyPlayerDied();

@@ -132,6 +132,11 @@ public class ScoreManager : MonoBehaviour
     /// Returns the number of registered moves.
     /// </summary>
     public int GetMoveCount() => moveCount;
+    
+    /// <summary>
+    /// Returns the original score.
+    /// </summary>
+    public int GetBaseScore() => baseScore;
     #endregion
     // ─────────────────────────────────────────────────────────────────────────────
     #region UI
@@ -161,20 +166,12 @@ public class ScoreManager : MonoBehaviour
 
         switch (quality)
         {
-            case BeatHitQuality.Perfect:
-                message = $"PERFECT! +{points}";
+            case BeatHitQuality.OnBeat:
+                message = $"ON BEAT! +{points}";
                 color = Color.green;
                 break;
-            case BeatHitQuality.Good:
-                message = $"GOOD! +{points}";
-                color = Color.yellow;
-                break;
-            case BeatHitQuality.Okay:
-                message = $"Okay +{points}";
-                color = Color.cyan;
-                break;
-            case BeatHitQuality.Bad:
-                message = "Bad";
+            case BeatHitQuality.OffBeat:
+                message = "OFF BEAT! +0";
                 color = Color.gray;
                 break;
         }

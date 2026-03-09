@@ -96,6 +96,8 @@ public abstract class ObstacleBase : MonoBehaviour
     /// </summary>
     public virtual void Interact()
     {
+        if (AudioManager.Instance != null)
+            AudioManager.Instance.PlaySFX("obstacle_click", 0.4f);
         // Default: do nothing. Mirrors or levers can override.
     }
     

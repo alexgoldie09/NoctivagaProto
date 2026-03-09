@@ -54,10 +54,8 @@ public static class Utilities
     {
         switch (quality)
         {
-            case BeatHitQuality.Perfect: return 40;
-            case BeatHitQuality.Good:    return 20;
-            case BeatHitQuality.Okay:    return 10;
-            case BeatHitQuality.Bad:     return 0;
+            case BeatHitQuality.OnBeat: return 40;
+            case BeatHitQuality.OffBeat:     return 0;
             default: return 0;
         }
     }

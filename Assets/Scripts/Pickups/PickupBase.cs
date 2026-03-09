@@ -66,4 +66,10 @@ public abstract class PickupBase : MonoBehaviour
     }
     
     protected virtual void OnTriggerEnter2D(Collider2D collision) {}
+
+    private void OnDestroy()
+    {
+        if(AudioManager.Instance != null)
+            AudioManager.Instance.PlaySFX("pick_up", 0.2f);
+    }
 }

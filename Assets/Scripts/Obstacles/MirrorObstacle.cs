@@ -137,6 +137,8 @@ public class MirrorObstacle : ObstacleBase
     /// </summary>
     public override void Interact()
     {
+        base.Interact();
+        
         RotateClockwise();
         RebuildAllBeams();
     }

@@ -157,6 +157,8 @@ public class LeverObstacle : ObstacleBase
     /// </summary>
     public override void Interact()
     {
+        base.Interact();
+        
         isOn = !isOn;
 
         // Visual update

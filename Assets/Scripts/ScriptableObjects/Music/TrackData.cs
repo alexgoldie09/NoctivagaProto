@@ -9,14 +9,16 @@ public class TrackData : ScriptableObject
     [Header("Timing")]
     [Tooltip("Beats per minute of the track.")]
     public float bpm = 120f;
-
     [Tooltip("Offset to align the track's beat start.")]
     public float beatOffset = 0f;
 
     [Header("Looping")]
     [Tooltip("Enable if the track should loop.")]
     public bool loop = true;
-
     [Tooltip("Optional loop start point in seconds.")]
     public float loopStartTime = 0f;
+    
+    [Header("Volume")]
+    [Tooltip("The volume of the track."), Range(0f, 1f)]
+    public float volume = 1f;
 }

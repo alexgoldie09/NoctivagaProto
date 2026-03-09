@@ -35,8 +35,9 @@ public class WinScreenUI : MonoBehaviour
         // Pull final values from ScoreManager
         if (ScoreManager.Instance != null)
         {
-            finalScoreText.text = $"Final Score: {ScoreManager.Instance.GetFinalScore()}";
-            finalMovesText.text = $"Moves: {ScoreManager.Instance.GetMoveCount()}";
+            finalScoreText.text = $"Base Score: {ScoreManager.Instance.GetBaseScore()}" +
+                                  $"\nFinal Score: {ScoreManager.Instance.GetFinalScore()}";
+            finalMovesText.text = $"Moves taken: {ScoreManager.Instance.GetMoveCount()}";
         }
         else
         {
