@@ -251,7 +251,7 @@ public abstract class BossControllerBase : MonoBehaviour
 
         State = BossState.Dead;
 
-        TriggerAnim("Death");
+        TriggerAnim("Tease");
         UnbindShield();
         OnPlayerDeathStarted();
 

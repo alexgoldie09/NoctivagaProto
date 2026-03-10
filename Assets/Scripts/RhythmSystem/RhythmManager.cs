@@ -33,12 +33,11 @@ public class RhythmManager : MonoBehaviour
     [Tooltip("Represents the percentage the player has to match to the current beat.")]
     [SerializeField] private float onBeatPercentage = 0.25f;
     
-    [Header("Latency Compensation")]
-    [Tooltip("Shifts the effective hit timestamp back by this many seconds to account for " +
-             "audio output buffer lag and input polling delay. Start around 0.05–0.08 and " +
-             "tune with a calibration screen. Positive = compensate for late-feeling hits.")]
+    [Header("Input Offset")]
+    [Tooltip("Shifts hit evaluation earlier by this many seconds. Use a small positive value " +
+             "if player input feels consistently late compared to the music.")]
     [Range(0f, 0.3f)]
-    public float latencyCompensation = 0.06f;
+    public float inputOffsetSeconds = 0.06f;
     
     private double startDSPTime;            // DSP time when the track was started
     private double beatInterval;            // Seconds per beat at the current tempo
@@ -49,6 +48,7 @@ public class RhythmManager : MonoBehaviour
     public static event Action OnBeat;
 
     private bool isPlaying = false;
+    private bool pendingStartSync = false;
 
     // ─────────────────────────────────────────────────────────────────────────────
     #region Unity Lifecycle
@@ -79,7 +79,12 @@ public class RhythmManager : MonoBehaviour
         if (!isPlaying || currentTrack == null) return;
         if (!AudioManager.Instance.IsRhythmPlaying)  return;
 
-        double songPos = AudioSettings.dspTime - startDSPTime;
+        if (pendingStartSync)
+            SyncStartTimeFromAudioSource();
+
+        double songPos = GetSongPosition(AudioSettings.dspTime);
+        if (songPos < 0d)
+            return;
         int expectedBeats = (int)(songPos / beatInterval);
 
         while (beatCount < expectedBeats)
@@ -107,12 +112,15 @@ public class RhythmManager : MonoBehaviour
         beatInterval = 60.0 / track.bpm;
         beatCount = 0;
 
-        // Schedule slightly ahead so audio and beat timer start in sync
+        // Schedule slightly ahead to avoid race conditions at start.
         double dspStartTime = AudioSettings.dspTime + 0.1;
         startDSPTime = dspStartTime;
 
         AudioManager.Instance.PlayRhythmTrack(track.musicClip, track.loop, dspStartTime, track.volume);
 
+        // We will re-anchor to the source's *actual* playback position on first update.
+        // This removes first-run startup variance from scoring alignment.
+        pendingStartSync = true;
         isPlaying = true;
     }
 
@@ -142,6 +150,7 @@ public class RhythmManager : MonoBehaviour
     public void Stop()
     {
         isPlaying  = false;
+        pendingStartSync = false;
         beatCount = 0;
         AudioManager.Instance.StopRhythmTrack();
     }
@@ -159,14 +168,17 @@ public class RhythmManager : MonoBehaviour
         tempoMultiplier = Mathf.Max(0.1f, multiplier);
         if (currentTrack == null) return;
 
+        double dspNow = AudioSettings.dspTime;
+        double oldBeatInterval = beatInterval;
+        double songPosNow = GetSongPosition(dspNow);
+        double beatPosition = oldBeatInterval > 0d ? songPosNow / oldBeatInterval : 0d;
+
         beatInterval = (60.0 / currentTrack.bpm) / tempoMultiplier;
         AudioManager.Instance.SetRhythmPitch(tempoMultiplier);
-
-        // Re-anchor startDSPTime so that (dspTime - startDSPTime) % beatInterval
-        // still maps correctly to beat positions under the new interval.
-        // Without this, GetHitQuality drifts as soon as the interval changes.
-        double dspNow = AudioSettings.dspTime;
-        startDSPTime  = dspNow - (beatCount * beatInterval);
+        
+        // Preserve sub-beat phase when tempo changes (important for half-time mode).
+        // Using the continuous beat position avoids snapping timing to the last full beat.
+        startDSPTime = dspNow - (beatPosition * beatInterval);
     }
 
     /// <summary>Resets tempo to 1× normal speed.</summary>
@@ -182,9 +194,11 @@ public class RhythmManager : MonoBehaviour
     /// </summary>
     public float GetBeatProgress()
     {
-        double songPos = AudioSettings.dspTime - startDSPTime;
-        double timeSinceLastBeat = songPos % beatInterval;
-        return (float)(timeSinceLastBeat / beatInterval);
+        double songPos = GetSongPosition(AudioSettings.dspTime);
+        if (songPos <= 0d || beatInterval <= 0d)
+            return 0f;
+
+        return (float)GetTimeSinceLastBeat(songPos) / (float)beatInterval;
     }
 
     /// <summary>Returns the total number of beats fired since the track started.</summary>
@@ -198,9 +212,12 @@ public class RhythmManager : MonoBehaviour
         if (!isPlaying || currentTrack == null)
             return BeatHitQuality.OffBeat;
 
-        double compensatedTime = AudioSettings.dspTime - latencyCompensation;
-        double songPos  = compensatedTime - startDSPTime;
-        double timeSinceLastBeat = songPos % beatInterval;
+        double compensatedTime = AudioSettings.dspTime - inputOffsetSeconds;
+        double songPos  = GetSongPosition(compensatedTime);
+        if (songPos < 0d || beatInterval <= 0d)
+            return BeatHitQuality.OffBeat;
+
+        double timeSinceLastBeat = GetTimeSinceLastBeat(songPos);
         double distanceToBeat    = Math.Min(timeSinceLastBeat, beatInterval - timeSinceLastBeat);
 
         // Thresholds as a fraction of the beat interval — stays fair at any BPM
@@ -220,6 +237,32 @@ public class RhythmManager : MonoBehaviour
     {
         beatCount++;
         OnBeat?.Invoke();
+    }
+    
+    private double GetSongPosition(double dspTime)
+    {
+        return dspTime - startDSPTime;
+    }
+
+    private double GetTimeSinceLastBeat(double songPosition)
+    {
+        double wrapped = songPosition % beatInterval;
+        return wrapped < 0d ? wrapped + beatInterval : wrapped;
+    }
+    
+    private void SyncStartTimeFromAudioSource()
+    {
+        AudioSource source = AudioManager.Instance != null ? AudioManager.Instance.rhythmSource : null;
+        if (source == null || source.clip == null)
+            return;
+
+        // We only sync once the source has advanced into the clip.
+        if (source.timeSamples < 0)
+            return;
+
+        double clipSeconds = source.timeSamples / (double)source.clip.frequency;
+        startDSPTime = AudioSettings.dspTime - clipSeconds;
+        pendingStartSync = false;
     }
     #endregion
 }

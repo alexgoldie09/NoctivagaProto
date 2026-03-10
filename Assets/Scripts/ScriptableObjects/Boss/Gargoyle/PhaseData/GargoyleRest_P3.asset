@@ -12,5 +12,5 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ee38ab638eb15489ebf023bf8fe01b8f, type: 3}
   m_Name: GargoyleRest_P3
   m_EditorClassIdentifier: Assembly-CSharp::GargoyleRestPhaseData
-  restDuration: 6
+  restDuration: 10
   flyMoveSpeed: 10

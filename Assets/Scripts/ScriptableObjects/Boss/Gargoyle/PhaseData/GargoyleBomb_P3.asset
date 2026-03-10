@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4c8a419dace124f30ad410dd8d735f3f, type: 3}
   m_Name: GargoyleBomb_P3
   m_EditorClassIdentifier: Assembly-CSharp::GargoyleBombingPhaseData
-  bombsPerFlight: 6
+  bombsPerFlight: 4
   flyMoveSpeed: 10
   bombInterval: 0.9
   telegraphDuration: 0.6

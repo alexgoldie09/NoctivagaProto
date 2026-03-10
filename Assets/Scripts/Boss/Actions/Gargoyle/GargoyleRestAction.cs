@@ -22,6 +22,8 @@ public class GargoyleRestAction : BossAction
     [SerializeField] private int damagePerRestHit = 1;
     [Tooltip("If true, the boss can only take one hit per rest cycle.")]
     [SerializeField] private bool oneHitPerRest = true;
+    [Tooltip("Delay after taking a rest hit before leaving Rest and returning to flight.")]
+    [SerializeField] private float postHitRestDelay = 0.3f;
 
     [Header("Phase Tuning")]
     [Tooltip("Phase tuning asset used to configure fly speed and rest duration per boss phase.")]
@@ -171,7 +173,12 @@ public class GargoyleRestAction : BossAction
                 yield break;
 
             if (gargoyle.TookDamageThisRest)
+            {
+                if (postHitRestDelay > 0f)
+                    yield return new WaitForSeconds(postHitRestDelay);
+
                 break;
+            }
 
             t += Time.deltaTime;
             yield return null;

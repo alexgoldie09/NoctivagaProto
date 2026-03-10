@@ -34,7 +34,8 @@ public class ShapePickup : PickupBase
         int addAmount = Mathf.Max(1, amount);
         inv.AddShape(shapeData, addAmount);
 
-        // Optional: audio / VFX hooks later
+        if(AudioManager.Instance != null) 
+            AudioManager.Instance.PlaySFX("pick_up", 0.2f);
         Destroy(gameObject);
     }
 }

@@ -23,6 +23,8 @@ public class KeyPickup : PickupBase
             if (inventory != null)
             {
                 inventory.AddKey(keyID);
+                if(AudioManager.Instance != null)
+                    AudioManager.Instance.PlaySFX("pick_up", 0.2f);
                 Destroy(gameObject); // Remove the key from the scene after collection
             }
         }

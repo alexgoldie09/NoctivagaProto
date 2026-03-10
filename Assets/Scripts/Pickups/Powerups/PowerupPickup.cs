@@ -37,6 +37,10 @@ public class PowerupPickup : PickupBase
         var activated = GameManager.Instance.TryActivatePowerup(type, duration);
 
         if (activated)
+        {
+            if (AudioManager.Instance != null)
+                AudioManager.Instance.PlaySFX("pick_up", 0.2f);
             Destroy(gameObject);
+        }
     }
 }

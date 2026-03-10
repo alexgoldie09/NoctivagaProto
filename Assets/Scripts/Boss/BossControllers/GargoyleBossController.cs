@@ -29,7 +29,7 @@ public class GargoyleBossController : BossControllerBase
     
     [Header("Intro")]
     [Tooltip("Delay (seconds) before the main loop starts after the enter animation.")]
-    [SerializeField] private float enterDelay = 3f;
+    [SerializeField] private float enterDelay = 4.5f;
 
     [Header("Actions (Optional Overrides)")]
     [Tooltip("Explicit bombing action override (used if action lookup by name fails).")]
