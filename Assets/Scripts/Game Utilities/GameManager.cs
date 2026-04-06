@@ -24,6 +24,12 @@ public class GameManager : MonoBehaviour
     [Tooltip("Melee Player particle system that plays during melee mode.")]
     [SerializeField] private ParticleSystem meleeFX;
 
+    [Header("Level")]
+    [Tooltip("1-based level index matching scene build order. Used by SaveManager.")]
+    [SerializeField] private int levelIndex = 1;
+    [Tooltip("Mark true for boss levels. SaveManager will record completion only — no score saved.")]
+    [SerializeField] private bool isBossLevel = false;
+
     [Header("UI")]
     [Tooltip("Reference to the Win Screen UI canvas (pre-placed, disabled by default).")]
     [SerializeField] private GameObject winScreenUI;
@@ -129,9 +135,14 @@ public class GameManager : MonoBehaviour
         
         player.ClearMeleePreview();
         
-        // Finalize score
+        // Finalize score and save result
         if (ScoreManager.Instance != null)
+        {
             ScoreManager.Instance.FinalizeScore();
+            SaveManager.SaveLevel(levelIndex,
+                ScoreManager.Instance.GetFinalScore(),
+                ScoreManager.Instance.GetScoreRating());
+        }
 
         // Freeze gameplay
         Utilities.FreezeGame();
@@ -156,6 +167,10 @@ public class GameManager : MonoBehaviour
         // Clear previews
         ShapePlacer shapePlacer = player != null ? player.GetShapePlacer : null;
         shapePlacer?.ClearPreview();
+
+        // Save boss level completion
+        if (isBossLevel)
+            SaveManager.SaveBossLevel(levelIndex);
 
         // Freeze gameplay
         Utilities.FreezeGame();

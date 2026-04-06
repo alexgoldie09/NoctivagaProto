@@ -1,5 +1,11 @@
 using UnityEngine;
 using TMPro;
+using UnityEditor;
+
+/// <summary>
+/// Rating tier awarded based on final score after penalties.
+/// </summary>
+public enum ScoreRating { Low, Medium, High }
 
 /// <summary>
 /// Central manager for handling scoring, efficiency tracking, and feedback display.
@@ -13,9 +19,20 @@ public class ScoreManager : MonoBehaviour
     public static ScoreManager Instance;
 
     [Header("Scoring Settings")]
-    [Tooltip("Points lost per move at final calculation.")]
+    [Tooltip("Points lost per move within the expected move budget (Tier 1).")]
     [SerializeField] private int penaltyPerMove = 5;
-
+    [Tooltip("Expected number of moves to complete this map. " +
+             "Moves up to this count use the base penalty rate. " +
+             "Set higher for larger maps so the escalating tiers stay fair.")]
+    [SerializeField] private int movePenaltyThreshold = 30;
+    [Tooltip("Penalty multiplier for moves between 1× and 2× the threshold (Tier 2).")]
+    [SerializeField] private float tier2Multiplier = 1.5f;
+    [Tooltip("Penalty multiplier for moves beyond 2× the threshold (Tier 3).")]
+    [SerializeField] private float tier3Multiplier = 2.0f;
+    [Tooltip("Scores above this threshold are considered high level gameplay")]
+    [SerializeField, Range(0,1)] private float highScoreRatio = 0.75f;
+    [Tooltip("Scores above this threshold and between high, are considered medium level gameplay")]
+    [SerializeField, Range(0,1)] private float mediumScoreRatio = 0.40f;
     [Header("UI References")]
     [Tooltip("UI text for displaying live score.")]
     [SerializeField] private TextMeshProUGUI scoreText;
@@ -99,14 +116,32 @@ public class ScoreManager : MonoBehaviour
     }
 
     /// <summary>
-    /// Finalizes score at the end of the level by applying penalties.
+    /// Finalizes score at the end of the level by applying tiered move penalties.
     /// Call this when the player wins or completes a map.
     /// </summary>
     public void FinalizeScore()
     {
-        finalScore = Mathf.Max(0, baseScore - (moveCount * penaltyPerMove));
-        // TODO: hook into win screen UI to display results
-        Debug.Log($"Level Complete! Base Score = {baseScore}, Moves = {moveCount}, Final Score = {finalScore}");
+        int penalty = CalculateMovePenalty();
+        finalScore = Mathf.Max(0, baseScore - penalty); // Ensure score doesn't go negative
+        Debug.Log($"Level Complete! Base Score = {baseScore}, Moves = {moveCount}, Penalty = {penalty}, Final Score = {finalScore}");
+    }
+
+    /// <summary>
+    /// Calculate the total move penalty using escalating tiers beyond the threshold.
+    /// Tier 1 (moves 1-threshold): penaltyPerMove x 1
+    /// Tier 2 (threshold+1 to 2×threshold): penaltyPerMove x tier2Multiplier
+    /// Tier 3 (beyond 2×threshold): penaltyPerMove x tier3Multiplier
+    /// </summary>
+    /// <returns></returns>
+    private int CalculateMovePenalty()
+    {
+        int tier1Moves = Mathf.Min(moveCount, movePenaltyThreshold);
+        int tier2Moves = Mathf.Clamp(moveCount - movePenaltyThreshold, 0, movePenaltyThreshold);
+        int tier3Moves = Mathf.Max(0, moveCount - movePenaltyThreshold * 2);
+        
+        return Mathf.RoundToInt(tier1Moves * penaltyPerMove +
+                                  tier2Moves * penaltyPerMove * tier2Multiplier +
+                                  tier3Moves * penaltyPerMove * tier3Multiplier);
     }
 
     /// <summary>
@@ -137,6 +172,22 @@ public class ScoreManager : MonoBehaviour
     /// Returns the original score.
     /// </summary>
     public int GetBaseScore() => baseScore;
+    
+    /// <summary>
+    /// Determines the score rating (Low, Medium, High) based on the final score relative to the base score.
+    /// Uses the ratio of finalScore to baseScore and compares it against defined thresholds to assign a rating.
+    /// High (>= 75%) - mostly on-beat few wasted moves
+    /// Mid (>= 40%) - average play
+    /// Low (< 40%) - many off-beat hits or many moves leading to penalties
+    /// </summary>
+    public ScoreRating GetScoreRating()
+    {
+        if (baseScore <= 0) return ScoreRating.Low;
+        
+        float ratio = (float)finalScore / baseScore;
+        if (ratio >=  highScoreRatio) return ScoreRating.High;
+        return ratio >=  mediumScoreRatio ? ScoreRating.Medium : ScoreRating.Low;
+    }
     #endregion
     // ─────────────────────────────────────────────────────────────────────────────
     #region UI

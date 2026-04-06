@@ -17,3 +17,4 @@ MonoBehaviour:
   beatOffset: 0
   loop: 1
   loopStartTime: 0
+  volume: 0.4

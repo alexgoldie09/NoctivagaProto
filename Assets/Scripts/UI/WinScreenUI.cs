@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.UI;
 using TMPro;
 using UnityEngine.SceneManagement;
 using System.Collections;
@@ -14,6 +15,16 @@ public class WinScreenUI : MonoBehaviour
     [SerializeField] private TextMeshProUGUI finalScoreText;
     [SerializeField] private TextMeshProUGUI finalMovesText;
     [SerializeField] private CanvasGroup canvasGroup;
+    
+    [Header("Score Rating Image")]
+    [Tooltip("The image that will be displayed when the score is displayed")]
+    [SerializeField] private Image scoreRatingImage;
+    [Tooltip("Sprite shown when player's score efficiency is low")]
+    [SerializeField] private Sprite lowScoreSprite;
+    [Tooltip("Sprite shown when player's score efficiency is medium")]
+    [SerializeField] private Sprite mediumScoreSprite;
+    [Tooltip("Sprite shown when player's score efficiency is high")]
+    [SerializeField] private Sprite highScoreSprite;
 
     [Header("Fade Settings")]
     [SerializeField] private float fadeDuration = 2f;
@@ -38,6 +49,20 @@ public class WinScreenUI : MonoBehaviour
             finalScoreText.text = $"Base Score: {ScoreManager.Instance.GetBaseScore()}" +
                                   $"\nFinal Score: {ScoreManager.Instance.GetFinalScore()}";
             finalMovesText.text = $"Moves taken: {ScoreManager.Instance.GetMoveCount()}";
+            
+            // Choose rating image based on score efficiency
+            if (scoreRatingImage != null)
+            {
+                Sprite ratingSprite = ScoreManager.Instance.GetScoreRating() switch
+                {
+                    ScoreRating.High => highScoreSprite,
+                    ScoreRating.Medium => mediumScoreSprite,
+                    ScoreRating.Low => lowScoreSprite,
+                    _ => null
+                };
+                if (ratingSprite != null)
+                    scoreRatingImage.sprite = ratingSprite;
+            }
         }
         else
         {
@@ -45,6 +70,8 @@ public class WinScreenUI : MonoBehaviour
                 finalScoreText.text = "";
             if (finalMovesText != null) 
                 finalMovesText.text = "";
+            if (scoreRatingImage != null)
+                scoreRatingImage.sprite = null;
         }
 
         // Reset state
