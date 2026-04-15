@@ -1,0 +1,483 @@
+fileFormatVersion: 2
+guid: a49e371f39e4c4c88aa976da0d6b9533
+TextureImporter:
+  internalIDToNameTable:
+  - first:
+      213: 8623945561819427091
+    second: ZZ03_Squirt_Going_Splash_0
+  - first:
+      213: 8323477834670757052
+    second: ZZ03_Squirt_Going_Splash_1
+  - first:
+      213: 5870333028601942060
+    second: ZZ03_Squirt_Going_Splash_2
+  - first:
+      213: -151222097543125116
+    second: ZZ03_Squirt_Going_Splash_3
+  - first:
+      213: 372639648954076209
+    second: ZZ03_Squirt_Going_Splash_4
+  - first:
+      213: 4134472671439680337
+    second: ZZ03_Squirt_Going_Splash_5
+  - first:
+      213: -6677022010912247337
+    second: ZZ03_Squirt_Going_Splash_6
+  - first:
+      213: -3052424558610034695
+    second: ZZ03_Squirt_Going_Splash_7
+  - first:
+      213: 5270661712280044203
+    second: ZZ03_Squirt_Going_Splash_8
+  - first:
+      213: -3607864175725425472
+    second: ZZ03_Squirt_Going_Splash_9
+  - first:
+      213: -1075375178827163499
+    second: ZZ03_Squirt_Going_Splash_10
+  - first:
+      213: -9004391368023426093
+    second: ZZ03_Squirt_Going_Splash_11
+  - first:
+      213: -3265846972401131333
+    second: ZZ03_Squirt_Going_Splash_12
+  - first:
+      213: 4379423874030959380
+    second: ZZ03_Squirt_Going_Splash_13
+  - first:
+      213: 6384491229284917203
+    second: ZZ03_Squirt_Going_Splash_14
+  - first:
+      213: 8020896289926487384
+    second: ZZ03_Squirt_Going_Splash_15
+  - first:
+      213: 2220094251031400190
+    second: ZZ03_Squirt_Going_Splash_16
+  - first:
+      213: -7566673601182129035
+    second: ZZ03_Squirt_Going_Splash_17
+  - first:
+      213: 8071069512999399960
+    second: ZZ03_Squirt_Going_Splash_18
+  - first:
+      213: 1037964658669811189
+    second: ZZ03_Squirt_Going_Splash_19
+  - first:
+      213: 8400256556817990517
+    second: ZZ03_Squirt_Going_Splash_20
+  - first:
+      213: -3917545850902821378
+    second: ZZ03_Squirt_Going_Splash_21
+  - first:
+      213: -3806477219583083405
+    second: ZZ03_Squirt_Going_Splash_22
+  - first:
+      213: -5192018611777158055
+    second: ZZ03_Squirt_Going_Splash_23
+  - first:
+      213: -8678192695110885333
+    second: ZZ03_Squirt_Going_Splash_24
+  - first:
+      213: -4299682084587080938
+    second: ZZ03_Squirt_Going_Splash_25
+  - first:
+      213: -8529386022727163309
+    second: ZZ03_Squirt_Going_Splash_26
+  - first:
+      213: -5346845113475022441
+    second: ZZ03_Squirt_Going_Splash_27
+  - first:
+      213: -865966772121208989
+    second: ZZ03_Squirt_Going_Splash_28
+  - first:
+      213: 3616855146745473013
+    second: ZZ03_Squirt_Going_Splash_29
+  - first:
+      213: -6243373997835820910
+    second: ZZ03_Squirt_Going_Splash_30
+  - first:
+      213: -457712770517838349
+    second: ZZ03_Squirt_Going_Splash_31
+  - first:
+      213: 3909221610056809472
+    second: ZZ03_Squirt_Going_Splash_32
+  - first:
+      213: 881298473170002010
+    second: ZZ03_Squirt_Going_Splash_33
+  - first:
+      213: 4781738860834210693
+    second: ZZ03_Squirt_Going_Splash_34
+  - first:
+      213: 5639755264500508297
+    second: ZZ03_Squirt_Going_Splash_35
+  - first:
+      213: -3468662847356105063
+    second: ZZ03_Squirt_Going_Splash_36
+  - first:
+      213: 2729324134433724558
+    second: ZZ03_Squirt_Going_Splash_37
+  - first:
+      213: -973534077373204807
+    second: ZZ03_Squirt_Going_Splash_38
+  - first:
+      213: -7109934149962858617
+    second: ZZ03_Squirt_Going_Splash_39
+  - first:
+      213: -834887264476030501
+    second: ZZ03_Squirt_Going_Splash_40
+  - first:
+      213: 3140725855397717512
+    second: ZZ03_Squirt_Going_Splash_41
+  - first:
+      213: -7574477677139965729
+    second: ZZ03_Squirt_Going_Splash_42
+  - first:
+      213: 1737374944815345653
+    second: ZZ03_Squirt_Going_Splash_43
+  - first:
+      213: -7620214615933434182
+    second: ZZ03_Squirt_Going_Splash_44
+  - first:
+      213: 1188643494091731566
+    second: ZZ03_Squirt_Going_Splash_45
+  - first:
+      213: 2923574940360796077
+    second: ZZ03_Squirt_Going_Splash_46
+  externalObjects: {}
+  serializedVersion: 13
+  mipmaps:
+    mipMapMode: 0
+    enableMipMap: 0
+    sRGBTexture: 1
+    linearTexture: 0
+    fadeOut: 0
+    borderMipMap: 0
+    mipMapsPreserveCoverage: 0
+    alphaTestReferenceValue: 0.5
+    mipMapFadeDistanceStart: 1
+    mipMapFadeDistanceEnd: 3
+  bumpmap:
+    convertToNormalMap: 0
+    externalNormalMap: 0
+    heightScale: 0.25
+    normalMapFilter: 0
+    flipGreenChannel: 0
+  isReadable: 0
+  streamingMipmaps: 0
+  streamingMipmapsPriority: 0
+  vTOnly: 0
+  ignoreMipmapLimit: 0
+  grayScaleToAlpha: 0
+  generateCubemap: 6
+  cubemapConvolution: 0
+  seamlessCubemap: 0
+  textureFormat: 1
+  maxTextureSize: 2048
+  textureSettings:
+    serializedVersion: 2
+    filterMode: 0
+    aniso: 1
+    mipBias: 0
+    wrapU: 1
+    wrapV: 1
+    wrapW: 1
+  nPOTScale: 0
+  lightmap: 0
+  compressionQuality: 50
+  spriteMode: 2
+  spriteExtrude: 1
+  spriteMeshType: 1
+  alignment: 0
+  spritePivot: {x: 0.5, y: 0.5}
+  spritePixelsToUnits: 100
+  spriteBorder: {x: 0, y: 0, z: 0, w: 0}
+  spriteGenerateFallbackPhysicsShape: 1
+  alphaUsage: 1
+  alphaIsTransparency: 1
+  spriteTessellationDetail: -1
+  textureType: 8
+  textureShape: 1
+  singleChannelComponent: 0
+  flipbookRows: 1
+  flipbookColumns: 1
+  maxTextureSizeSet: 0
+  compressionQualitySet: 0
+  textureFormatSet: 0
+  ignorePngGamma: 0
+  applyGammaDecoding: 0
+  swizzle: 50462976
+  cookieLightType: 0
+  platformSettings:
+  - serializedVersion: 4
+    buildTarget: DefaultTexturePlatform
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 0
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: Standalone
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: Android
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: WebGL
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: iOS
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  spriteSheet:
+    serializedVersion: 2
+    sprites:
+    - serializedVersion: 2
+      name: ZZ03_Squirt_Going_Splash_0
+      rect:
+        serializedVersion: 2
+        x: 0
+        y: 320
+        width: 320
+        height: 320
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 311bd8efbc86ea770800000000000000
+      internalID: 8623945561819427091
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: ZZ03_Squirt_Going_Splash_1
+      rect:
+        serializedVersion: 2
+        x: 320
+        y: 320
+        width: 320
+        height: 320
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: cb4536fadfee28370800000000000000
+      internalID: 8323477834670757052
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: ZZ03_Squirt_Going_Splash_2
+      rect:
+        serializedVersion: 2
+        x: 640
+        y: 320
+        width: 320
+        height: 320
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: c20df0389cc977150800000000000000
+      internalID: 5870333028601942060
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: ZZ03_Squirt_Going_Splash_3
+      rect:
+        serializedVersion: 2
+        x: 960
+        y: 320
+        width: 320
+        height: 320
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 487a0c1bd40c6edf0800000000000000
+      internalID: -151222097543125116
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: ZZ03_Squirt_Going_Splash_4
+      rect:
+        serializedVersion: 2
+        x: 0
+        y: 0
+        width: 320
+        height: 320
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 13c422159c1eb2500800000000000000
+      internalID: 372639648954076209
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: ZZ03_Squirt_Going_Splash_5
+      rect:
+        serializedVersion: 2
+        x: 320
+        y: 0
+        width: 320
+        height: 320
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 153f8b24df8906930800000000000000
+      internalID: 4134472671439680337
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: ZZ03_Squirt_Going_Splash_6
+      rect:
+        serializedVersion: 2
+        x: 640
+        y: 0
+        width: 320
+        height: 320
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 7d17c128bd37653a0800000000000000
+      internalID: -6677022010912247337
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: ZZ03_Squirt_Going_Splash_7
+      rect:
+        serializedVersion: 2
+        x: 960
+        y: 0
+        width: 320
+        height: 320
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 9ffce50590c93a5d0800000000000000
+      internalID: -3052424558610034695
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    outline: []
+    customData: 
+    physicsShape: []
+    bones: []
+    spriteID: 57f90217f5e3f460cbbb2b8a5af726e8
+    internalID: 0
+    vertices: []
+    indices: 
+    edges: []
+    weights: []
+    secondaryTextures: []
+    spriteCustomMetadata:
+      entries:
+      - key: SpriteEditor.SliceSettings
+        value: '{"sliceOnImport":false,"gridCellCount":{"x":4.0,"y":2.0},"gridSpriteSize":{"x":320.0,"y":320.0},"gridSpriteOffset":{"x":0.0,"y":0.0},"gridSpritePadding":{"x":0.0,"y":0.0},"pivot":{"x":0.5,"y":0.5},"pivotPixels":{"x":0.0,"y":0.0},"autoSlicingMethod":0,"spriteAlignment":0,"pivotUnitMode":0,"slicingType":2,"keepEmptyRects":false,"isAlternate":false}'
+    nameFileIdTable:
+      ZZ03_Squirt_Going_Splash_0: 8623945561819427091
+      ZZ03_Squirt_Going_Splash_1: 8323477834670757052
+      ZZ03_Squirt_Going_Splash_2: 5870333028601942060
+      ZZ03_Squirt_Going_Splash_3: -151222097543125116
+      ZZ03_Squirt_Going_Splash_4: 372639648954076209
+      ZZ03_Squirt_Going_Splash_5: 4134472671439680337
+      ZZ03_Squirt_Going_Splash_6: -6677022010912247337
+      ZZ03_Squirt_Going_Splash_7: -3052424558610034695
+  mipmapLimitGroupName: 
+  pSDRemoveMatte: 0
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 

@@ -63,21 +63,25 @@ public class EnemyStaticSwiping : EnemyStatic
     /// <param name="cells">Cells affected by the swipe.</param>
     private void ExecuteSwipe(List<Vector3Int> cells)
     {
-        // Spawn swipe VFX at cell centers
-        if (swipeVFXPrefab != null && grid != null)
+        // Feedback only fires when on screen
+        if (IsOnScreen())
         {
-            // Cinemachine Impulse shake
-            if (damageShakeForce > 0f && allowDamageShake)
-                CameraShake.Instance?.Shake(damageShakeForce);
-            
-            foreach (var c in cells)
+            if (swipeVFXPrefab != null && grid != null)
             {
-                Vector3 worldPos = grid.CellToWorldCenter(c);
-                Instantiate(swipeVFXPrefab, worldPos, Quaternion.identity);
+                if (damageShakeForce > 0f && allowDamageShake)
+                    CameraShake.Instance?.Shake(damageShakeForce);
+
+                AudioManager.Instance?.PlaySFX("snorlax_static", 0.1f);
+
+                foreach (var c in cells)
+                {
+                    Vector3 worldPos = grid.CellToWorldCenter(c);
+                    VFXPoolManager.Instance?.Get(swipeVFXPrefab, worldPos);
+                }
             }
         }
 
-        // Player contact check by cell
+        // Contact check always runs regardless
         if (player != null && cells.Contains(player.CellPosition))
             OnPlayerContact();
     }

@@ -1,13 +1,14 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Audio;
+using UnityEngine.SceneManagement;
 
 /// <summary>
 /// Central audio hub for the game. Owns all AudioSources and handles:
 ///   - Rhythm tracks: DSP-scheduled playback driven by RhythmManager.
 ///   - BGM: a single looping background music track.
 ///   - SFX: one-shot clips with per-clip cooldown to prevent stacking.
-///   - Ambience: looping layered ambient sounds that auto-start on Awake.
+///   - Looping SFX: sustained looping sounds managed by key, stopped explicitly.
 ///   - Volume: persisted SFX and Music mixer group volumes via PlayerPrefs.
 /// </summary>
 public class AudioManager : MonoBehaviour
@@ -23,6 +24,8 @@ public class AudioManager : MonoBehaviour
     public AudioSource rhythmSource;
     [Tooltip("AudioSource used for the SFX clips. Created automatically if left empty.")]
     public AudioSource sfxSource;
+    [Tooltip("AudioSource used for looping SFX. Created automatically if left empty.")]
+    public AudioSource loopingSFXSource;
 
     [Header("SFX")]
     [Tooltip("All sound effect clips. Reference by clip name when calling PlaySFX().")]
@@ -38,8 +41,11 @@ public class AudioManager : MonoBehaviour
     private const string MixerSFXParam   = "SFXVolume";
     private const string MixerMusicParam = "MusicVolume";
 
-    private Dictionary<string, AudioClip> sfxLookup   = new Dictionary<string, AudioClip>();
-    private Dictionary<string, float> sfxLastPlayed   = new Dictionary<string, float>();
+    private Dictionary<string, AudioClip> sfxLookup     = new Dictionary<string, AudioClip>();
+    private Dictionary<string, float>     sfxLastPlayed = new Dictionary<string, float>();
+    
+    // Tracks which clip key is currently looping so we can guard against restarts
+    private string currentLoopingKey = null;
 
     // ─────────────────────────────────────────────────────────────────────────────
     #region Unity Lifecycle
@@ -52,10 +58,29 @@ public class AudioManager : MonoBehaviour
             return;
         }
         Instance = this;
-        // DontDestroyOnLoad(gameObject);
+        DontDestroyOnLoad(gameObject);
 
         InitialiseRhythmSource();
         InitialiseSFXSource();
+        InitialiseLoopingSFXSource();
+
+        // Reapply mixer volumes on every scene load since the mixer resets its
+        // runtime parameters when a new scene is loaded
+        SceneManager.sceneLoaded += OnSceneLoaded;
+    }
+
+    private void Start()
+    {
+        RestoreVolumes();
+    }
+
+    private void OnDestroy()
+    {
+        SceneManager.sceneLoaded -= OnSceneLoaded;
+    }
+
+    private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
+    {
         RestoreVolumes();
     }
 
@@ -82,6 +107,16 @@ public class AudioManager : MonoBehaviour
 
         foreach (var clip in sfxClips)
             if (clip != null) sfxLookup[clip.name] = clip;
+    }
+    
+    private void InitialiseLoopingSFXSource()
+    {
+        if (loopingSFXSource == null)
+        {
+            loopingSFXSource = gameObject.AddComponent<AudioSource>();
+            loopingSFXSource.playOnAwake = false;
+            loopingSFXSource.loop = true;
+        }
     }
 
     /// <summary>
@@ -154,10 +189,6 @@ public class AudioManager : MonoBehaviour
     /// Schedules a rhythm track for playback at a precise DSP time.
     /// Called by RhythmManager when starting a track.
     /// </summary>
-    /// <param name="clip">The audio clip to play.</param>
-    /// <param name="loop">Whether the clip should loop.</param>
-    /// <param name="dspStartTime">Exact DSP time at which playback begins.</param>
-    /// <param name="volume">Volume of the clip to set.</param>
     public void PlayRhythmTrack(AudioClip clip, bool loop, double dspStartTime, float volume)
     {
         if (clip == null)
@@ -166,6 +197,7 @@ public class AudioManager : MonoBehaviour
             return;
         }
 
+        rhythmSource.Stop();
         rhythmSource.clip   = clip;
         rhythmSource.loop   = loop;
         rhythmSource.pitch  = 1f;
@@ -174,18 +206,30 @@ public class AudioManager : MonoBehaviour
     }
 
     /// <summary>
-    /// Pauses the rhythm track.
+    /// Requests a track swap. If the requested clip is already playing,
+    /// playback continues uninterrupted — handles scene transitions on shared tracks.
     /// </summary>
+    public void RequestTrack(TrackData track)
+    {
+        if (track == null)
+        {
+            RhythmManager.Instance?.Stop();
+            return;
+        }
+
+        if (rhythmSource.isPlaying && rhythmSource.clip == track.musicClip)
+            return;
+
+        RhythmManager.Instance?.PlayTrack(track);
+    }
+
+    /// <summary>Pauses the rhythm track.</summary>
     public void PauseRhythmTrack() => rhythmSource.Pause();
 
-    /// <summary>
-    /// Resumes the rhythm track after a pause.
-    /// </summary>
+    /// <summary>Resumes the rhythm track after a pause.</summary>
     public void ResumeRhythmTrack() => rhythmSource.UnPause();
 
-    /// <summary>
-    /// Stops and clears the rhythm track.
-    /// </summary>
+    /// <summary>Stops and clears the rhythm track.</summary>
     public void StopRhythmTrack()
     {
         rhythmSource.Stop();
@@ -194,16 +238,13 @@ public class AudioManager : MonoBehaviour
 
     /// <summary>
     /// Adjusts the pitch of the rhythm track to match a tempo multiplier.
-    /// A pitch of 2.0 plays audio at double speed; 0.5 at half speed.
     /// </summary>
     public void SetRhythmPitch(float pitch)
     {
         rhythmSource.pitch = Mathf.Max(0.1f, pitch);
     }
 
-    /// <summary>
-    /// Returns true if the rhythm AudioSource is currently playing.
-    /// </summary>
+    /// <summary>Returns true if the rhythm AudioSource is currently playing.</summary>
     public bool IsRhythmPlaying => rhythmSource != null && rhythmSource.isPlaying;
 
     #endregion
@@ -211,8 +252,8 @@ public class AudioManager : MonoBehaviour
     #region SFX
 
     /// <summary>
-    /// Plays a one-shot SFX by name. Silently skipped if the clip is still on cooldown
-    /// or if the key is not found in the SFX list.
+    /// Plays a one-shot SFX by name. Silently skipped if the clip is on cooldown
+    /// or the key is not found.
     /// </summary>
     public void PlaySFX(string key, float volume = 1f)
     {
@@ -222,22 +263,63 @@ public class AudioManager : MonoBehaviour
             return;
         }
 
-        float now = Time.time;
+        float now = Time.realtimeSinceStartup;
         if (sfxLastPlayed.TryGetValue(key, out float lastTime) && now - lastTime < sfxCooldown)
-            return; // still cooling down
+            return;
 
         sfxSource.PlayOneShot(clip, Mathf.Clamp01(volume));
         sfxLastPlayed[key] = now;
     }
 
     /// <summary>
-    /// Stops all SFX immediately and resets all cooldown timers.
+    /// Starts a looping SFX by name. If the same key is already looping, does nothing.
+    /// Replaces any different clip that was previously looping.
+    /// </summary>
+    /// <param name="key">Clip name to loop.</param>
+    /// <param name="volume">Playback volume 0–1.</param>
+    public void PlaySFXLooping(string key, float volume = 1f)
+    {
+        if (!sfxLookup.TryGetValue(key, out var clip))
+        {
+            Debug.LogWarning($"[AudioManager] Looping SFX '{key}' not found. Check sfxClips list.");
+            return;
+        }
+
+        // Already looping this clip — do nothing
+        if (currentLoopingKey == key && loopingSFXSource.isPlaying)
+            return;
+
+        loopingSFXSource.Stop();
+        loopingSFXSource.clip   = clip;
+        loopingSFXSource.volume = Mathf.Clamp01(volume);
+        loopingSFXSource.Play();
+        currentLoopingKey = key;
+    }
+
+    /// <summary>
+    /// Stops the currently looping SFX. If a specific key is provided,
+    /// only stops if that key is the one currently looping.
+    /// </summary>
+    /// <param name="key">Optional key to match before stopping. Pass null to force stop any loop.</param>
+    public void StopSFXLooping(string key = null)
+    {
+        if (key != null && currentLoopingKey != key)
+            return;
+
+        loopingSFXSource.Stop();
+        loopingSFXSource.clip = null;
+        currentLoopingKey = null;
+    }
+
+    /// <summary>
+    /// Stops all SFX immediately including any active loop, and resets cooldown timers.
     /// </summary>
     public void StopAllSFX()
     {
         if (sfxSource != null && sfxSource.isPlaying)
             sfxSource.Stop();
 
+        StopSFXLooping();
         sfxLastPlayed.Clear();
     }
 

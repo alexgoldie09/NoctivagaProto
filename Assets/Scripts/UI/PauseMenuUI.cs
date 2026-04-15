@@ -65,7 +65,10 @@ public class PauseMenuUI : MonoBehaviour
         for (int i = 0; i < displays.Length; i++)
         {
             if (displays[i] != null)
+            {
                 displays[i].SetActive(i == index);
+                AudioManager.Instance?.PlaySFX("obstacle_click", 0.4f);
+            }
         }
     }
 
@@ -74,15 +77,18 @@ public class PauseMenuUI : MonoBehaviour
     /// </summary>
     public void RestartLevel()
     {
+        AudioManager.Instance?.PlaySFX("obstacle_click", 0.4f);
         Utilities.UnfreezeGame();
+        RhythmManager.Instance?.Stop(); // clear the track before reload
         SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
     }
-
+    
     /// <summary>
     /// Quits the game.
     /// </summary>
     public void QuitGame()
     {
+        AudioManager.Instance?.PlaySFX("obstacle_click", 0.4f);
         Utilities.QuitGame();
     }
 }

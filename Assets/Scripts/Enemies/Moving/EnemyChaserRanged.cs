@@ -70,6 +70,10 @@ public class EnemyChaserRanged : EnemyChaser
 
         var projectile = Instantiate(projectilePrefab, projectileSpawn.position, Quaternion.identity);
         projectile.GetComponent<EnemyStraightProjectile>().Initialize(direction);
+        
+        // Only play the sound if the enemy is visible — projectile always fires regardless
+        if (IsOnScreen())
+            AudioManager.Instance?.PlaySFX("enemy_chaser_snake", 0.75f);
     }
 
     private void UpdateShootVisualDirection(Vector3Int dir)

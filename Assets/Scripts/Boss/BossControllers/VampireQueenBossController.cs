@@ -43,6 +43,7 @@ public class VampireQueenBossController : BossControllerBase
     private Vector3Int damageableAnchorCell;
     private bool hasDamageableAnchor;
     private bool directDamageEnabled;
+    private bool directHit;
 
     // ─────────────────────────────────────────────
     #region Unity Events
@@ -73,6 +74,8 @@ public class VampireQueenBossController : BossControllerBase
     private IEnumerator MainLoop()
     {
         State = BossState.Enter;
+        
+        AudioManager.Instance?.PlaySFX("vamp_stage_enter", 0.6f);
 
         yield return new WaitForSeconds(enterDelay);
 
@@ -328,7 +331,17 @@ public class VampireQueenBossController : BossControllerBase
                cell.y >= minCell.y &&
                cell.y <= maxCell.y;
     }
+    
+    /// <summary>
+    /// Returns true if a direct damage hit has been registered in the current window.
+    /// </summary>
+    public bool DirectHit => directHit;
 
+    /// <summary>
+    /// Clears the direct hit flag for phase 3 attacks (called by telegraph after hit is processed).
+    /// </summary>
+    public void ClearDirectHit() => directHit = false;
+    
     /// <summary>
     /// Applies direct damage for Phase 3 hits.
     /// </summary>
@@ -338,6 +351,7 @@ public class VampireQueenBossController : BossControllerBase
             return false;
 
         TakeDamage(damage);
+        directHit = true;  // add this line
         return true;
     }
     
@@ -380,6 +394,17 @@ public class VampireQueenBossController : BossControllerBase
         SetDirectDamageEnabled(false);
 
         StopMainLoop();
+    }
+    
+    protected override void HandlePlayerDied()
+    {
+        if (bossHealth != null && bossHealth.CurrentPhase == BossPhase.Phase3)
+        {
+            var meteorAction = GetComponent<VampireQueenMeteorFieldAction>();
+            meteorAction?.RestoreOriginalVisuals(this);
+        }
+
+        base.HandlePlayerDied();
     }
 
     /// <summary>

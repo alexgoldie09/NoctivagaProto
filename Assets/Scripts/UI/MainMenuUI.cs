@@ -144,19 +144,33 @@ public class MainMenuUI : MonoBehaviour
     private IEnumerator TransitionToScene(string sceneName)
     {
         isTransitioning = true;
+        
+        AudioManager.Instance?.PlaySFX("obstacle_click", 0.4f);
 
         if (transitionAnimator != null)
         {
             transitionAnimator.SetTrigger(transitionTrigger);
             yield return new WaitForSeconds(transitionDuration);
         }
-
+        
+        if (sceneName == loadScene || sceneName == creditsScene)
+        {
+            // Don't unfreeze or stop music when going to load screen, since the player can return to the menu without reloading
+            SceneManager.LoadScene(sceneName);
+            yield break;
+        }
+        
+        Utilities.UnfreezeGame();
+        RhythmManager.Instance?.Stop(); // clear the track before reload
         SceneManager.LoadScene(sceneName);
     }
 
     private IEnumerator QuitAfterTransition()
     {
         isTransitioning = true;
+        
+        AudioManager.Instance?.PlaySFX("obstacle_click", 0.4f);
+        
         transitionAnimator.SetTrigger(transitionTrigger);
         yield return new WaitForSeconds(transitionDuration);
         Utilities.QuitGame();

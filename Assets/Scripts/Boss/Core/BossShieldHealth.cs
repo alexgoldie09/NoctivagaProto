@@ -21,6 +21,7 @@ public class BossShieldHealth : MonoBehaviour
 
     [Header("Shield Visuals")]
     [SerializeField] private SpriteRenderer shieldRenderer;
+    [SerializeField] private Animator shieldAnimator;
     [SerializeField] private Color flashColor = Color.white;
     [Min(0f)]
     [SerializeField] private float flashTotalDuration = 0.5f;
@@ -37,18 +38,26 @@ public class BossShieldHealth : MonoBehaviour
     private readonly List<Vector3Int> shieldCells = new();
     private Coroutine flashRoutine;
     private Color initialColor = Color.white;
+    private bool shieldHit;
 
     public event Action<int, int> OnShieldChanged;
     public event Action OnShieldBroken;
 
     public int MaxHP => maxHP;
     public int CurrentHP { get; private set; }
+    
+    public Animator ShieldAnimator => shieldAnimator;
     public bool IsBroken => CurrentHP <= 0;
+    public bool ShieldHit => shieldHit;
+    public void ClearShieldHit() => shieldHit = false;
 
     private void Awake()
     {
         if (shieldRenderer == null)
-            shieldRenderer = GetComponentInChildren<SpriteRenderer>();
+            shieldRenderer = GetComponent<SpriteRenderer>();
+        
+        if (shieldAnimator == null)
+            shieldAnimator = GetComponent<Animator>();
 
         if (shieldRenderer != null)
             initialColor = shieldRenderer.color;
@@ -82,6 +91,7 @@ public class BossShieldHealth : MonoBehaviour
         {
             OnShieldChanged?.Invoke(CurrentHP, maxHP);
             Flash();
+            shieldHit = true;
 
             if (CurrentHP == 0)
                 OnShieldBroken?.Invoke();

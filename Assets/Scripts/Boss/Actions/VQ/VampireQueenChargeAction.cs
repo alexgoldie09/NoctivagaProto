@@ -37,6 +37,8 @@ public class VampireQueenChargeAction : BossAction
     [SerializeField] private Transform recuperationAnchor;
 
     [Header("Animation")]
+    [Tooltip("Animator trigger to play while flying between positions.")]
+    [SerializeField] private string flyAnimationTrigger = "Fly"; // added
     [Tooltip("Animator trigger to play during charge windup.")]
     [SerializeField] private string windupAnimationTrigger = "Summon";
     [Tooltip("Animator trigger to play while charging.")]
@@ -105,8 +107,10 @@ public class VampireQueenChargeAction : BossAction
 
         Vector3 startWorld = queen.GetFootprintCenterWorld(lane.startAnchor);
 
+        // Fly to charge start anchor
         queen.SetState(BossControllerBase.BossState.Flight);
-        yield return queen.FlyToWorldPoint(startWorld, approachSpeed);
+        AudioManager.Instance?.PlaySFX("vamp_flying", 0.7f);
+        yield return queen.FlyToWorldPoint(startWorld, approachSpeed, animationTrigger: flyAnimationTrigger);
 
         if (!string.IsNullOrEmpty(windupAnimationTrigger))
             queen.PlayAnimation(windupAnimationTrigger);
@@ -122,6 +126,8 @@ public class VampireQueenChargeAction : BossAction
             queen.PlayAnimation(chargeAnimationTrigger);
 
         bool tookTrapDamage = false;
+        // Charge along lane
+        AudioManager.Instance?.PlaySFX("vamp_flying", 0.7f);
         yield return ChargeAlongLane(context, queen, lane, chargeSpeed, trapDamage, hit =>
         {
             tookTrapDamage = hit;
@@ -129,11 +135,15 @@ public class VampireQueenChargeAction : BossAction
 
         queen.SetContactColliderActive(false);
 
+        // Reset Z rotation after charge (was adjusted for vertical lanes)
+        Vector3 postChargeEuler = queen.transform.eulerAngles;
+        queen.transform.eulerAngles = new Vector3(postChargeEuler.x, postChargeEuler.y, 0f);
+
         if (tookTrapDamage)
         {
-            if(queen.BossHealth.CurrentPhase == BossPhase.Phase2)
+            if (queen.BossHealth.CurrentPhase == BossPhase.Phase2)
                 queen.AdvanceMicroPhase();
-            
+
             queen.SetState(BossControllerBase.BossState.Hurt);
             if (!string.IsNullOrEmpty(hurtAnimationTrigger))
                 queen.PlayAnimation(hurtAnimationTrigger);
@@ -143,9 +153,11 @@ public class VampireQueenChargeAction : BossAction
                 if (hurtAnimationHold > 0f)
                     yield return new WaitForSeconds(hurtAnimationHold);
 
-                yield return queen.FlyToWorldPoint(recuperationAnchor.position, approachSpeed);
+                // Recuperation fly after trap hit
+                AudioManager.Instance?.PlaySFX("vamp_flying", 0.7f);
+                yield return queen.FlyToWorldPoint(recuperationAnchor.position, approachSpeed, animationTrigger: flyAnimationTrigger);
                 if (!string.IsNullOrEmpty(idleAnimationTrigger))
-                    queen.PlayAnimation(idleAnimationTrigger);
+                   queen.PlayAnimation(idleAnimationTrigger);
             }
 
             if (recoveryDuration > 0f)
@@ -156,8 +168,8 @@ public class VampireQueenChargeAction : BossAction
             yield return new WaitForSeconds(postChargeDelay);
         }
 
-        if (!string.IsNullOrEmpty(idleAnimationTrigger))
-            queen.PlayAnimation(idleAnimationTrigger);
+        //if (!string.IsNullOrEmpty(idleAnimationTrigger))
+        //   queen.PlayAnimation(idleAnimationTrigger);
 
         if (context.player != null)
         {
@@ -190,6 +202,14 @@ public class VampireQueenChargeAction : BossAction
         int endIndex = forward ? anchors.Count : -1;
         int step = forward ? 1 : -1;
 
+        float columnZAngle = 0f;
+        if (lane.axis == ChargeAxis.Column)
+        {
+            Vector3 startWorld = queen.GetFootprintCenterWorld(lane.startAnchor);
+            Vector3 endWorld   = queen.GetFootprintCenterWorld(lane.endAnchor);
+            columnZAngle = endWorld.y > startWorld.y ? 90f : -90f;
+        }
+        
         for (int i = startIndex; i != endIndex; i += step)
         {
             Vector3Int anchor = anchors[i];
@@ -201,6 +221,15 @@ public class VampireQueenChargeAction : BossAction
                     yield break;
 
                 queen.UpdateFacingTowards(targetWorld);
+
+                if (lane.axis == ChargeAxis.Column)
+                {
+                    Vector3 e = queen.transform.eulerAngles;
+                    bool flipped = queen.SpriteRenderer.flipX;
+                    float adjustedZ = flipped ? -columnZAngle : columnZAngle;
+                    queen.transform.eulerAngles = new Vector3(e.x, e.y, adjustedZ);
+                }
+
                 queen.transform.position = Vector3.MoveTowards(
                     queen.transform.position,
                     targetWorld,
@@ -379,7 +408,7 @@ public class VampireQueenChargeAction : BossAction
     private bool BuildLaneForRow(
         List<Vector3Int> anchors,
         int row,
-        Vector3Int playerCell, 
+        Vector3Int playerCell,
         BossContext context,
         out ChargeLane lane)
     {
@@ -630,6 +659,7 @@ public class VampireQueenChargeAction : BossAction
             if (hazard != null)
                 hazard.Arm();
         }
+        
+        AudioManager.Instance?.PlaySFX("vamp_death_moan", 0.6f);
     }
-
 }

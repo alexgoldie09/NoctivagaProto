@@ -505,7 +505,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2bb1ac3b84ed44cecb9d625f0474a681, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::RhythmManager
-  currentTrack: {fileID: 11400000, guid: ab85e2e2874c948878e85764b5bd6cc7, type: 2}
+  currentTrack: {fileID: 11400000, guid: d79eee3e45e184a07b381705a71cc026, type: 2}
   onBeatPercentage: 0.25
   inputOffsetSeconds: 0.06
 --- !u!4 &337436388
@@ -652,6 +652,10 @@ PrefabInstance:
     - target: {fileID: 6762256425616089764, guid: 4f04023d54b274b7d80c526cf24f1aba, type: 3}
       propertyPath: levelIndex
       value: 10
+      objectReference: {fileID: 0}
+    - target: {fileID: 6762256425616089764, guid: 4f04023d54b274b7d80c526cf24f1aba, type: 3}
+      propertyPath: isBossLevel
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 8139123684069455109, guid: 4f04023d54b274b7d80c526cf24f1aba, type: 3}
       propertyPath: m_Pivot.x

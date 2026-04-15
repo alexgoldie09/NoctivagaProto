@@ -594,7 +594,7 @@ public class PlayerController : MonoBehaviour
         Vector3 targetWorld = grid.CellToWorldCenter(targetCell);
 
         if (meleeSwingPrefab != null)
-            Instantiate(meleeSwingPrefab, targetWorld, Quaternion.identity);
+            VFXPoolManager.Instance?.Get(meleeSwingPrefab, targetWorld);
 
         if (meleeHitVfxPrefab != null)
             StartCoroutine(SpawnMeleeHitVfx(targetWorld));
@@ -647,7 +647,8 @@ public class PlayerController : MonoBehaviour
         if (meleeHitVfxDelay > 0f)
             yield return new WaitForSeconds(meleeHitVfxDelay);
 
-        Instantiate(meleeHitVfxPrefab, targetWorld, Quaternion.identity);
+        AudioManager.Instance?.PlaySFX("impact_two", 0.5f);
+        VFXPoolManager.Instance?.Get(meleeHitVfxPrefab, targetWorld);
     }
     #endregion
     // ─────────────────────────────────────────────

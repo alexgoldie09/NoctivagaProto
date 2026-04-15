@@ -107,9 +107,10 @@ public class WinScreenUI : MonoBehaviour
     /// </summary>
     public void RestartLevel()
     {
+        AudioManager.Instance?.PlaySFX("obstacle_click", 0.4f);
         Utilities.UnfreezeGame();
-        Scene scene = SceneManager.GetActiveScene();
-        SceneManager.LoadScene(scene.buildIndex);
+        RhythmManager.Instance?.Stop(); // clear the track before reload
+        SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
     }
     
     /// <summary>
@@ -117,7 +118,9 @@ public class WinScreenUI : MonoBehaviour
     /// </summary>
     public void NextLevel()
     {
+        AudioManager.Instance?.PlaySFX("obstacle_click", 0.4f);
         Utilities.UnfreezeGame();
+        RhythmManager.Instance?.Stop();
         SceneManager.LoadScene(nextLevelName);
     }
 
@@ -126,6 +129,7 @@ public class WinScreenUI : MonoBehaviour
     /// </summary>
     public void LoadMainMenu()
     {
+        AudioManager.Instance?.PlaySFX("obstacle_click", 0.4f);
         Utilities.UnfreezeGame();
         SceneManager.LoadScene("MainMenu"); // replace with your actual main menu scene name
     }

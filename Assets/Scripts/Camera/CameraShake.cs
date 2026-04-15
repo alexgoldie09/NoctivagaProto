@@ -3,16 +3,18 @@ using Unity.Cinemachine;
 
 /// <summary>
 /// Singleton camera shake helper that triggers Cinemachine impulse bursts.
+/// Coalesces multiple Shake() calls within the same frame into a single impulse,
+/// using the strongest requested force. Prevents stacking from simultaneous enemies.
 /// </summary>
 public class CameraShake : MonoBehaviour
 {
     public static CameraShake Instance { get; private set; }
 
     [SerializeField] private CinemachineImpulseSource impulseSource;
-    
-    /// <summary>
-    /// Caches the singleton instance and resolves the impulse source if not assigned.
-    /// </summary>
+
+    private float pendingForce;
+    private bool shakeQueued;
+
     private void Awake()
     {
         if (Instance != null && Instance != this)
@@ -25,19 +27,34 @@ public class CameraShake : MonoBehaviour
         if (impulseSource == null)
             impulseSource = GetComponent<CinemachineImpulseSource>();
     }
-    
+
     /// <summary>
-    /// Emits an impulse with a randomized 2D direction and configurable force.
+    /// Queues a shake request for this frame. Multiple calls are coalesced —
+    /// only the strongest force will fire, once, in LateUpdate.
     /// </summary>
     /// <param name="force">Strength multiplier applied to the impulse velocity.</param>
     public void Shake(float force = 1f)
     {
-        if (impulseSource == null) 
-            return;
+        pendingForce = Mathf.Max(pendingForce, force);
+        shakeQueued = true;
+    }
 
-        Vector2 dir2 = Random.insideUnitCircle.normalized;   // random XY direction
-        Vector3 vel = new Vector3(dir2.x, dir2.y, 0f) * force;
+    /// <summary>
+    /// Fires at most one impulse per frame using the strongest queued force.
+    /// </summary>
+    private void LateUpdate()
+    {
+        if (!shakeQueued) return;
 
-        impulseSource.GenerateImpulseWithVelocity(vel);
+        if (impulseSource != null)
+        {
+            Vector2 dir2 = Random.insideUnitCircle.normalized;
+            impulseSource.GenerateImpulseWithVelocity(
+                new Vector3(dir2.x, dir2.y, 0f) * pendingForce
+            );
+        }
+
+        pendingForce = 0f;
+        shakeQueued = false;
     }
 }

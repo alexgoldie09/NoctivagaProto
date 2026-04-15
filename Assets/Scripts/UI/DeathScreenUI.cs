@@ -55,9 +55,10 @@ public class DeathScreenUI : MonoBehaviour
     /// </summary>
     public void RestartLevel()
     {
+        AudioManager.Instance?.PlaySFX("obstacle_click", 0.4f);
         Utilities.UnfreezeGame();
-        Scene scene = SceneManager.GetActiveScene();
-        SceneManager.LoadScene(scene.buildIndex);
+        RhythmManager.Instance?.Stop(); // clear the track before reload
+        SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
     }
 
     /// <summary>
@@ -65,6 +66,7 @@ public class DeathScreenUI : MonoBehaviour
     /// </summary>
     public void LoadMainMenu()
     {
+        AudioManager.Instance?.PlaySFX("obstacle_click", 0.4f);
         Utilities.UnfreezeGame();
         SceneManager.LoadScene("MainMenu"); // replace with your main menu scene name
     }
@@ -74,6 +76,7 @@ public class DeathScreenUI : MonoBehaviour
     /// </summary>
     public void QuitGame()
     {
+        AudioManager.Instance?.PlaySFX("obstacle_click", 0.4f);
         Utilities.QuitGame();
     }
 }

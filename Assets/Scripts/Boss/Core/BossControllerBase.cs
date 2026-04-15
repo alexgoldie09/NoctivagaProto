@@ -103,6 +103,11 @@ public abstract class BossControllerBase : MonoBehaviour
     public PlayerController Player => player;
     
     /// <summary>
+    /// Animator reference for derived controllers and action modules.
+    /// </summary>
+    public SpriteRenderer SpriteRenderer => spriteRenderer;
+    
+    /// <summary>
     /// Post Fx Controller reference for action modules.
     /// </summary>
     public BossPostFxController PostFx => postFx;
@@ -233,6 +238,13 @@ public abstract class BossControllerBase : MonoBehaviour
             return;
 
         State = BossState.Dead;
+        
+        transform.eulerAngles = Vector3.zero; // reset any rotation from damage feedback
+        
+        if (GameManager.Instance?.LevelIndex == 5)
+            AudioManager.Instance?.PlaySFX("boob_death_moan");
+        else if (GameManager.Instance?.LevelIndex == 10)
+            AudioManager.Instance?.PlaySFX("vamp_death_moan");
 
         TriggerAnim("Death");
         UnbindShield();
@@ -250,6 +262,8 @@ public abstract class BossControllerBase : MonoBehaviour
             return;
 
         State = BossState.Dead;
+        
+        transform.eulerAngles = Vector3.zero; // reset any rotation from damage feedback
 
         TriggerAnim("Tease");
         UnbindShield();

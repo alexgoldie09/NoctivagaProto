@@ -64,6 +64,8 @@ public abstract class EnemyBase : MonoBehaviour
     private bool isDying;
     private bool hasSpawnedReward;
     private Coroutine actionRoutine;
+    private Camera mainCam;
+    private static readonly float SCREEN_BUFFER = 0.15f;
 
     // ─────────────────────────────────────────────────────────────
     #region Unity lifecycle
@@ -116,6 +118,8 @@ public abstract class EnemyBase : MonoBehaviour
             if (snapToGridOnStart)
                 transform.position = grid.CellToWorldCenter(cellPos);
         }
+        
+        mainCam = Camera.main;
     }
     #endregion
     // ─────────────────────────────────────────────────────────────
@@ -155,6 +159,9 @@ public abstract class EnemyBase : MonoBehaviour
 
     private IEnumerator ActionIntervalLoop()
     {
+        // Wait one frame so Start() has run and all references (player, grid) are initialized
+        yield return null;
+
         if (actionStartDelay > 0f)
             yield return new WaitForSeconds(actionStartDelay);
 
@@ -399,6 +406,21 @@ public abstract class EnemyBase : MonoBehaviour
         
         if (GameManager.Instance != null)
             GameManager.Instance.PlayerKilled();
+    }
+    #endregion
+    // ─────────────────────────────────────────────────────────────
+    #region VFX Culling
+    /// <summary>
+    /// Returns true if this enemy is within the visible screen area (plus a small buffer).
+    /// Use to skip feedback-only effects like VFX, SFX, and camera shake.
+    /// Never use to skip gameplay logic like contact checks or movement.
+    /// </summary>
+    protected bool IsOnScreen()
+    {
+        if (mainCam == null) return true; // fail open — don't skip if camera missing
+        Vector3 vp = mainCam.WorldToViewportPoint(transform.position);
+        return vp.x > -SCREEN_BUFFER && vp.x < 1f + SCREEN_BUFFER &&
+               vp.y > -SCREEN_BUFFER && vp.y < 1f + SCREEN_BUFFER;
     }
     #endregion
 }

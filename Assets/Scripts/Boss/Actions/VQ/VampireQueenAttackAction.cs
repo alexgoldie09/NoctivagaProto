@@ -25,6 +25,10 @@ public class VampireQueenAttackAction : BossAction
     [Header("Animation")]
     [Tooltip("Animator trigger to play when the queen becomes vulnerable.")]
     [SerializeField] private string vulnerableAnimationTrigger = "Idle";
+    [Tooltip("Animator trigger to play when the queen becomes hurt.")]
+    [SerializeField] private string hurtAnimationTrigger = "Hurt";
+    [Tooltip("Seconds to hold on the hurt animation before retreating.")]
+    [SerializeField] private float hurtAnimationHold = 0.35f; 
     [Tooltip("Animator trigger to play when the queen fires projectiles.")]
     [SerializeField] private string projectileFireTrigger = "Summon";
     [Tooltip("Delay after firing projectiles before returning to vulnerable animation.")]
@@ -69,6 +73,7 @@ public class VampireQueenAttackAction : BossAction
         {
             queen.SetVulnerableAnchor(anchorCell);
             queen.SetState(BossControllerBase.BossState.Flight);
+            AudioManager.Instance?.PlaySFX("vamp_flying", 0.7f);
             yield return queen.FlyToWorldPoint(targetWorld, descentSpeed);
         }
 
@@ -91,7 +96,11 @@ public class VampireQueenAttackAction : BossAction
                 yield break;
 
             if (queen.VulnerabilityHit)
+            {
+                if (!string.IsNullOrEmpty(hurtAnimationTrigger))
+                    queen.PlayAnimation(hurtAnimationTrigger);
                 break;
+            }
 
             if (burstsRemaining > 0 && elapsed >= nextShotTime)
             {
@@ -116,6 +125,9 @@ public class VampireQueenAttackAction : BossAction
             queen.AdvanceMicroPhase();
         
         queen.SetContactColliderActive(false);
+        
+        if (queen.VulnerabilityHit && hurtAnimationHold > 0f)
+            yield return new WaitForSeconds(hurtAnimationHold);
 
         if (queen.VulnerabilityHit && retreatDelay > 0f)
             yield return new WaitForSeconds(retreatDelay);

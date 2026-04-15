@@ -66,7 +66,7 @@ public class RhythmManager : MonoBehaviour
     private void Start()
     {
         if (currentTrack != null)
-            PlayTrack(currentTrack);
+            AudioManager.Instance?.RequestTrack(currentTrack);
     }
 
     /// <summary>
@@ -255,6 +255,9 @@ public class RhythmManager : MonoBehaviour
         AudioSource source = AudioManager.Instance != null ? AudioManager.Instance.rhythmSource : null;
         if (source == null || source.clip == null)
             return;
+        
+        // Wait until actually playing, not just scheduled
+        if (!source.isPlaying) return;
 
         // We only sync once the source has advanced into the clip.
         if (source.timeSamples < 0)

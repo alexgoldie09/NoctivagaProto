@@ -33,6 +33,14 @@ public class VampireQueenMeteorFieldAction : BossAction
     [Tooltip("Contact collider used for the phase 3 body.")]
     [SerializeField] private Collider2D meteorContactCollider;
     
+    [Header("Animator References")]
+    [Tooltip("Animator trigger to play idle.")]
+    [SerializeField] private string idleAnimationTrigger = "Idle";
+    [Tooltip("Animator trigger to play during the hurt recovery.")]
+    [SerializeField] private string hurtAnimationTrigger = "Hurt";
+    [Tooltip("Seconds to hold on the hurt animation before flying to recuperation.")]
+    [SerializeField] private float hurtAnimationHold = 0.35f;
+    
     [Header("Melee Powerup")]
     [Tooltip("Powerup prefab spawned when the meteor phase begins.")]
     [SerializeField] private GameObject meleePowerupPrefab;
@@ -120,7 +128,6 @@ public class VampireQueenMeteorFieldAction : BossAction
         if (animateHueShift && queen.PostFx != null &&
             queen.PostFx.TryGetColorAdjustments(out var color, addIfMissing: false))
         {
-            // Run until the action is no longer active (phase change or death)
             hueRoutine = StartCoroutine(HueShiftLoop(
                 color,
                 hueMin,
@@ -142,13 +149,12 @@ public class VampireQueenMeteorFieldAction : BossAction
 
         queen.SetState(BossControllerBase.BossState.Flight);
         queen.transform.position = entryWorld;
+        AudioManager.Instance?.PlaySFX("vamp_flying", 0.7f);
         yield return queen.FlyToWorldPoint(landingWorld, entrySpeed, "");
         
         queen.SetDamageableAnchor(damageableAnchorCell);
-
         queen.SetContactColliderActive(true);
 
-        // Cinemachine Impulse shake
         if (queen.DamageShakeForce > 0f && queen.AllowDamageShake)
             CameraShake.Instance?.Shake(queen.DamageShakeForce);
 
@@ -167,7 +173,10 @@ public class VampireQueenMeteorFieldAction : BossAction
                 continue;
             }
 
-            float health01 = context.health.Health01;
+            float health01 = context.shieldHealth != null && context.shieldHealth.MaxHP > 0
+                ? (float)context.shieldHealth.CurrentHP / context.shieldHealth.MaxHP
+                : context.health.Health01;
+
             float interval = Mathf.Lerp(maxBombInterval, minBombInterval, 1f - health01);
             float fallSpeed = Mathf.Lerp(minFallSpeed, maxFallSpeed, 1f - health01);
 
@@ -176,13 +185,57 @@ public class VampireQueenMeteorFieldAction : BossAction
 
             yield return DropMeteor(context, targetCell, telegraphDuration, travelTime);
 
-            if (interval > 0f)
-                yield return new WaitForSeconds(interval);
+            bool wasHurt = false;
+
+            if (queen.DirectHit)
+            {
+                queen.ClearDirectHit();
+                wasHurt = true;
+            }
+
+            if (context.shieldHealth != null && context.shieldHealth.ShieldHit)
+            {
+                context.shieldHealth.ClearShieldHit();
+                wasHurt = true;
+            }
+
+            if (wasHurt)
+            {
+                queen.PlayAnimation(hurtAnimationTrigger);
+
+                if (context.shieldHealth?.ShieldAnimator != null)
+                    context.shieldHealth.ShieldAnimator.SetTrigger(hurtAnimationTrigger);
+
+                if (hurtAnimationHold > 0f)
+                    yield return new WaitForSeconds(hurtAnimationHold);
+
+                queen.PlayAnimation(idleAnimationTrigger);
+
+                if (context.shieldHealth?.ShieldAnimator != null)
+                    context.shieldHealth.ShieldAnimator.SetTrigger(idleAnimationTrigger);
+            }
+
+            float remainingInterval = wasHurt ? Mathf.Max(0f, interval - hurtAnimationHold) : interval;
+            if (remainingInterval > 0f)
+                yield return new WaitForSeconds(remainingInterval);
 
             EnsureMeleePowerup(context);
         }
     }
+    
+    public void RestoreOriginalVisuals(VampireQueenBossController queen)
+    {
+        if (previousBodyRoot != null)
+            previousBodyRoot.SetActive(true);
 
+        if (meteorBodyRoot != null)
+            meteorBodyRoot.SetActive(false);
+
+        // Restore the original animator/renderer that was active before the body swap
+        var originalAnimator = previousBodyRoot?.GetComponent<Animator>();
+        var originalRenderer = previousBodyRoot?.GetComponent<SpriteRenderer>();
+        queen.SetVisuals(originalAnimator, originalRenderer);
+    }
 
     private void ResolveLandingAnchor(BossContext context, VampireQueenBossController queen)
     {
@@ -255,6 +308,7 @@ public class VampireQueenMeteorFieldAction : BossAction
         if (meteorProjectilePrefab != null)
         {
             var meteor = Instantiate(meteorProjectilePrefab, spawnWorld, Quaternion.identity);
+            AudioManager.Instance.PlaySFX("vamp_squirt");
             if (meteor != null)
                 StartCoroutine(MoveMeteorDown(meteor.transform, spawnWorld, targetWorld, travelTime));
         }
@@ -266,7 +320,13 @@ public class VampireQueenMeteorFieldAction : BossAction
             context.grid.ToggleFloorVoidAt(targetCell, voidTile);
 
         if (meteorImpactVfxPrefab != null)
+        {
+            var queen = context.controller as VampireQueenBossController;
             Instantiate(meteorImpactVfxPrefab, targetWorld, Quaternion.identity);
+            if (queen is { DamageShakeForce: > 0f, AllowDamageShake: true })
+                CameraShake.Instance?.Shake(queen.DamageShakeForce);
+            AudioManager.Instance?.PlaySFX("drop_bomb", 0.6f);
+        }
 
         if (context.player != null && context.player.CellPosition == targetCell)
             context.player.StartVoidFallDeath(targetWorld);

@@ -15,6 +15,7 @@ AudioMixerGroupController:
   m_Send: 00000000000000000000000000000000
   m_Effects:
   - {fileID: -7747324313104571498}
+  - {fileID: -1346241730895810191}
   m_UserColorIndex: 0
   m_Mute: 0
   m_Solo: 0
@@ -52,6 +53,48 @@ AudioMixerGroupController:
   m_Mute: 0
   m_Solo: 0
   m_BypassEffects: 0
+--- !u!244 &-1346241730895810191
+AudioMixerEffectController:
+  m_ObjectHideFlags: 3
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: 
+  m_EffectID: 32bc32791679e47da8e01338c0a87847
+  m_EffectName: SFX Reverb
+  m_MixLevel: 19462b1199330431f96db78a1188d735
+  m_Parameters:
+  - m_ParameterName: Dry Level
+    m_GUID: a2960aa3a073141ca89370656c5a9361
+  - m_ParameterName: Room
+    m_GUID: 771248728c29347f3bce3522c24b9e09
+  - m_ParameterName: Room HF
+    m_GUID: edd8e63b244144b948e5b5e80d9fd3e7
+  - m_ParameterName: Decay Time
+    m_GUID: 1db551f824a9f4172af30ff273dedfdd
+  - m_ParameterName: Decay HF Ratio
+    m_GUID: c928c51b87dc341b5bcce693cf644d9c
+  - m_ParameterName: Reflections
+    m_GUID: f67cbf4e6190249c981495d792e7c487
+  - m_ParameterName: Reflect Delay
+    m_GUID: f31f6b4d2ad9a4f9b932f03ecebc6865
+  - m_ParameterName: Reverb
+    m_GUID: a8b384ee44d5d45e9bd6386c54960e76
+  - m_ParameterName: Reverb Delay
+    m_GUID: cb0768f89db724f64aba40064bba88ea
+  - m_ParameterName: Diffusion
+    m_GUID: 59494d95157a34da49161a532da8f7a0
+  - m_ParameterName: Density
+    m_GUID: 889340002137d4940b29db1d9633c4e2
+  - m_ParameterName: HF Reference
+    m_GUID: 8b416bb25d3f94462ace344ab4d70ac9
+  - m_ParameterName: Room LF
+    m_GUID: d30c76ef31a9d4a68abec0784771acce
+  - m_ParameterName: LF Reference
+    m_GUID: b5c851bb0b2cb4535ad0b6e00d942b55
+  m_SendTarget: {fileID: 0}
+  m_EnableWetMix: 0
+  m_Bypass: 0
 --- !u!241 &24100000
 AudioMixerController:
   m_ObjectHideFlags: 0
@@ -124,7 +167,10 @@ AudioMixerSnapshotController:
   m_Name: Snapshot
   m_AudioMixer: {fileID: 24100000}
   m_SnapshotID: be4c769f9071940b084b68fe4462e0e1
-  m_FloatValues: {}
+  m_FloatValues:
+    771248728c29347f3bce3522c24b9e09: -816
+    a2960aa3a073141ca89370656c5a9361: -204
+    edd8e63b244144b948e5b5e80d9fd3e7: -1224
   m_TransitionOverrides: {}
 --- !u!244 &2381234632674062222
 AudioMixerEffectController:

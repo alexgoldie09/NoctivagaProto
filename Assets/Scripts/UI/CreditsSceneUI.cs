@@ -75,6 +75,8 @@ public class CreditsSceneUI : MonoBehaviour
     private IEnumerator TransitionToScene(string sceneName)
     {
         isTransitioning = true;
+        
+        AudioManager.Instance?.PlaySFX("obstacle_click", 0.4f);
 
         if (transitionAnimator != null)
         {

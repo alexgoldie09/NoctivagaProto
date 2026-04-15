@@ -10,9 +10,9 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 2f12577fff4b348a694a337437911686, type: 3}
-  m_Name: GT_Wall
+  m_Name: GT_Wall_4
   m_EditorClassIdentifier: Assembly-CSharp::GameTile
-  m_Sprite: {fileID: 2097078800, guid: d4172e516e49547de883b61d100a68cc, type: 3}
+  m_Sprite: {fileID: 1848854956, guid: 3dd7464f767f14d7999caa8dabe6a8b5, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_Transform:
     e00: 1

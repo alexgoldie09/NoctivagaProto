@@ -48,6 +48,8 @@ public class GameManager : MonoBehaviour
     private bool isPauseMenuOpen;
     private bool isGameEnded;
     
+    public int LevelIndex => levelIndex;
+    
     /// <summary>
     /// Establishes the singleton instance and resolves the player reference.
     /// </summary>
@@ -88,8 +90,11 @@ public class GameManager : MonoBehaviour
         
         // Play death SFX
         if (AudioManager.Instance != null)
+        {
+            AudioManager.Instance.StopAllSFX();
             AudioManager.Instance.PlaySFX("death_moan", 0.7f);
-        
+        }
+
         // Hide Boss HUD (if it exists)
         var boss = FindAnyObjectByType<BossHealth>();
         boss?.NotifyPlayerDied();
@@ -152,6 +157,10 @@ public class GameManager : MonoBehaviour
         // Pause rhythm/music
         if (RhythmManager.Instance != null)
             RhythmManager.Instance.Stop();
+        
+        // Stop SFX
+        if (AudioManager.Instance != null)
+            AudioManager.Instance.StopAllSFX();
 
         // Show Win Screen
         if (winScreenUI != null)
@@ -181,6 +190,11 @@ public class GameManager : MonoBehaviour
         if (RhythmManager.Instance != null)
             RhythmManager.Instance.Stop();
 
+        if (AudioManager.Instance != null)
+        {
+            AudioManager.Instance.StopAllSFX();
+        }
+
         // Show Win Screen
         if (winScreenUI != null)
             winScreenUI.SetActive(true);
@@ -206,6 +220,7 @@ public class GameManager : MonoBehaviour
     {
         SetBossHudVisible(false);
         Utilities.FreezeGame();
+        RhythmManager.Instance?.Pause();
         SetPauseMenuVisible(true);
     }
 
@@ -213,6 +228,7 @@ public class GameManager : MonoBehaviour
     {
         SetBossHudVisible(true);
         Utilities.UnfreezeGame();
+        RhythmManager.Instance?.Resume();
         SetPauseMenuVisible(false);
     }
     

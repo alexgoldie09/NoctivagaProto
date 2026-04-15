@@ -87,27 +87,32 @@ public class EnemyChaserBruiser : EnemyChaser
     /// <param name="cells">Cells to punish with the slam attack.</param>
     private void ExecutePunish(List<Vector3Int> cells)
     {
-        if (grid == null) 
-            return;
-        
-        // Cinemachine Impulse shake
-        if (damageShakeForce > 0f && allowDamageShake)
-            CameraShake.Instance?.Shake(damageShakeForce);
+        if (grid == null) return;
 
-        foreach (var c in cells)
+        // Feedback only fires when on screen
+        if (IsOnScreen())
         {
-            if (slamVFXPrefab != null)
+            if (damageShakeForce > 0f && allowDamageShake)
+                CameraShake.Instance?.Shake(damageShakeForce);
+
+            foreach (var c in cells)
             {
-                Vector3 worldPos = grid.CellToWorldCenter(c);
-                Instantiate(slamVFXPrefab, worldPos, Quaternion.identity);
+                if (slamVFXPrefab != null)
+                    VFXPoolManager.Instance?.Get(slamVFXPrefab, grid.CellToWorldCenter(c));
             }
 
+            if (animator != null)
+                animator.SetTrigger("OnBeat");
+
+            AudioManager.Instance?.PlaySFX("enemy_chaser_medusa_near", 0.3f);
+        }
+
+        // Contact check always runs regardless
+        foreach (var c in cells)
+        {
             if (player != null && player.CellPosition == c)
                 OnPlayerContact();
         }
-
-        if (animator != null)
-            animator.SetTrigger("OnBeat");
     }
 
     /// <summary>

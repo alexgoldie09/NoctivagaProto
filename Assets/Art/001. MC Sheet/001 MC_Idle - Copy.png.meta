@@ -187,12 +187,12 @@ TextureImporter:
       name: 001 MC_Idle - Copy_0
       rect:
         serializedVersion: 2
-        x: 66
-        y: 961
-        width: 184
-        height: 312
+        x: 0
+        y: 960
+        width: 320
+        height: 320
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -209,12 +209,12 @@ TextureImporter:
       name: 001 MC_Idle - Copy_1
       rect:
         serializedVersion: 2
-        x: 387
-        y: 962
-        width: 184
-        height: 310
+        x: 320
+        y: 960
+        width: 320
+        height: 320
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -231,12 +231,12 @@ TextureImporter:
       name: 001 MC_Idle - Copy_2
       rect:
         serializedVersion: 2
-        x: 709
-        y: 962
-        width: 184
-        height: 308
+        x: 640
+        y: 960
+        width: 320
+        height: 320
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -253,12 +253,12 @@ TextureImporter:
       name: 001 MC_Idle - Copy_3
       rect:
         serializedVersion: 2
-        x: 1031
-        y: 961
-        width: 184
-        height: 306
+        x: 960
+        y: 960
+        width: 320
+        height: 320
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -275,12 +275,12 @@ TextureImporter:
       name: 001 MC_Idle - Copy_4
       rect:
         serializedVersion: 2
-        x: 73
-        y: 642
-        width: 184
-        height: 302
+        x: 0
+        y: 640
+        width: 320
+        height: 320
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -297,12 +297,12 @@ TextureImporter:
       name: 001 MC_Idle - Copy_5
       rect:
         serializedVersion: 2
-        x: 394
-        y: 641
-        width: 184
-        height: 301
+        x: 320
+        y: 640
+        width: 320
+        height: 320
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -319,12 +319,12 @@ TextureImporter:
       name: 001 MC_Idle - Copy_6
       rect:
         serializedVersion: 2
-        x: 714
-        y: 642
-        width: 184
-        height: 297
+        x: 640
+        y: 640
+        width: 320
+        height: 320
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -341,12 +341,12 @@ TextureImporter:
       name: 001 MC_Idle - Copy_7
       rect:
         serializedVersion: 2
-        x: 1035
-        y: 641
-        width: 184
-        height: 296
+        x: 960
+        y: 640
+        width: 320
+        height: 320
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -363,12 +363,12 @@ TextureImporter:
       name: 001 MC_Idle - Copy_8
       rect:
         serializedVersion: 2
-        x: 75
-        y: 321
-        width: 184
-        height: 296
+        x: 0
+        y: 320
+        width: 320
+        height: 320
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -385,12 +385,12 @@ TextureImporter:
       name: 001 MC_Idle - Copy_9
       rect:
         serializedVersion: 2
-        x: 394
-        y: 322
-        width: 184
-        height: 297
+        x: 320
+        y: 320
+        width: 320
+        height: 320
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -407,12 +407,12 @@ TextureImporter:
       name: 001 MC_Idle - Copy_10
       rect:
         serializedVersion: 2
-        x: 714
-        y: 321
-        width: 184
-        height: 301
+        x: 640
+        y: 320
+        width: 320
+        height: 320
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -429,12 +429,12 @@ TextureImporter:
       name: 001 MC_Idle - Copy_11
       rect:
         serializedVersion: 2
-        x: 1033
-        y: 322
-        width: 184
-        height: 302
+        x: 960
+        y: 320
+        width: 320
+        height: 320
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -451,12 +451,12 @@ TextureImporter:
       name: 001 MC_Idle - Copy_12
       rect:
         serializedVersion: 2
-        x: 71
-        y: 1
-        width: 184
-        height: 306
+        x: 0
+        y: 0
+        width: 320
+        height: 320
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -473,12 +473,12 @@ TextureImporter:
       name: 001 MC_Idle - Copy_13
       rect:
         serializedVersion: 2
-        x: 389
-        y: 2
-        width: 184
-        height: 308
+        x: 320
+        y: 0
+        width: 320
+        height: 320
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -495,12 +495,12 @@ TextureImporter:
       name: 001 MC_Idle - Copy_14
       rect:
         serializedVersion: 2
-        x: 707
-        y: 2
-        width: 184
-        height: 310
+        x: 640
+        y: 0
+        width: 320
+        height: 320
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -517,12 +517,12 @@ TextureImporter:
       name: 001 MC_Idle - Copy_15
       rect:
         serializedVersion: 2
-        x: 1026
-        y: 1
-        width: 184
-        height: 312
+        x: 960
+        y: 0
+        width: 320
+        height: 320
       alignment: 0
-      pivot: {x: 0, y: 0}
+      pivot: {x: 0.5, y: 0.5}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
@@ -539,7 +539,7 @@ TextureImporter:
     customData: 
     physicsShape: []
     bones: []
-    spriteID: 
+    spriteID: 4169cb2932d874ce8b00bddcf52d166f
     internalID: 0
     vertices: []
     indices: 
@@ -547,7 +547,9 @@ TextureImporter:
     weights: []
     secondaryTextures: []
     spriteCustomMetadata:
-      entries: []
+      entries:
+      - key: SpriteEditor.SliceSettings
+        value: '{"sliceOnImport":false,"gridCellCount":{"x":4.0,"y":4.0},"gridSpriteSize":{"x":320.0,"y":320.0},"gridSpriteOffset":{"x":0.0,"y":0.0},"gridSpritePadding":{"x":0.0,"y":0.0},"pivot":{"x":0.5,"y":0.5},"pivotPixels":{"x":0.0,"y":0.0},"autoSlicingMethod":0,"spriteAlignment":0,"pivotUnitMode":0,"slicingType":2,"keepEmptyRects":false,"isAlternate":false}'
     nameFileIdTable:
       001 MC_Idle - Copy_0: 1271583087773419049
       001 MC_Idle - Copy_1: -1062445598897381230

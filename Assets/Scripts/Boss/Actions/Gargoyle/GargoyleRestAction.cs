@@ -163,6 +163,7 @@ public class GargoyleRestAction : BossAction
         gargoyle.TookDamageThisRest = false;
         gargoyle.SetContactColliderActive(true);
         gargoyle.PlayAnimation(restAnimationTrigger);
+        AudioManager.Instance?.StopSFXLooping("boob_flying");
 
         float t = 0f;
         float duration = GetRestDuration(gargoyle);

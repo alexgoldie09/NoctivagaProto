@@ -144,6 +144,7 @@ public class GargoyleBombingAction : BossAction
         Vector3 hoverWorld = targetWorld + Vector3.up * hoverHeight;
 
         gargoyle.SetState(BossControllerBase.BossState.Flight);
+        AudioManager.Instance?.PlaySFXLooping("boob_flying", 0.4f);
         yield return gargoyle.FlyToWorldPoint(hoverWorld, GetFlySpeedForPhase(gargoyle));
 
         if (preThrowHoverTime > 0f)
@@ -342,7 +343,7 @@ public class GargoyleBombingAction : BossAction
             if (bombExplosionVfxPrefab != null)
             {
                 Vector3 w = context.grid.CellToWorldCenter(c);
-                Instantiate(bombExplosionVfxPrefab, w, Quaternion.identity);
+                VFXPoolManager.Instance?.Get(bombExplosionVfxPrefab, w);
             }
 
             if (context.player != null && context.player.CellPosition == c)
@@ -354,6 +355,8 @@ public class GargoyleBombingAction : BossAction
 
         if (shapePickupPrefab != null && Random.value <= shapeDropChance)
             TrySpawnShapePickupNear(context, centerCell);
+        
+        AudioManager.Instance?.PlaySFX("drop_bomb_2");
     }
 
     #endregion

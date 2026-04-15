@@ -82,6 +82,8 @@ public class LoadSceneUI : MonoBehaviour
     private IEnumerator TransitionToScene(string sceneName)
     {
         isTransitioning = true;
+        
+        AudioManager.Instance?.PlaySFX("obstacle_click", 0.4f);
 
         if (transitionAnimator != null)
         {
@@ -89,6 +91,14 @@ public class LoadSceneUI : MonoBehaviour
             yield return new WaitForSeconds(transitionDuration);
         }
 
+        if (sceneName == mainMenuScene)
+        {
+            SceneManager.LoadScene(sceneName);
+            yield break;
+        }
+        
+        Utilities.UnfreezeGame();
+        RhythmManager.Instance?.Stop(); // clear the track before reload
         SceneManager.LoadScene(sceneName);
     }
 

@@ -75,6 +75,7 @@ public class VampireQueenSummonAction : BossAction
         if (summonAnchor != null)
         {
             queen.SetState(BossControllerBase.BossState.Flight);
+            AudioManager.Instance?.PlaySFX("vamp_flying", 0.7f);
             yield return queen.FlyToWorldPoint(summonAnchor.position, flyMoveSpeed);
         }
 
@@ -159,7 +160,10 @@ public class VampireQueenSummonAction : BossAction
     private IEnumerator SpawnEnemyWithPortal(GameObject prefab, Vector3 spawnWorld)
     {
         if (summonPortalPrefab != null)
+        {
+            AudioManager.Instance?.PlaySFX("vamp_portal_summon", 0.7f);
             Instantiate(summonPortalPrefab, spawnWorld, Quaternion.identity);
+        }
 
         if (portalSpawnDelay > 0f)
             yield return new WaitForSeconds(portalSpawnDelay);
