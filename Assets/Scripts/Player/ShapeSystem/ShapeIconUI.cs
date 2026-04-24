@@ -25,7 +25,7 @@ public class ShapeIconUI : MonoBehaviour
 
         // Set dimmed appearance if unavailable
         iconImage.color = isAvailable ? Color.white : new Color(0.5f, 0.5f, 0.5f, 0.5f); // Semi-transparent gray
-        countText.color = isAvailable ? Color.white : Color.gray;
+        countText.color = isAvailable ? Color.black : Color.gray;
 
         // Toggle highlight only if this icon is selected and available
         highlightFrame.SetActive(isSelected && isAvailable);
