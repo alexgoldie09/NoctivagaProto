@@ -98,7 +98,7 @@ GameObject:
   - component: {fileID: 2823716518909951557}
   - component: {fileID: 7073792822887892233}
   m_Layer: 0
-  m_Name: PowerupMeleePrefabDestroy 1
+  m_Name: PowerupMeleePrefabLowDuration
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -264,11 +264,11 @@ MonoBehaviour:
   bobAmplitude: 0.1
   bobFrequency: 0.4
   randomizePhase: 1
-  enableSelfDestruct: 1
+  enableSelfDestruct: 0
   destroyDelay: 6
   type: 2
-  minDuration: 8
-  maxDuration: 12
+  minDuration: 12
+  maxDuration: 15
 --- !u!1 &7008185968032670749
 GameObject:
   m_ObjectHideFlags: 0

@@ -29,6 +29,21 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/Scenes/BossLevels/Boss_Level_1.unity
     guid: 71d1b336e911e4db9b139e798d4eef65
+  - enabled: 1
+    path: Assets/Scenes/RegularLevels/Level_6.unity
+    guid: bc48cc41ce9724d62aa896604793ee72
+  - enabled: 1
+    path: Assets/Scenes/RegularLevels/Level_7.unity
+    guid: ad4e403e007a94cc3ac6b89642637a17
+  - enabled: 1
+    path: Assets/Scenes/RegularLevels/Level_8.unity
+    guid: 15e8c9380b9a540c6b82ba10871439a6
+  - enabled: 1
+    path: Assets/Scenes/RegularLevels/Level_9.unity
+    guid: aec9f316a9032499080ba6be4da579f2
+  - enabled: 1
+    path: Assets/Scenes/BossLevels/Boss_Level_2.unity
+    guid: 870348c6678cc4fd9b6a5385d09d3c02
   m_configObjects:
     com.unity.input.settings.actions: {fileID: -944628639613478452, guid: 2bcd2660ca9b64942af0de543d8d7100, type: 3}
   m_UseUCBPForAssetBundles: 0
