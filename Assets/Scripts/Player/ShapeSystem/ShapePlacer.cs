@@ -267,6 +267,13 @@ public class ShapePlacer : MonoBehaviour
     #endregion
     // ─────────────────────────────────────────────────────────────
     #region Cycle/Rotator Functions
+    private static readonly Vector2Int[] OrbitDirections = new[]
+    {
+        new Vector2Int( 0,  1),  // 0 = up
+        new Vector2Int( 1,  0),  // 1 = right
+        new Vector2Int( 0, -1),  // 2 = down
+        new Vector2Int(-1,  0),  // 3 = left
+    };
     /// <summary>
     /// Returns a placement origin one cell in front of the player,
     /// then nudges forward if the rotated shape would overlap the player cell.
@@ -275,29 +282,29 @@ public class ShapePlacer : MonoBehaviour
     /// <returns>Sanitized origin cell for placement.</returns>
     private Vector3Int GetSanitizedOriginCell(Vector2Int[] rotatedOffsets)
     {
-        Vector2Int f = player.FacingDirection;
+        // Single tile: orbit around player using currentRotation as direction index
+        if (rotatedOffsets.Length == 1)
+        {
+            var dir = OrbitDirections[currentRotation % 4];
+            return player.CellPosition + new Vector3Int(dir.x, dir.y, 0);
+        }
 
-        // Fallback if facing is ever zero (prevents origin == player)
+        // Multi-tile: existing facing-based logic
+        Vector2Int f = player.FacingDirection;
         if (f == Vector2Int.zero)
             f = Vector2Int.right;
 
         Vector3Int step = new Vector3Int(f.x, f.y, 0);
-
-        // Start one cell ahead (desired behavior)
         Vector3Int origin = player.CellPosition + step;
 
-        // Extra safety: if something still results in origin on player, push again
         if (origin == player.CellPosition)
             origin += step;
 
-        // If rotation causes the shape to overlap the player cell, nudge forward.
-        // Cap to avoid infinite loops in weird cases.
         const int maxNudges = 3;
         for (int i = 0; i < maxNudges; i++)
         {
             if (!WouldOverlapPlayer(origin, rotatedOffsets, player.CellPosition))
                 break;
-
             origin += step;
         }
 

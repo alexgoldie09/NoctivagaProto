@@ -375,7 +375,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b9a5214dc7fde4ca49d058c280eb0a7b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  interactPrompt: "\u201CPress E to rotate mirror\u201D"
+  interactPrompt: Press E to rotate mirror
   promptBubble: {fileID: 8809144746179270825}
   allowPrompt: 1
   direction: 0
@@ -652,7 +652,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 7276764522052231175, guid: 1102c373d8390415e96ef86741308f47, type: 3}
       propertyPath: m_SizeDelta.x
-      value: -10
+      value: -40
       objectReference: {fileID: 0}
     - target: {fileID: 7276764522052231175, guid: 1102c373d8390415e96ef86741308f47, type: 3}
       propertyPath: m_SizeDelta.y

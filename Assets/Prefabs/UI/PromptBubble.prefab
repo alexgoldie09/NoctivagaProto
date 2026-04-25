@@ -178,6 +178,7 @@ MonoBehaviour:
   m_VerticalAlignment: 512
   m_textAlignment: 65535
   m_characterSpacing: 0
+  m_characterHorizontalScale: 1
   m_wordSpacing: 0
   m_lineSpacing: 0
   m_lineSpacingMax: 0
@@ -271,8 +272,8 @@ Canvas:
   m_VertexColorAlwaysGammaSpace: 0
   m_AdditionalShaderChannelsFlag: 25
   m_UpdateRectTransformForStandalone: 0
-  m_SortingLayerID: 1715175555
-  m_SortingOrder: 0
+  m_SortingLayerID: 2077658901
+  m_SortingOrder: 20
   m_TargetDisplay: 0
 --- !u!114 &1299190415760255681
 MonoBehaviour:

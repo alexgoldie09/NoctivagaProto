@@ -585,9 +585,17 @@ PrefabInstance:
       propertyPath: m_Name
       value: PromptBubble
       objectReference: {fileID: 0}
+    - target: {fileID: 7052262623910964884, guid: 1102c373d8390415e96ef86741308f47, type: 3}
+      propertyPath: m_SortingOrder
+      value: 20
+      objectReference: {fileID: 0}
+    - target: {fileID: 7052262623910964884, guid: 1102c373d8390415e96ef86741308f47, type: 3}
+      propertyPath: m_SortingLayerID
+      value: 2077658901
+      objectReference: {fileID: 0}
     - target: {fileID: 7276764522052231175, guid: 1102c373d8390415e96ef86741308f47, type: 3}
       propertyPath: m_SizeDelta.x
-      value: -10
+      value: -40
       objectReference: {fileID: 0}
     - target: {fileID: 7276764522052231175, guid: 1102c373d8390415e96ef86741308f47, type: 3}
       propertyPath: m_SizeDelta.y

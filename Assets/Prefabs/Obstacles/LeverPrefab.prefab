@@ -486,7 +486,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d1ced3db7b5c54ee98864b51fb4a76f3, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  interactPrompt: "\u201CPress E to push lever\u201D"
+  interactPrompt: Press E to push lever
   promptBubble: {fileID: 1788163022992712528}
   allowPrompt: 1
   leverType: 0
@@ -948,8 +948,12 @@ PrefabInstance:
       value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 2160870671481858381, guid: 1102c373d8390415e96ef86741308f47, type: 3}
+      propertyPath: m_text
+      value: Press E to push lever
+      objectReference: {fileID: 0}
+    - target: {fileID: 2160870671481858381, guid: 1102c373d8390415e96ef86741308f47, type: 3}
       propertyPath: m_fontSize
-      value: 40
+      value: 26.8
       objectReference: {fileID: 0}
     - target: {fileID: 2160870671481858381, guid: 1102c373d8390415e96ef86741308f47, type: 3}
       propertyPath: m_fontAsset
@@ -1001,7 +1005,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 7276764522052231175, guid: 1102c373d8390415e96ef86741308f47, type: 3}
       propertyPath: m_SizeDelta.x
-      value: -10
+      value: -40
       objectReference: {fileID: 0}
     - target: {fileID: 7276764522052231175, guid: 1102c373d8390415e96ef86741308f47, type: 3}
       propertyPath: m_SizeDelta.y
